@@ -1,7 +1,7 @@
 {
-  "case_id": "case_6a7efb67c0a6",
-  "created_at": "2026-06-21T03:33:28+00:00",
-  "updated_at": "2026-06-21T03:33:28+00:00",
+  "case_id": "case_d08478750ae6",
+  "created_at": "2026-06-21T14:23:59+00:00",
+  "updated_at": "2026-06-21T14:23:59+00:00",
   "status": "complete",
   "raw_input_text": "",
   "patient_context": {
@@ -101,7 +101,8 @@
       "evidence_cited": [
         "allergy_penicillin_amoxicillin"
       ],
-      "summary": "过敏专员建议阻断阿莫西林。"
+      "summary": "过敏专员建议阻断阿莫西林。",
+      "debate_round": 3
     },
     {
       "agent_id": "clinical_pharmacist",
@@ -117,11 +118,12 @@
       ],
       "need_clarification": false,
       "clarification_targets": [],
-      "confidence": 0.9,
+      "confidence": 0.95,
       "evidence_cited": [
         "ddi_warfarin_ibuprofen_bleeding"
       ],
-      "summary": "临床药师审查完成。"
+      "summary": "临床药师审查完成。",
+      "debate_round": 3
     },
     {
       "agent_id": "internal_medicine",
@@ -139,9 +141,10 @@
       "clarification_targets": [
         "pregnancy_status"
       ],
-      "confidence": 0.85,
+      "confidence": 0.93,
       "evidence_cited": [],
-      "summary": "内科主治审查完成。"
+      "summary": "内科主治审查完成。",
+      "debate_round": 3
     },
     {
       "agent_id": "pharmacy_inventory",
@@ -157,7 +160,8 @@
       "clarification_targets": [],
       "confidence": 0.92,
       "evidence_cited": [],
-      "summary": "药房库管确认可调配。"
+      "summary": "药房库管确认可调配。",
+      "debate_round": 3
     },
     {
       "agent_id": "specialist",
@@ -180,7 +184,8 @@
       "evidence_cited": [
         "contraindication_pregnancy_acei"
       ],
-      "summary": "专科建议先确认妊娠状态。"
+      "summary": "专科建议先确认妊娠状态。",
+      "debate_round": 3
     }
   ],
   "arbitration": {
@@ -206,7 +211,8 @@
         "evidence_cited": [
           "allergy_penicillin_amoxicillin"
         ],
-        "summary": "过敏专员建议阻断阿莫西林。"
+        "summary": "过敏专员建议阻断阿莫西林。",
+        "debate_round": 3
       },
       {
         "agent_id": "clinical_pharmacist",
@@ -222,11 +228,12 @@
         ],
         "need_clarification": false,
         "clarification_targets": [],
-        "confidence": 0.9,
+        "confidence": 0.95,
         "evidence_cited": [
           "ddi_warfarin_ibuprofen_bleeding"
         ],
-        "summary": "临床药师审查完成。"
+        "summary": "临床药师审查完成。",
+        "debate_round": 3
       },
       {
         "agent_id": "internal_medicine",
@@ -244,9 +251,10 @@
         "clarification_targets": [
           "pregnancy_status"
         ],
-        "confidence": 0.85,
+        "confidence": 0.93,
         "evidence_cited": [],
-        "summary": "内科主治审查完成。"
+        "summary": "内科主治审查完成。",
+        "debate_round": 3
       },
       {
         "agent_id": "pharmacy_inventory",
@@ -262,7 +270,8 @@
         "clarification_targets": [],
         "confidence": 0.92,
         "evidence_cited": [],
-        "summary": "药房库管确认可调配。"
+        "summary": "药房库管确认可调配。",
+        "debate_round": 3
       },
       {
         "agent_id": "specialist",
@@ -285,7 +294,8 @@
         "evidence_cited": [
           "contraindication_pregnancy_acei"
         ],
-        "summary": "专科建议先确认妊娠状态。"
+        "summary": "专科建议先确认妊娠状态。",
+        "debate_round": 3
       }
     ],
     "dissenting_opinions": [
@@ -308,7 +318,8 @@
         "evidence_cited": [
           "allergy_penicillin_amoxicillin"
         ],
-        "summary": "过敏专员建议阻断阿莫西林。"
+        "summary": "过敏专员建议阻断阿莫西林。",
+        "debate_round": 3
       },
       {
         "agent_id": "clinical_pharmacist",
@@ -324,11 +335,12 @@
         ],
         "need_clarification": false,
         "clarification_targets": [],
-        "confidence": 0.9,
+        "confidence": 0.95,
         "evidence_cited": [
           "ddi_warfarin_ibuprofen_bleeding"
         ],
-        "summary": "临床药师审查完成。"
+        "summary": "临床药师审查完成。",
+        "debate_round": 3
       },
       {
         "agent_id": "internal_medicine",
@@ -346,9 +358,10 @@
         "clarification_targets": [
           "pregnancy_status"
         ],
-        "confidence": 0.85,
+        "confidence": 0.93,
         "evidence_cited": [],
-        "summary": "内科主治审查完成。"
+        "summary": "内科主治审查完成。",
+        "debate_round": 3
       },
       {
         "agent_id": "pharmacy_inventory",
@@ -364,11 +377,12 @@
         "clarification_targets": [],
         "confidence": 0.92,
         "evidence_cited": [],
-        "summary": "药房库管确认可调配。"
+        "summary": "药房库管确认可调配。",
+        "debate_round": 3
       }
     ],
-    "conflict_detected": false,
-    "arbitration_notes": "规则 evidence 优先；临床药师与过敏专员意见一致时采用阻断策略。",
+    "conflict_detected": true,
+    "arbitration_notes": "规则 evidence 优先；辩论汇总后临床药师与过敏专员意见一致时采用阻断策略。；辩论未达共识，已标记人工复核。",
     "final_recommendation": "华法林与 NSAIDs 联用出血风险显著升高。",
     "need_clarification": true,
     "clarification_targets": [
@@ -381,14 +395,14 @@
   "events": [
     {
       "stage": "agent_review",
-      "timestamp": "2026-06-21T03:33:28+00:00",
+      "timestamp": "2026-06-21T14:23:59+00:00",
       "payload": {
         "mode": "multi_agent"
       }
     },
     {
       "stage": "arbitration",
-      "timestamp": "2026-06-21T03:33:28+00:00",
+      "timestamp": "2026-06-21T14:23:59+00:00",
       "payload": {
         "consensus_risk_level": "unknown",
         "consensus_block_decision": true,
@@ -412,7 +426,8 @@
             "evidence_cited": [
               "allergy_penicillin_amoxicillin"
             ],
-            "summary": "过敏专员建议阻断阿莫西林。"
+            "summary": "过敏专员建议阻断阿莫西林。",
+            "debate_round": 3
           },
           {
             "agent_id": "clinical_pharmacist",
@@ -428,11 +443,12 @@
             ],
             "need_clarification": false,
             "clarification_targets": [],
-            "confidence": 0.9,
+            "confidence": 0.95,
             "evidence_cited": [
               "ddi_warfarin_ibuprofen_bleeding"
             ],
-            "summary": "临床药师审查完成。"
+            "summary": "临床药师审查完成。",
+            "debate_round": 3
           },
           {
             "agent_id": "internal_medicine",
@@ -450,9 +466,10 @@
             "clarification_targets": [
               "pregnancy_status"
             ],
-            "confidence": 0.85,
+            "confidence": 0.93,
             "evidence_cited": [],
-            "summary": "内科主治审查完成。"
+            "summary": "内科主治审查完成。",
+            "debate_round": 3
           },
           {
             "agent_id": "pharmacy_inventory",
@@ -468,7 +485,8 @@
             "clarification_targets": [],
             "confidence": 0.92,
             "evidence_cited": [],
-            "summary": "药房库管确认可调配。"
+            "summary": "药房库管确认可调配。",
+            "debate_round": 3
           },
           {
             "agent_id": "specialist",
@@ -491,7 +509,8 @@
             "evidence_cited": [
               "contraindication_pregnancy_acei"
             ],
-            "summary": "专科建议先确认妊娠状态。"
+            "summary": "专科建议先确认妊娠状态。",
+            "debate_round": 3
           }
         ],
         "dissenting_opinions": [
@@ -514,7 +533,8 @@
             "evidence_cited": [
               "allergy_penicillin_amoxicillin"
             ],
-            "summary": "过敏专员建议阻断阿莫西林。"
+            "summary": "过敏专员建议阻断阿莫西林。",
+            "debate_round": 3
           },
           {
             "agent_id": "clinical_pharmacist",
@@ -530,11 +550,12 @@
             ],
             "need_clarification": false,
             "clarification_targets": [],
-            "confidence": 0.9,
+            "confidence": 0.95,
             "evidence_cited": [
               "ddi_warfarin_ibuprofen_bleeding"
             ],
-            "summary": "临床药师审查完成。"
+            "summary": "临床药师审查完成。",
+            "debate_round": 3
           },
           {
             "agent_id": "internal_medicine",
@@ -552,9 +573,10 @@
             "clarification_targets": [
               "pregnancy_status"
             ],
-            "confidence": 0.85,
+            "confidence": 0.93,
             "evidence_cited": [],
-            "summary": "内科主治审查完成。"
+            "summary": "内科主治审查完成。",
+            "debate_round": 3
           },
           {
             "agent_id": "pharmacy_inventory",
@@ -570,11 +592,12 @@
             "clarification_targets": [],
             "confidence": 0.92,
             "evidence_cited": [],
-            "summary": "药房库管确认可调配。"
+            "summary": "药房库管确认可调配。",
+            "debate_round": 3
           }
         ],
-        "conflict_detected": false,
-        "arbitration_notes": "规则 evidence 优先；临床药师与过敏专员意见一致时采用阻断策略。",
+        "conflict_detected": true,
+        "arbitration_notes": "规则 evidence 优先；辩论汇总后临床药师与过敏专员意见一致时采用阻断策略。；辩论未达共识，已标记人工复核。",
         "final_recommendation": "华法林与 NSAIDs 联用出血风险显著升高。",
         "need_clarification": true,
         "clarification_targets": [
@@ -585,7 +608,7 @@
     },
     {
       "stage": "final",
-      "timestamp": "2026-06-21T03:33:28+00:00",
+      "timestamp": "2026-06-21T14:23:59+00:00",
       "payload": {
         "final_recommendation": "关键信息无法补充，建议暂缓用药并人工复核。"
       }

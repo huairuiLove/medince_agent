@@ -1,0 +1,167 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "description": "药物安全知识图谱种子数据 — 覆盖常用处方药、OTC、保健品及其相互作用",
+    "last_updated": "2025-07-01"
+  },
+  "nodes": [
+    {"id": "d_amoxicillin", "type": "Drug", "name": "阿莫西林", "brand_names": ["阿莫仙", "再林"], "atc_code": "J01CA04", "category": "青霉素类抗生素", "rx_type": "Rx", "description": "广谱青霉素类抗生素，用于敏感菌引起的呼吸道、泌尿道感染等"},
+    {"id": "d_cephalexin", "type": "Drug", "name": "头孢氨苄", "brand_names": ["先锋霉素IV", "斯宝力克"], "atc_code": "J01DB01", "category": "头孢类抗生素", "rx_type": "Rx", "description": "第一代头孢菌素，用于革兰阳性菌感染"},
+    {"id": "d_azithromycin", "type": "Drug", "name": "阿奇霉素", "brand_names": ["希舒美", "泰力特"], "atc_code": "J01FA10", "category": "大环内酯类抗生素", "rx_type": "Rx", "description": "大环内酯类抗生素，用于呼吸道、皮肤软组织感染"},
+    {"id": "d_levofloxacin", "type": "Drug", "name": "左氧氟沙星", "brand_names": ["可乐必妥", "左克"], "atc_code": "J01MA12", "category": "氟喹诺酮类抗生素", "rx_type": "Rx", "description": "氟喹诺酮类广谱抗生素，用于呼吸道、泌尿道感染"},
+    {"id": "d_metformin", "type": "Drug", "name": "二甲双胍", "brand_names": ["格华止", "美迪康"], "atc_code": "A10BA02", "category": "双胍类降糖药", "rx_type": "Rx", "description": "2型糖尿病一线用药，抑制肝糖输出、增加外周葡萄糖摄取"},
+    {"id": "d_glibenclamide", "type": "Drug", "name": "格列本脲", "brand_names": ["优降糖"], "atc_code": "A10BB01", "category": "磺脲类降糖药", "rx_type": "Rx", "description": "磺脲类胰岛素促泌剂，刺激胰岛β细胞分泌胰岛素"},
+    {"id": "d_insulin_glargine", "type": "Drug", "name": "甘精胰岛素", "brand_names": ["来得时", "长秀霖"], "atc_code": "A10AE04", "category": "长效胰岛素", "rx_type": "Rx", "description": "长效人胰岛素类似物，提供24小时基础胰岛素覆盖"},
+    {"id": "d_nifedipine", "type": "Drug", "name": "硝苯地平", "brand_names": ["心痛定", "拜新同"], "atc_code": "C08CA05", "category": "二氢吡啶类钙通道阻滞剂", "rx_type": "Rx", "description": "钙通道阻滞剂，用于高血压、心绞痛"},
+    {"id": "d_captopril", "type": "Drug", "name": "卡托普利", "brand_names": ["开博通"], "atc_code": "C09AA01", "category": "ACEI类降压药", "rx_type": "Rx", "description": "血管紧张素转化酶抑制剂，用于高血压、心力衰竭"},
+    {"id": "d_losartan", "type": "Drug", "name": "氯沙坦", "brand_names": ["科素亚"], "atc_code": "C09CA01", "category": "ARB类降压药", "rx_type": "Rx", "description": "血管紧张素II受体拮抗剂，用于高血压、糖尿病肾病"},
+    {"id": "d_atorvastatin", "type": "Drug", "name": "阿托伐他汀", "brand_names": ["立普妥", "阿乐"], "atc_code": "C10AA05", "category": "他汀类降脂药", "rx_type": "Rx", "description": "HMG-CoA还原酶抑制剂，降低胆固醇和低密度脂蛋白"},
+    {"id": "d_warfarin", "type": "Drug", "name": "华法林", "brand_names": ["华法林钠"], "atc_code": "B01AA03", "category": "香豆素类抗凝药", "rx_type": "Rx", "description": "维生素K拮抗剂，用于房颤、深静脉血栓的抗凝治疗"},
+    {"id": "d_clopidogrel", "type": "Drug", "name": "氯吡格雷", "brand_names": ["波立维", "泰嘉"], "atc_code": "B01AC04", "category": "P2Y12受体拮抗剂", "rx_type": "Rx", "description": "抗血小板聚集药，用于ACS、PCI术后"},
+    {"id": "d_aspirin_low", "type": "Drug", "name": "阿司匹林(小剂量)", "brand_names": ["拜阿司匹林", "巴米尔"], "atc_code": "B01AC06", "category": "抗血小板药", "rx_type": "OTC", "description": "小剂量抗血小板聚集，用于心脑血管疾病预防"},
+    {"id": "d_acetaminophen", "type": "Drug", "name": "对乙酰氨基酚", "brand_names": ["泰诺", "扑热息痛", "必理通"], "atc_code": "N02BE01", "category": "解热镇痛药", "rx_type": "OTC", "description": "解热镇痛，用于发热、轻中度疼痛。过量致肝损伤"},
+    {"id": "d_ibuprofen", "type": "Drug", "name": "布洛芬", "brand_names": ["芬必得", "美林", "艾德维尔"], "atc_code": "M01AE01", "category": "NSAIDs", "rx_type": "OTC", "description": "非甾体抗炎药，解热镇痛抗炎，用于疼痛、发热、关节炎"},
+    {"id": "d_diclofenac", "type": "Drug", "name": "双氯芬酸", "brand_names": ["扶他林", "戴芬"], "atc_code": "M01AB05", "category": "NSAIDs", "rx_type": "Rx", "description": "强效非甾体抗炎药，用于关节炎、痛风急性发作"},
+    {"id": "d_omeprazole", "type": "Drug", "name": "奥美拉唑", "brand_names": ["洛赛克", "奥克"], "atc_code": "A02BC01", "category": "质子泵抑制剂", "rx_type": "OTC", "description": "质子泵抑制剂，抑制胃酸分泌，用于消化性溃疡、GERD"},
+    {"id": "d_levothyroxine", "type": "Drug", "name": "左甲状腺素钠", "brand_names": ["优甲乐", "雷替斯"], "atc_code": "H03AA01", "category": "甲状腺激素", "rx_type": "Rx", "description": "甲状腺激素替代治疗，用于甲减"},
+    {"id": "d_digoxin", "type": "Drug", "name": "地高辛", "brand_names": ["狄戈辛"], "atc_code": "C01AA05", "category": "强心苷类", "rx_type": "Rx", "description": "强心苷，用于心力衰竭、房颤心率控制，治疗窗窄"},
+    {"id": "d_fluoxetine", "type": "Drug", "name": "氟西汀", "brand_names": ["百忧解", "优克"], "atc_code": "N06AB03", "category": "SSRI抗抑郁药", "rx_type": "Rx", "description": "选择性5-HT再摄取抑制剂，用于抑郁症、焦虑症"},
+    {"id": "d_diazepam", "type": "Drug", "name": "地西泮", "brand_names": ["安定"], "atc_code": "N05BA01", "category": "苯二氮䓬类", "rx_type": "Rx", "description": "苯二氮䓬类镇静催眠药，用于焦虑、失眠、癫痫持续状态"},
+    {"id": "d_cetirizine", "type": "Drug", "name": "西替利嗪", "brand_names": ["仙特明", "比特力"], "atc_code": "R06AE07", "category": "第二代抗组胺药", "rx_type": "OTC", "description": "抗组胺药，用于过敏性鼻炎、荨麻疹"},
+    {"id": "d_vitamin_k", "type": "Drug", "name": "维生素K", "brand_names": ["维生素K1"], "atc_code": "B02BA01", "category": "维生素类", "rx_type": "OTC", "description": "参与凝血因子合成，用于维生素K缺乏症、华法林过量解救"},
+    {"id": "d_coenzyme_q10", "type": "Drug", "name": "辅酶Q10", "brand_names": ["能气朗"], "atc_code": "C01EB09", "category": "保健品/营养心肌药", "rx_type": "OTC", "description": "参与线粒体电子传递，作为保健品用于心血管健康"},
+    {"id": "d_St_Johns_wort", "type": "Drug", "name": "圣约翰草(贯叶连翘)", "brand_names": ["路优泰"], "atc_code": "N06AX25", "category": "植物药/保健品", "rx_type": "OTC", "description": "草本抗抑郁药，强效诱导CYP3A4，与多种药物相互作用"},
+    {"id": "d_gingko", "type": "Drug", "name": "银杏叶提取物", "brand_names": ["金纳多", "银杏叶片"], "atc_code": "N06DX02", "category": "植物药/保健品", "rx_type": "OTC", "description": "改善脑循环和认知功能，有抗血小板作用倾向"},
+    {"id": "d_fish_oil", "type": "Drug", "name": "鱼油(Omega-3)", "brand_names": ["深海鱼油"], "atc_code": "C10AX06", "category": "保健品", "rx_type": "OTC", "description": "Omega-3多不饱和脂肪酸，降甘油三酯，轻度的抗血小板作用"},
+
+    {"id": "cond_hypertension", "type": "Condition", "name": "高血压", "category": "indication"},
+    {"id": "cond_diabetes_t2", "type": "Condition", "name": "2型糖尿病", "category": "indication"},
+    {"id": "cond_hyperlipidemia", "type": "Condition", "name": "高脂血症", "category": "indication"},
+    {"id": "cond_atrial_fibrillation", "type": "Condition", "name": "房颤", "category": "indication"},
+    {"id": "cond_peptic_ulcer", "type": "Condition", "name": "消化性溃疡", "category": "contraindication"},
+    {"id": "cond_asthma", "type": "Condition", "name": "哮喘", "category": "contraindication"},
+    {"id": "cond_liver_disease", "type": "Condition", "name": "严重肝病", "category": "contraindication"},
+    {"id": "cond_kidney_failure", "type": "Condition", "name": "肾功能不全", "category": "contraindication"},
+    {"id": "cond_gout", "type": "Condition", "name": "痛风", "category": "contraindication"},
+
+    {"id": "pop_pregnant", "type": "Population", "name": "孕妇", "category": "pregnant"},
+    {"id": "pop_lactating", "type": "Population", "name": "哺乳期妇女", "category": "lactating"},
+    {"id": "pop_elderly", "type": "Population", "name": "老年人(>65岁)", "category": "elderly"},
+    {"id": "pop_children", "type": "Population", "name": "儿童(<12岁)", "category": "children"},
+    {"id": "pop_liver_impaired", "type": "Population", "name": "肝功能不全者", "category": "liver_impaired"},
+    {"id": "pop_kidney_impaired", "type": "Population", "name": "肾功能不全者", "category": "kidney_impaired"},
+
+    {"id": "food_grapefruit", "type": "Food", "name": "西柚/葡萄柚"},
+    {"id": "food_alcohol", "type": "Food", "name": "酒精"},
+    {"id": "food_green_leafy", "type": "Food", "name": "绿叶蔬菜(富含维生素K)"},
+    {"id": "food_dairy", "type": "Food", "name": "牛奶/乳制品"},
+    {"id": "food_caffeine", "type": "Food", "name": "咖啡因"},
+
+    {"id": "enzyme_cyp3a4", "type": "Enzyme", "name": "CYP3A4"},
+    {"id": "enzyme_cyp2c9", "type": "Enzyme", "name": "CYP2C9"},
+    {"id": "enzyme_cyp2d6", "type": "Enzyme", "name": "CYP2D6"},
+    {"id": "enzyme_cyp2c19", "type": "Enzyme", "name": "CYP2C19"},
+
+    {"id": "class_antibiotics", "type": "DrugClass", "name": "抗生素"},
+    {"id": "class_nsaids", "type": "DrugClass", "name": "非甾体抗炎药"},
+    {"id": "class_anticoagulants", "type": "DrugClass", "name": "抗凝药"},
+    {"id": "class_antihypertensives", "type": "DrugClass", "name": "降压药"},
+    {"id": "class_ppis", "type": "DrugClass", "name": "质子泵抑制剂"}
+  ],
+  "edges": [
+    {"source": "d_warfarin", "target": "d_aspirin_low", "type": "INTERACTS_WITH", "severity": "severe", "mechanism": "协同抗凝+抑制血小板", "effect": "显著增加出血风险（消化道出血、颅内出血）", "recommendation": "联合使用需严格评估获益/风险，监测INR和出血体征。考虑PPI保护胃黏膜", "evidence_level": "A"},
+    {"source": "d_warfarin", "target": "d_ibuprofen", "type": "INTERACTS_WITH", "severity": "severe", "mechanism": "NSAIDs抑制血小板+损伤胃黏膜+置换华法林蛋白结合", "effect": "大幅增加消化道出血风险，INR升高", "recommendation": "避免联用。确需抗炎可选对乙酰氨基酚（不影响INR）", "evidence_level": "A"},
+    {"source": "d_warfarin", "target": "d_diclofenac", "type": "INTERACTS_WITH", "severity": "severe", "mechanism": "同布洛芬，NSAIDs类效应", "effect": "消化道出血风险显著增加", "recommendation": "避免联用", "evidence_level": "A"},
+    {"source": "d_warfarin", "target": "d_acetaminophen", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "对乙酰氨基酚长期大剂量可能轻度增强华法林效应", "effect": "INR轻度升高（通常>2g/天连续数天时明显）", "recommendation": "短期小剂量(≤2g/天)通常安全。长期使用需监测INR", "evidence_level": "B"},
+    {"source": "d_warfarin", "target": "d_omeprazole", "type": "INTERACTS_WITH", "severity": "mild", "mechanism": "PPI抑制CYP2C19，可能轻度降低华法林代谢", "effect": "INR可能轻微升高", "recommendation": "监测INR。泮托拉唑影响更小", "evidence_level": "C"},
+    {"source": "d_warfarin", "target": "d_levothyroxine", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "甲状腺激素增强凝血因子分解代谢", "effect": "开始甲状腺素治疗时华法林需求量增加，INR下降", "recommendation": "开始/调整甲状腺素剂量时加强INR监测", "evidence_level": "B"},
+    {"source": "d_warfarin", "target": "d_St_Johns_wort", "type": "INTERACTS_WITH", "severity": "severe", "mechanism": "圣约翰草强效诱导CYP3A4和CYP2C9，加速华法林代谢", "effect": "华法林血药浓度大幅下降，INR降低，血栓风险增加", "recommendation": "禁止联用", "evidence_level": "A"},
+    {"source": "d_warfarin", "target": "d_gingko", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "银杏有抗血小板活性，与华法林叠加", "effect": "出血风险增加", "recommendation": "谨慎联用，监测出血体征", "evidence_level": "C"},
+    {"source": "d_warfarin", "target": "d_fish_oil", "type": "INTERACTS_WITH", "severity": "mild", "mechanism": "Omega-3轻度抑制血小板聚集", "effect": "理论上增加出血倾向，但临床研究未显示显著风险", "recommendation": "常规剂量(≤3g/天)通常安全。大剂量时告知医生", "evidence_level": "C"},
+
+    {"source": "d_clopidogrel", "target": "d_omeprazole", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "奥美拉唑抑制CYP2C19，降低氯吡格雷活性代谢物生成", "effect": "氯吡格雷抗血小板作用减弱，心血管事件风险增加", "recommendation": "改用泮托拉唑或雷贝拉唑（对CYP2C19影响更小）", "evidence_level": "A"},
+    {"source": "d_clopidogrel", "target": "d_aspirin_low", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "双重抗血小板，协同作用", "effect": "出血风险增加但获益通常大于风险（ACS/PCI术后）", "recommendation": "双抗治疗需遵医嘱，注意消化道保护", "evidence_level": "A"},
+
+    {"source": "d_aspirin_low", "target": "d_ibuprofen", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "布洛芬竞争性占据COX-1，阻断阿司匹林的不可逆乙酰化", "effect": "阿司匹林抗血小板效应减弱", "recommendation": "布洛芬应在阿司匹林服用后≥2小时再服。或改用对乙酰氨基酚", "evidence_level": "B"},
+    {"source": "d_aspirin_low", "target": "d_diclofenac", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "NSAIDs叠加消化道损伤+可能减弱阿司匹林心脏保护", "effect": "消化道溃疡/出血风险增加", "recommendation": "必要时加用PPI保护胃黏膜", "evidence_level": "B"},
+
+    {"source": "d_ibuprofen", "target": "d_captopril", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "NSAIDs抑制前列腺素合成，减弱ACEI降压效果", "effect": "血压控制恶化，肾灌注减少", "recommendation": "监测血压和肾功能。偶用通常问题不大，长期联用需注意", "evidence_level": "B"},
+    {"source": "d_ibuprofen", "target": "d_losartan", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "同ACEI，NSAIDs减弱ARB降压效果", "effect": "血压升高，肾功能可能受损", "recommendation": "监测血压和肾功能", "evidence_level": "B"},
+    {"source": "d_diclofenac", "target": "d_nifedipine", "type": "INTERACTS_WITH", "severity": "mild", "mechanism": "NSAIDs可能轻度减弱钙通道阻滞剂降压效果", "effect": "降压效果可能轻度减弱", "recommendation": "短期使用通常安全", "evidence_level": "C"},
+
+    {"source": "d_atorvastatin", "target": "d_warfarin", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "他汀类可能轻度增强华法林效应", "effect": "INR可能轻度升高", "recommendation": "开始/调整他汀剂量时监测INR", "evidence_level": "B"},
+
+    {"source": "d_metformin", "target": "d_captopril", "type": "INTERACTS_WITH", "severity": "mild", "mechanism": "ACEI可能增强二甲双胍降糖效果", "effect": "血糖可能轻度降低", "recommendation": "监测血糖，通常无需调整", "evidence_level": "C"},
+
+    {"source": "d_digoxin", "target": "d_nifedipine", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "钙通道阻滞剂可能增加地高辛血药浓度", "effect": "地高辛中毒风险增加（恶心、心律失常、视觉异常）", "recommendation": "监测地高辛血药浓度和中毒体征", "evidence_level": "B"},
+    {"source": "d_digoxin", "target": "d_omeprazole", "type": "INTERACTS_WITH", "severity": "mild", "mechanism": "PPI减少胃酸，可能轻度增加地高辛吸收", "effect": "地高辛血药浓度可能轻度升高", "recommendation": "监测地高辛浓度", "evidence_level": "C"},
+
+    {"source": "d_fluoxetine", "target": "d_diazepam", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "氟西汀抑制CYP2C19，减慢地西泮代谢", "effect": "地西泮镇静作用增强、持续时间延长", "recommendation": "减少地西泮剂量，避免驾驶/操作机械", "evidence_level": "B"},
+    {"source": "d_fluoxetine", "target": "d_St_Johns_wort", "type": "INTERACTS_WITH", "severity": "severe", "mechanism": "两者均增加5-HT能活性，叠加效应", "effect": "5-HT综合征风险（激越、高热、肌阵挛、意识障碍）", "recommendation": "禁止联用", "evidence_level": "A"},
+
+    {"source": "d_St_Johns_wort", "target": "d_nifedipine", "type": "INTERACTS_WITH", "severity": "severe", "mechanism": "圣约翰草诱导CYP3A4，加速硝苯地平代谢", "effect": "硝苯地平血药浓度显著下降，降压效果减弱", "recommendation": "避免联用", "evidence_level": "B"},
+    {"source": "d_St_Johns_wort", "target": "d_atorvastatin", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "诱导CYP3A4加速他汀代谢", "effect": "他汀降脂效果减弱", "recommendation": "避免联用或增加他汀剂量（需监测）", "evidence_level": "B"},
+    {"source": "d_St_Johns_wort", "target": "d_diazepam", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "诱导CYP3A4加速苯二氮䓬类代谢", "effect": "地西泮疗效减弱", "recommendation": "避免联用", "evidence_level": "B"},
+    {"source": "d_St_Johns_wort", "target": "d_omeprazole", "type": "INTERACTS_WITH", "severity": "moderate", "mechanism": "诱导CYP3A4和CYP2C19加速PPI代谢", "effect": "奥美拉唑抑酸效果减弱", "recommendation": "避免联用或换用其他PPI", "evidence_level": "C"},
+
+    {"source": "d_levofloxacin", "target": "food_dairy", "type": "FOOD_INTERACTION", "severity": "moderate", "mechanism": "牛奶/乳制品中钙离子与喹诺酮类螯合", "effect": "左氧氟沙星吸收减少，抗菌效果下降", "recommendation": "服药前后2小时内避免摄入乳制品", "evidence_level": "A"},
+    {"source": "d_levofloxacin", "target": "food_caffeine", "type": "FOOD_INTERACTION", "severity": "mild", "mechanism": "喹诺酮类抑制咖啡因代谢(CYP1A2)", "effect": "咖啡因清除减慢，可能出现心悸、失眠", "recommendation": "服药期间减少咖啡/茶摄入", "evidence_level": "B"},
+
+    {"source": "d_atorvastatin", "target": "food_grapefruit", "type": "FOOD_INTERACTION", "severity": "severe", "mechanism": "西柚中的呋喃香豆素抑制肠道CYP3A4，大幅增加他汀吸收", "effect": "他汀血药浓度升高数倍，横纹肌溶解风险显著增加", "recommendation": "服用他汀期间避免食用西柚/葡萄柚及其果汁", "evidence_level": "A"},
+    {"source": "d_nifedipine", "target": "food_grapefruit", "type": "FOOD_INTERACTION", "severity": "moderate", "mechanism": "西柚抑制CYP3A4，增加硝苯地平生物利用度", "effect": "降压效果增强，可能出现低血压、头晕、面部潮红", "recommendation": "服药期间避免大量食用西柚", "evidence_level": "A"},
+    {"source": "d_diazepam", "target": "food_grapefruit", "type": "FOOD_INTERACTION", "severity": "moderate", "mechanism": "西柚抑制CYP3A4，减慢苯二氮䓬类代谢", "effect": "镇静作用增强、持续时间延长", "recommendation": "避免同时摄入", "evidence_level": "B"},
+
+    {"source": "d_warfarin", "target": "food_green_leafy", "type": "FOOD_INTERACTION", "severity": "severe", "mechanism": "绿叶蔬菜富含维生素K，直接拮抗华法林", "effect": "华法林抗凝效果减弱，INR下降，血栓风险增加", "recommendation": "华法林服药期间保持绿叶蔬菜摄入量恒定，不要突然大量增减。监测INR", "evidence_level": "A"},
+    {"source": "d_warfarin", "target": "food_alcohol", "type": "FOOD_INTERACTION", "severity": "moderate", "mechanism": "急性大量饮酒抑制华法林代谢（INR↑），慢性饮酒诱导代谢（INR↓）", "effect": "INR波动，出血或血栓风险均可能增加", "recommendation": "限制饮酒，保持稳定摄入量", "evidence_level": "B"},
+
+    {"source": "d_metformin", "target": "food_alcohol", "type": "FOOD_INTERACTION", "severity": "moderate", "mechanism": "酒精增加二甲双胍相关的乳酸酸中毒风险", "effect": "乳酸酸中毒风险增加（罕见但可致命）", "recommendation": "服用二甲双胍期间限制或避免饮酒", "evidence_level": "B"},
+
+    {"source": "d_acetaminophen", "target": "food_alcohol", "type": "FOOD_INTERACTION", "severity": "severe", "mechanism": "酒精诱导CYP2E1，增加对乙酰氨基酚毒性代谢物NAPQI生成", "effect": "肝毒性显著增加，即使治疗剂量也可能导致严重肝损伤", "recommendation": "服药期间禁止饮酒。慢性饮酒者每日对乙酰氨基酚不超过2g", "evidence_level": "A"},
+
+    {"source": "d_diazepam", "target": "food_alcohol", "type": "FOOD_INTERACTION", "severity": "severe", "mechanism": "酒精与苯二氮䓬类协同抑制中枢神经系统", "effect": "过度镇静、呼吸抑制、昏迷风险", "recommendation": "服药期间禁止饮酒", "evidence_level": "A"},
+
+    {"source": "d_levofloxacin", "target": "pop_pregnant", "type": "CONTRAINDICATED_FOR", "severity": "contraindicated", "mechanism": "氟喹诺酮类可能影响胎儿软骨发育", "effect": "", "recommendation": "孕妇禁用，哺乳期慎用", "evidence_level": "A"},
+    {"source": "d_levofloxacin", "target": "pop_children", "type": "CONTRAINDICATED_FOR", "severity": "contraindicated", "mechanism": "动物实验显示可能引起幼年动物关节病变", "effect": "", "recommendation": "18岁以下一般不宜使用", "evidence_level": "A"},
+    {"source": "d_warfarin", "target": "pop_pregnant", "type": "CONTRAINDICATED_FOR", "severity": "contraindicated", "mechanism": "华法林可通过胎盘，导致胎儿华法林综合征（鼻发育不全、骨骺点彩样钙化）", "effect": "", "recommendation": "妊娠期（尤其第6-12周）禁用。备孕期换用低分子肝素", "evidence_level": "A"},
+    {"source": "d_ibuprofen", "target": "pop_pregnant", "type": "CONTRAINDICATED_FOR", "severity": "severe", "mechanism": "NSAIDs可能导致胎儿动脉导管早闭、羊水过少", "effect": "", "recommendation": "妊娠晚期（≥30周）禁用。孕早期慎用", "evidence_level": "A"},
+    {"source": "d_diclofenac", "target": "pop_pregnant", "type": "CONTRAINDICATED_FOR", "severity": "severe", "mechanism": "同布洛芬", "effect": "", "recommendation": "妊娠晚期禁用", "evidence_level": "A"},
+    {"source": "d_atorvastatin", "target": "pop_pregnant", "type": "CONTRAINDICATED_FOR", "severity": "contraindicated", "mechanism": "胆固醇是胎儿发育必需物质，他汀类可能影响胎儿发育", "effect": "", "recommendation": "妊娠期和备孕期禁用。育龄妇女服药期间需避孕", "evidence_level": "A"},
+    {"source": "d_captopril", "target": "pop_pregnant", "type": "CONTRAINDICATED_FOR", "severity": "contraindicated", "mechanism": "ACEI可导致胎儿肾发育不良、羊水过少、颅骨发育不全", "effect": "", "recommendation": "妊娠期禁用。备孕期换用其他降压药", "evidence_level": "A"},
+
+    {"source": "d_ibuprofen", "target": "cond_peptic_ulcer", "type": "CONTRAINDICATED_FOR", "severity": "severe", "mechanism": "NSAIDs抑制COX-1，减少胃黏膜保护性前列腺素", "effect": "诱发或加重消化性溃疡、出血、穿孔", "recommendation": "活动性溃疡禁用。必须使用时联用PPI", "evidence_level": "A"},
+    {"source": "d_diclofenac", "target": "cond_peptic_ulcer", "type": "CONTRAINDICATED_FOR", "severity": "severe", "mechanism": "同布洛芬", "effect": "", "recommendation": "活动性溃疡禁用", "evidence_level": "A"},
+    {"source": "d_ibuprofen", "target": "cond_asthma", "type": "CONTRAINDICATED_FOR", "severity": "moderate", "mechanism": "NSAIDs可能诱发阿司匹林哮喘（与COX-1抑制有关）", "effect": "可能诱发支气管痉挛", "recommendation": "阿司匹林哮喘患者禁用", "evidence_level": "B"},
+    {"source": "d_metformin", "target": "cond_kidney_failure", "type": "CONTRAINDICATED_FOR", "severity": "contraindicated", "mechanism": "肾功能不全时二甲双胍清除减少，乳酸酸中毒风险增加", "effect": "", "recommendation": "eGFR<30禁用，eGFR 30-45减量使用", "evidence_level": "A"},
+    {"source": "d_ibuprofen", "target": "cond_kidney_failure", "type": "CONTRAINDICATED_FOR", "severity": "moderate", "mechanism": "NSAIDs减少肾灌注，可能加重肾功能损害", "effect": "", "recommendation": "肾功能不全者慎用，eGFR<30避免使用", "evidence_level": "B"},
+    {"source": "d_aspirin_low", "target": "cond_gout", "type": "CONTRAINDICATED_FOR", "severity": "mild", "mechanism": "小剂量阿司匹林抑制尿酸排泄", "effect": "尿酸轻度升高，可能诱发痛风发作", "recommendation": "痛风患者需监测尿酸。获益大于风险时可不停药", "evidence_level": "B"},
+
+    {"source": "d_nifedipine", "target": "cond_hypertension", "type": "INDICATED_FOR", "mechanism": "阻断钙离子内流，扩张血管", "effect": "降低血压"},
+    {"source": "d_captopril", "target": "cond_hypertension", "type": "INDICATED_FOR", "mechanism": "抑制ACE，减少AngII生成", "effect": "降低血压，保护心脏和肾脏"},
+    {"source": "d_losartan", "target": "cond_hypertension", "type": "INDICATED_FOR", "mechanism": "阻断AT1受体", "effect": "降低血压"},
+    {"source": "d_metformin", "target": "cond_diabetes_t2", "type": "INDICATED_FOR", "mechanism": "抑制肝糖输出，改善胰岛素抵抗", "effect": "降低空腹和餐后血糖"},
+    {"source": "d_atorvastatin", "target": "cond_hyperlipidemia", "type": "INDICATED_FOR", "mechanism": "抑制HMG-CoA还原酶", "effect": "降低LDL-C、TC，轻度升高HDL-C"},
+    {"source": "d_warfarin", "target": "cond_atrial_fibrillation", "type": "INDICATED_FOR", "mechanism": "拮抗维生素K，抑制凝血因子合成", "effect": "预防房颤相关血栓栓塞"},
+
+    {"source": "d_warfarin", "target": "enzyme_cyp2c9", "type": "METABOLIZED_BY"},
+    {"source": "d_ibuprofen", "target": "enzyme_cyp2c9", "type": "METABOLIZED_BY"},
+    {"source": "d_atorvastatin", "target": "enzyme_cyp3a4", "type": "METABOLIZED_BY"},
+    {"source": "d_nifedipine", "target": "enzyme_cyp3a4", "type": "METABOLIZED_BY"},
+    {"source": "d_diazepam", "target": "enzyme_cyp3a4", "type": "METABOLIZED_BY"},
+    {"source": "d_diazepam", "target": "enzyme_cyp2c19", "type": "METABOLIZED_BY"},
+    {"source": "d_omeprazole", "target": "enzyme_cyp2c19", "type": "METABOLIZED_BY"},
+    {"source": "d_fluoxetine", "target": "enzyme_cyp2d6", "type": "METABOLIZED_BY"},
+
+    {"source": "d_amoxicillin", "target": "class_antibiotics", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_cephalexin", "target": "class_antibiotics", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_azithromycin", "target": "class_antibiotics", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_levofloxacin", "target": "class_antibiotics", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_ibuprofen", "target": "class_nsaids", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_diclofenac", "target": "class_nsaids", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_warfarin", "target": "class_anticoagulants", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_clopidogrel", "target": "class_anticoagulants", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_nifedipine", "target": "class_antihypertensives", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_captopril", "target": "class_antihypertensives", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_losartan", "target": "class_antihypertensives", "type": "BELONGS_TO_CLASS"},
+    {"source": "d_omeprazole", "target": "class_ppis", "type": "BELONGS_TO_CLASS"}
+  ]
+}

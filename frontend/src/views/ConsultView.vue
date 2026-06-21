@@ -7,6 +7,7 @@ import type { PatientContext, DrugItem } from '@/types'
 import AgentOpinionCard from '@/components/consult/AgentOpinionCard.vue'
 import RuleEvidencePanel from '@/components/consult/RuleEvidencePanel.vue'
 import ClarifyPanel from '@/components/consult/ClarifyPanel.vue'
+import DebatePanel from '@/components/consult/DebatePanel.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 
 const { loading, error, result, run } = useMultiConsult()
@@ -72,7 +73,7 @@ const arb = computed(() => result.value?.arbitration)
     <header class="page-head">
       <div>
         <h1>多智能体会诊</h1>
-        <p>Extract → 规则守门 → 5 Agent 并行 → 主席仲裁 → Clarify</p>
+        <p>Extract → 规则守门 → 多轮辩论 + Critic → Safety Panel → 主席仲裁</p>
       </div>
     </header>
 
@@ -149,6 +150,8 @@ const arb = computed(() => result.value?.arbitration)
         </div>
 
         <RuleEvidencePanel :evidence="result.rule_output.evidence" />
+
+        <DebatePanel :debate="result.debate" :safety-panel="result.safety_panel" />
 
         <div class="card">
           <h3>会诊主席仲裁</h3>

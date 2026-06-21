@@ -72,6 +72,24 @@ deepseek_llm:
   model: "deepseek-chat"             # DeepSeek V3/R1 — 配置 v4 pro 时替换
   timeout: 120
 
+# ── ReAct Chat (元安 Agent 整合) ─────────────────────────────────────────
+chat:
+  provider: "mock"
+  api_key: ""
+  base_url: "https://api.deepseek.com/v1"
+  model: "deepseek-chat"
+  timeout: 120
+  max_retries: 2
+  fallback_enabled: true
+  knowledge_graph: "data/knowledge/drug_kg.json"
+
+# ── Multi-round debate (ClinicalPilot + MDAgents) ───────────────────────
+debate:
+  enabled: true
+  max_rounds: 3
+  confidence_threshold: 0.75
+  flag_for_human_on_no_consensus: true
+
 # ── Imaging segmentation ──────────────────────────────────────────────────
 imaging:
   serial_only: true

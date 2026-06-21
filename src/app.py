@@ -10,7 +10,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from src.agents.extract_agent import ExtractAgent
 from src.case_store import CaseStore
@@ -49,12 +49,15 @@ from src.schemas import (
 from src.imaging.catalog import ImagingCatalog
 from src.imaging.memory_monitor import rss_mb
 from src.imaging.segment_service import SegmentService
-from src.imaging.volume_io import decode_base64_image
+from src.imaging.volume_io import decode_base64_image, export_volume_slice, get_volume_meta, is_nifti
 from src.reports.report_generator import ReportGenerator
 from src.reports.report_qa import ReportQAService
 from src.reports.report_store import ReportStore
 from src.config import resolve_path
-from fastapi.responses import FileResponse
+from src.react.chat_service import chat_event_stream, init_chat_services, shutdown_chat_services
+from src.react.schemas import ChatRequest, SystemState
+from src.react.state_machine import state_machine
+from src.react.tool_registry import tool_registry
 
 VERSION = "3.0.0"
 
@@ -90,7 +93,9 @@ async def lifespan(app: FastAPI):
     )
     llm = get_llm_client()
     logger.info("MedSafe API ready", extra={"version": VERSION, "llm": type(llm).__name__})
+    await init_chat_services()
     yield
+    await shutdown_chat_services()
     logger.info("MedSafe API shutdown")
 
 
@@ -110,6 +115,7 @@ app = FastAPI(
         {"name": "Consult", "description": "Legacy rule-only consult pipeline"},
         {"name": "Cases", "description": "Case log management and replay"},
         {"name": "Imaging", "description": "Segmentation, screenshots, clinical reports"},
+        {"name": "Chat", "description": "ReAct SSE chat with role-based prompts (doctor/patient)"},
     ],
 )
 
@@ -136,7 +142,7 @@ _SERVER_START = time.time()
 _REQUEST_COUNTS: dict[str, int] = {
     "extract": 0, "review": 0, "clarify": 0, "consult": 0,
     "multi_review": 0, "multi_consult": 0, "case_get": 0,
-    "imaging_segment": 0, "report_generate": 0, "report_ask": 0,
+    "imaging_segment": 0, "report_generate": 0, "report_ask": 0, "chat_stream": 0,
 }
 
 
@@ -298,6 +304,8 @@ def multi_review(req: MultiReviewRequest, request: Request) -> MultiReviewRespon
                 "candidate_drugs": [d.model_dump() for d in req.candidate_drugs],
                 "review_output": result.rule_output.model_dump(),
                 "agent_opinions": [o.model_dump() for o in result.agent_opinions],
+                "debate": result.debate.model_dump() if result.debate else None,
+                "safety_panel": result.safety_panel.model_dump() if result.safety_panel else None,
                 "arbitration": result.arbitration.model_dump(),
                 "clarify_output": result.clarify_output.model_dump() if result.clarify_output else None,
                 "final_recommendation": result.final_recommendation,
@@ -306,6 +314,18 @@ def multi_review(req: MultiReviewRequest, request: Request) -> MultiReviewRespon
             stage="agent_review",
             payload={"agent_count": len(result.agent_opinions)},
         )
+        if result.debate:
+            CASE_STORE.upsert_case(
+                case_id=case.case_id,
+                stage="debate",
+                payload=result.debate.model_dump(),
+            )
+        if result.safety_panel:
+            CASE_STORE.upsert_case(
+                case_id=case.case_id,
+                stage="safety_panel",
+                payload=result.safety_panel.model_dump(),
+            )
         CASE_STORE.upsert_case(case_id=case.case_id, stage="arbitration", payload=result.arbitration.model_dump())
         if result.clarify_output:
             CASE_STORE.upsert_case(case_id=case.case_id, stage="clarify", payload=result.clarify_output.model_dump())
@@ -351,6 +371,8 @@ def multi_consult(req: MultiConsultRequest, request: Request) -> MultiConsultRes
                 "candidate_drugs": [d.model_dump() for d in req.candidate_drugs],
                 "review_output": result.rule_output.model_dump(),
                 "agent_opinions": [o.model_dump() for o in result.agent_opinions],
+                "debate": result.debate.model_dump() if result.debate else None,
+                "safety_panel": result.safety_panel.model_dump() if result.safety_panel else None,
                 "arbitration": result.arbitration.model_dump(),
                 "clarify_output": result.clarify_output.model_dump() if result.clarify_output else None,
                 "final_recommendation": result.final_recommendation,
@@ -360,6 +382,10 @@ def multi_consult(req: MultiConsultRequest, request: Request) -> MultiConsultRes
             payload=result.rule_output.model_dump(),
         )
         CASE_STORE.upsert_case(case_id=case.case_id, stage="agent_review", payload={"agents": len(result.agent_opinions)})
+        if result.debate:
+            CASE_STORE.upsert_case(case_id=case.case_id, stage="debate", payload=result.debate.model_dump())
+        if result.safety_panel:
+            CASE_STORE.upsert_case(case_id=case.case_id, stage="safety_panel", payload=result.safety_panel.model_dump())
         CASE_STORE.upsert_case(case_id=case.case_id, stage="arbitration", payload=result.arbitration.model_dump())
         if result.clarify_output:
             CASE_STORE.upsert_case(case_id=case.case_id, stage="clarify", payload=result.clarify_output.model_dump())
@@ -371,6 +397,8 @@ def multi_consult(req: MultiConsultRequest, request: Request) -> MultiConsultRes
         extract_output=extraction,
         rule_output=result.rule_output,
         agent_opinions=result.agent_opinions,
+        debate=result.debate,
+        safety_panel=result.safety_panel,
         arbitration=result.arbitration,
         clarify_output=result.clarify_output,
         final_recommendation=result.final_recommendation,
@@ -479,11 +507,56 @@ def serve_imaging_file(path: str):
     return FileResponse(target)
 
 
+@app.get("/api/v1/imaging/volume/meta", tags=["Imaging"])
+def imaging_volume_meta(volume_path: str):
+    root = resolve_path(".")
+    target = (root / volume_path).resolve()
+    if not str(target).startswith(str(root.resolve())):
+        raise HTTPException(status_code=403, detail="Invalid path")
+    if not target.exists() or not is_nifti(target):
+        raise HTTPException(status_code=404, detail="NIfTI volume not found")
+    meta = get_volume_meta(target)
+    return {"volume_path": volume_path, **meta}
+
+
+@app.get("/api/v1/imaging/volume/slice", tags=["Imaging"])
+def imaging_volume_slice(
+    volume_path: str,
+    axis: str = "axial",
+    index: int = 0,
+    overlay_path: str | None = None,
+):
+    root = resolve_path(".")
+    target = (root / volume_path).resolve()
+    if not str(target).startswith(str(root.resolve())):
+        raise HTTPException(status_code=403, detail="Invalid path")
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Volume not found")
+    mask = None
+    if overlay_path:
+        mask_target = (root / overlay_path).resolve()
+        if str(mask_target).startswith(str(root.resolve())) and mask_target.exists():
+            mask = str(mask_target)
+    png = export_volume_slice(
+        target,
+        axis=axis if axis in {"axial", "coronal", "sagittal"} else "axial",
+        slice_index=index,
+        mask_path=mask,
+    )
+    return FileResponse(png)
+
+
 @app.post("/api/v1/imaging/segment", response_model=SegmentResponse, tags=["Imaging"])
 def run_segmentation(req: SegmentRequest, request: Request) -> SegmentResponse:
     _REQUEST_COUNTS["imaging_segment"] += 1
     visual = IMAGING_CATALOG.resolve_visual_only(req.image_path)
     kwargs: dict = {"organ": req.organ}
+    if req.volume_path:
+        kwargs["volume_path"] = req.volume_path
+    if req.slice_axis:
+        kwargs["slice_axis"] = req.slice_axis
+    if req.slice_index is not None:
+        kwargs["slice_index"] = req.slice_index
     if req.point and len(req.point) >= 2:
         kwargs["point"] = (req.point[0], req.point[1])
     if req.bbox and len(req.bbox) >= 4:
@@ -539,6 +612,93 @@ def get_clinical_report(patient_id: str, report_id: str) -> ClinicalReport:
 def ask_report(req: ReportAskRequest, request: Request) -> ReportAskResponse:
     _REQUEST_COUNTS["report_ask"] += 1
     return REPORT_QA.ask(req)
+
+
+@app.post("/api/v1/imaging/report/ask", response_model=ReportAskResponse, tags=["Imaging"])
+def ask_report(req: ReportAskRequest, request: Request) -> ReportAskResponse:
+    _REQUEST_COUNTS["report_ask"] += 1
+    return REPORT_QA.ask(req)
+
+
+# ── Chat (ReAct + Graph RAG, role-based) ─────────────────────────────────
+
+@app.get("/api/v1/chat/system-state", response_model=SystemState, tags=["Chat"])
+async def get_chat_system_state() -> SystemState:
+    await state_machine.evaluate()
+    return state_machine.state
+
+
+@app.post("/api/v1/chat/stream", tags=["Chat"])
+async def chat_stream(req: ChatRequest, request: Request):
+    """SSE streaming chat — doctor (professional) vs patient (lay language)."""
+    _REQUEST_COUNTS["chat_stream"] += 1
+    return StreamingResponse(
+        chat_event_stream(req),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# Legacy yuan-agent paths (frontend proxy compat)
+@app.post("/api/chat/stream", tags=["Chat"], include_in_schema=False)
+async def chat_stream_legacy(req: ChatRequest, request: Request):
+    return await chat_stream(req, request)
+
+
+@app.get("/api/system/state", tags=["Chat"], include_in_schema=False)
+async def get_system_state_legacy() -> SystemState:
+    return await get_chat_system_state()
+
+
+@app.post("/api/v1/drug/info", tags=["Chat"])
+async def get_drug_info(request: Request):
+    """Query drug details from knowledge graph for side panel."""
+    from src.mcp.tools.drug_query import search_drug_info
+    import re
+    try:
+        body = await request.json()
+        drug_name = body.get("drug_name", "")
+        if not drug_name:
+            return JSONResponse(content={"error": "drug_name required"}, status_code=400)
+
+        result_text = search_drug_info(drug_name)
+        data: dict = {"name": drug_name, "interactions": [], "contraindications": [], "food_interactions": []}
+        m = re.search(r'\*\*类别\*\*:\s*(.+)', result_text)
+        if m:
+            data["category"] = m.group(1).strip()
+        m = re.search(r'\*\*处方类型\*\*:\s*(.+)', result_text)
+        if m:
+            data["rx_type"] = m.group(1).strip()
+        m = re.search(r'\*\*商品名\*\*:\s*(.+)', result_text)
+        if m:
+            data["brand_names"] = [b.strip() for b in m.group(1).split("、")]
+        m = re.search(r'\*\*简介\*\*:\s*(.+)', result_text)
+        if m:
+            data["description"] = m.group(1).strip()
+
+        inter_section = re.search(r'### 已知药物相互作用\n(.*?)(?=\n###|\Z)', result_text, re.DOTALL)
+        if inter_section:
+            for block in inter_section.group(1).strip().split("\n- **"):
+                if not block.strip():
+                    continue
+                nm = re.match(r'(.+?)\*\*\s*\[(.+?)\]', block)
+                if nm:
+                    inter: dict = {"drug": nm.group(1).strip(), "severity": nm.group(2).strip()}
+                    eff = re.search(r'后果:\s*(.+)', block)
+                    if eff:
+                        inter["effect"] = eff.group(1).strip()
+                    rec = re.search(r'建议:\s*(.+)', block)
+                    if rec:
+                        inter["recommendation"] = rec.group(1).strip()
+                    data["interactions"].append(inter)
+
+        return JSONResponse(content=data)
+    except Exception as exc:
+        return JSONResponse(content={"error": str(exc)}, status_code=500)
 
 
 @app.exception_handler(Exception)

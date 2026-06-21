@@ -6,7 +6,8 @@ const route = useRoute()
 const links = [
   { to: '/', label: '系统概览' },
   { to: '/imaging', label: '影像与会诊' },
-  { to: '/consult', label: '用药会诊' },
+  { to: '/consult', label: '多智能体会诊' },
+  { to: '/chat', label: '智能问答' },
   { to: '/rule-review', label: '规则审查' },
   { to: '/cases', label: '病例回放' },
   { to: '/agents', label: '智能体' },

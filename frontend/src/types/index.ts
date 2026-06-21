@@ -96,9 +96,62 @@ export interface MultiConsultResponse {
   extract_output?: Record<string, unknown> | null
   rule_output: ReviewOutput
   agent_opinions: AgentOpinion[]
+  debate?: DebateResult | null
+  safety_panel?: SafetyPanelResult | null
   arbitration: ArbitrationResult
   clarify_output?: ClarifyOutput | null
   final_recommendation: string
+}
+
+export interface CriticOutput {
+  round_number: number
+  overall_assessment: string
+  consensus_reached: boolean
+  dissent_log: string[]
+  low_confidence_agents: string[]
+  min_confidence: number
+}
+
+export interface DebateRoundRecord {
+  round_number: number
+  agent_opinions: AgentOpinion[]
+  critic_output?: CriticOutput | null
+  min_confidence: number
+}
+
+export interface ModeratorSynthesis {
+  consistency_notes: string[]
+  conflict_notes: string[]
+  integration_summary: string
+  recommended_risk_level: RiskLevel
+  recommended_block: boolean
+}
+
+export interface SafetyFlag {
+  severity: RiskLevel
+  category: string
+  description: string
+  recommendation: string
+  rule_id: string
+}
+
+export interface SafetyPanelResult {
+  passed: boolean
+  risk_level: RiskLevel
+  block_recommended: boolean
+  flags: SafetyFlag[]
+  summary: string
+}
+
+export interface DebateResult {
+  enabled: boolean
+  rounds: DebateRoundRecord[]
+  moderator_synthesis?: ModeratorSynthesis | null
+  final_consensus: boolean
+  flagged_for_human: boolean
+  min_confidence: number
+  duration_ms: number
+  llm_calls_estimate: number
 }
 
 export interface CaseLog {
@@ -161,6 +214,16 @@ export interface ImagingStudy {
   image_paths: string[]
   volume_path?: string | null
   slice_count: number
+}
+
+export type VolumeAxis = 'axial' | 'coronal' | 'sagittal'
+
+export interface VolumeMeta {
+  volume_path: string
+  shape: number[]
+  spacing: number[]
+  slice_counts: Record<VolumeAxis, number>
+  modality: string
 }
 
 export interface SegmentResultItem {

@@ -30,7 +30,7 @@ class BaseAgent(ABC):
         }
         return pretty_json(payload)
 
-    def _parse_opinion(self, data: dict[str, Any] | None) -> AgentOpinion:
+    def _parse_opinion(self, data: dict[str, Any] | None, debate_round: int = 1) -> AgentOpinion:
         if not data:
             return AgentOpinion(
                 agent_id=self.agent_id,
@@ -40,6 +40,7 @@ class BaseAgent(ABC):
                 risk_level="unknown",
                 block_decision=True,
                 confidence=0.0,
+                debate_round=debate_round,
             )
         return AgentOpinion(
             agent_id=self.agent_id,
@@ -54,6 +55,7 @@ class BaseAgent(ABC):
             confidence=float(data.get("confidence", 0.5)),
             evidence_cited=list(data.get("evidence_cited", [])),
             summary=str(data.get("summary", "")),
+            debate_round=debate_round,
         )
 
     @abstractmethod
@@ -75,4 +77,22 @@ class LLMAgent(BaseAgent):
     ) -> AgentOpinion:
         user = self.build_user_input(patient_context, candidate_drugs, rule_evidence)
         data = self.llm.chat_json(self.system_prompt, user)
-        return self._parse_opinion(data)
+        return self._parse_opinion(data, debate_round=1)
+
+    def review_with_critique(
+        self,
+        patient_context: PatientContext,
+        candidate_drugs: list[CandidateDrug],
+        rule_evidence: list[RuleEvidence],
+        critique: str,
+        round_number: int = 2,
+    ) -> AgentOpinion:
+        from src.prompts import REVISION_SUFFIX
+
+        user = self.build_user_input(patient_context, candidate_drugs, rule_evidence)
+        user += REVISION_SUFFIX.format(round_number=round_number, critique=critique)
+        data = self.llm.chat_json(self.system_prompt, user)
+        opinion = self._parse_opinion(data, debate_round=round_number)
+        if round_number > 1 and opinion.confidence < 0.85:
+            opinion.confidence = min(0.92, opinion.confidence + 0.08)
+        return opinion

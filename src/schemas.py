@@ -8,7 +8,16 @@ RiskLevel = Literal["none", "low", "medium", "high", "unknown"]
 ClarifyStatus = Literal["need_user_input", "conservative_fallback", "complete"]
 QuestionPriority = Literal["high", "medium", "low"]
 CaseStage = Literal[
-    "extract", "rule_gate", "agent_review", "arbitration", "review", "clarify", "final"
+    "extract",
+    "rule_gate",
+    "agent_review",
+    "debate",
+    "critic_review",
+    "safety_panel",
+    "arbitration",
+    "review",
+    "clarify",
+    "final",
 ]
 ReportSection = Literal[
     "clinical_analysis",
@@ -186,6 +195,66 @@ class AgentOpinion(BaseModel):
     confidence: float = 0.5
     evidence_cited: List[str] = Field(default_factory=list)
     summary: str = Field(default="")
+    debate_round: int = Field(default=1, description="Opinion produced at debate round N")
+
+
+class CriticOutput(BaseModel):
+    round_number: int = 0
+    ehr_contradictions: List[str] = Field(default_factory=list)
+    evidence_gaps: List[str] = Field(default_factory=list)
+    safety_misses: List[str] = Field(default_factory=list)
+    overall_assessment: str = Field(default="")
+    consensus_reached: bool = False
+    dissent_log: List[str] = Field(default_factory=list)
+    low_confidence_agents: List[str] = Field(default_factory=list)
+    min_confidence: float = Field(default=1.0)
+
+
+class DebateRoundRecord(BaseModel):
+    round_number: int
+    agent_opinions: List[AgentOpinion] = Field(default_factory=list)
+    critic_output: Optional[CriticOutput] = None
+    min_confidence: float = Field(default=1.0)
+
+
+class ModeratorSynthesis(BaseModel):
+    consistency_notes: List[str] = Field(default_factory=list)
+    conflict_notes: List[str] = Field(default_factory=list)
+    integration_summary: str = Field(default="")
+    recommended_risk_level: RiskLevel = "unknown"
+    recommended_block: bool = False
+    majority_block_votes: int = 0
+    total_agents: int = 0
+
+
+class SafetyFlag(BaseModel):
+    severity: RiskLevel = "medium"
+    category: str = Field(default="")
+    description: str = Field(default="")
+    recommendation: str = Field(default="")
+    rule_id: str = Field(default="")
+    implicated_drugs: List[str] = Field(default_factory=list)
+
+
+class SafetyPanelResult(BaseModel):
+    passed: bool = True
+    risk_level: RiskLevel = "none"
+    block_recommended: bool = False
+    flags: List[SafetyFlag] = Field(default_factory=list)
+    ddi_hits: List[SafetyFlag] = Field(default_factory=list)
+    summary: str = Field(default="")
+
+
+class DebateResult(BaseModel):
+    enabled: bool = True
+    rounds: List[DebateRoundRecord] = Field(default_factory=list)
+    moderator_synthesis: Optional[ModeratorSynthesis] = None
+    final_opinions: List[AgentOpinion] = Field(default_factory=list)
+    final_consensus: bool = False
+    flagged_for_human: bool = False
+    min_confidence: float = Field(default=1.0)
+    duration_ms: float = Field(default=0.0)
+    llm_calls_estimate: int = Field(default=0)
 
 
 class ArbitrationResult(BaseModel):
@@ -213,6 +282,8 @@ class MultiReviewResponse(BaseModel):
     case_id: Optional[str] = None
     rule_output: ReviewOutput
     agent_opinions: List[AgentOpinion] = Field(default_factory=list)
+    debate: Optional[DebateResult] = None
+    safety_panel: Optional[SafetyPanelResult] = None
     arbitration: ArbitrationResult
     clarify_output: Optional[ClarifyOutput] = None
     final_recommendation: str = Field(default="")
@@ -232,6 +303,8 @@ class MultiConsultResponse(BaseModel):
     extract_output: Optional[ExtractionOutput] = None
     rule_output: ReviewOutput
     agent_opinions: List[AgentOpinion] = Field(default_factory=list)
+    debate: Optional[DebateResult] = None
+    safety_panel: Optional[SafetyPanelResult] = None
     arbitration: ArbitrationResult
     clarify_output: Optional[ClarifyOutput] = None
     final_recommendation: str = Field(default="")
@@ -308,8 +381,19 @@ class SegmentRequest(BaseModel):
     image_path: str
     model_ids: List[ModelId] = Field(default_factory=list)
     organ: str = Field(default="brain")
+    volume_path: Optional[str] = None
+    slice_axis: str = Field(default="axial")
+    slice_index: Optional[int] = None
     point: Optional[List[int]] = None
     bbox: Optional[List[int]] = None
+
+
+class VolumeMetaResponse(BaseModel):
+    volume_path: str
+    shape: List[int]
+    spacing: List[float]
+    slice_counts: Dict[str, int]
+    modality: str
 
 
 class SegmentResponse(BaseModel):

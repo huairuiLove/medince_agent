@@ -13,6 +13,7 @@ from src.config import resolve_path
 from src.utils import ensure_dir
 
 ImageModality = Literal["CT", "MRI", "XR", "unknown"]
+VolumeAxis = Literal["axial", "coronal", "sagittal"]
 VISUAL_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 
 
@@ -132,3 +133,144 @@ def guess_modality(path: str | Path) -> ImageModality:
     if "mimic" in p or "ct" in p:
         return "CT"
     return "unknown"
+
+
+def is_nifti(path: str | Path) -> bool:
+    p = Path(path)
+    return str(p).endswith(".nii.gz") or p.suffix == ".nii"
+
+
+def load_nifti_volume(path: str | Path) -> tuple[np.ndarray, np.ndarray]:
+    try:
+        import nibabel as nib
+    except ImportError as exc:
+        raise RuntimeError("nibabel required for NIfTI volumes") from exc
+    img = nib.load(str(path))
+    vol = np.asarray(img.get_fdata(dtype=np.float32))
+    if vol.ndim == 4:
+        vol = vol[..., 0]
+    if vol.ndim != 3:
+        raise ValueError(f"Unsupported volume shape: {vol.shape}")
+    return vol, img.affine
+
+
+def get_volume_meta(path: str | Path) -> dict:
+    vol, affine = load_nifti_volume(path)
+    spacing = np.sqrt((affine[:3, :3] ** 2).sum(axis=0)).tolist()
+    shape = list(vol.shape)
+    return {
+        "shape": shape,
+        "spacing": [float(s) for s in spacing],
+        "slice_counts": {
+            "axial": shape[2],
+            "coronal": shape[1],
+            "sagittal": shape[0],
+        },
+        "modality": guess_modality(path),
+    }
+
+
+def _extract_slice(vol: np.ndarray, axis: VolumeAxis, index: int) -> np.ndarray:
+    if axis == "axial":
+        idx = max(0, min(index, vol.shape[2] - 1))
+        return vol[:, :, idx]
+    if axis == "coronal":
+        idx = max(0, min(index, vol.shape[1] - 1))
+        return vol[:, idx, :]
+    idx = max(0, min(index, vol.shape[0] - 1))
+    return vol[idx, :, :]
+
+
+def export_volume_slice(
+    volume_path: str | Path,
+    axis: VolumeAxis = "axial",
+    slice_index: int = 0,
+    mask_path: str | Path | None = None,
+    overlay_color: tuple[int, int, int] = (25, 118, 210),
+    alpha: float = 0.45,
+) -> Path:
+    """Export MPR slice PNG; optionally composite with 3D mask overlay."""
+    volume_path = Path(volume_path)
+    vol, _ = load_nifti_volume(volume_path)
+    slc = _extract_slice(vol, axis, slice_index)
+    base_u8 = _normalize_to_uint8(slc)
+
+    cache_root = resolve_path("data/imaging_cache/mpr")
+    stem = volume_path.name.replace(".nii.gz", "").replace(".nii", "")
+    tag = f"{stem}_{axis}_{slice_index:04d}"
+    out = cache_root / f"{tag}.png"
+    ensure_dir(out.parent)
+
+    if mask_path and Path(mask_path).exists():
+        mask_vol, _ = load_nifti_volume(mask_path)
+        if mask_vol.shape == vol.shape:
+            mslc = _extract_slice(mask_vol, axis, slice_index) > 0
+            base_rgb = np.stack([base_u8] * 3, axis=-1).astype(np.float32)
+            color_arr = np.array(overlay_color, dtype=np.float32)
+            base_rgb[mslc] = base_rgb[mslc] * (1 - alpha) + color_arr * alpha
+            Image.fromarray(base_rgb.astype(np.uint8)).save(out)
+            return out
+
+    Image.fromarray(base_u8).save(out)
+    return out
+
+
+def save_overlay_from_volume_slice(
+    volume_path: str | Path,
+    mask_path: str | Path,
+    axis: VolumeAxis,
+    slice_index: int,
+    color: tuple[int, int, int] = (25, 118, 210),
+) -> Path:
+    return export_volume_slice(
+        volume_path,
+        axis=axis,
+        slice_index=slice_index,
+        mask_path=mask_path,
+        overlay_color=color,
+    )
+
+
+def export_pseudo_nifti_from_image(
+    image_path: str | Path,
+    depth: int = 16,
+    spacing: tuple[float, float, float] = (1.5, 1.5, 1.5),
+    max_side: int = 384,
+) -> tuple[Path, int]:
+    """Stack a 2D JPG/PNG into a thin axial NIfTI for VISTA3D bundle inference."""
+    try:
+        import nibabel as nib
+    except ImportError as exc:
+        raise RuntimeError("nibabel required") from exc
+
+    image_path = Path(image_path)
+    arr = load_grayscale_array(image_path)
+    h, w = arr.shape
+    if max(h, w) > max_side:
+        scale = max_side / max(h, w)
+        nh, nw = int(h * scale), int(w * scale)
+        arr = np.asarray(
+            Image.fromarray(arr.astype(np.uint8)).resize((nw, nh), Image.BILINEAR),
+            dtype=np.float32,
+        )
+    vol = np.stack([arr] * depth, axis=-1).astype(np.float32)
+    affine = np.diag([spacing[0], spacing[1], spacing[2], 1.0]).astype(np.float64)
+
+    cache_dir = resolve_path("data/imaging_cache/pseudo_vol")
+    ensure_dir(cache_dir)
+    out = cache_dir / f"{image_path.stem}_pseudo_d{depth}_s{max_side}.nii.gz"
+    nib.save(nib.Nifti1Image(vol, affine), str(out))
+    return out, depth // 2
+
+
+def save_overlay_from_mask_volume(
+    display_path: str | Path,
+    mask_path: str | Path,
+    axis: VolumeAxis = "axial",
+    slice_index: int = 0,
+    color: tuple[int, int, int] = (25, 118, 210),
+) -> Path:
+    """Composite a mask volume slice onto a 2D display image."""
+    mask_vol, _ = load_nifti_volume(mask_path)
+    mslc = _extract_slice(mask_vol, axis, slice_index) > 0
+    return save_overlay(display_path, mslc, color=color)

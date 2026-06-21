@@ -44,7 +44,7 @@ class TotalSegmentatorBackend(BaseSegmentBackend):
         release_torch()
 
     def segment(self, image_path: str | Path, **kwargs: Any) -> SegmentResult:
-        from TotalSegmentator.python_api import totalsegmentator
+        from totalsegmentator.python_api import totalsegmentator as ts_predict
 
         self._ensure_home()
         image_path = Path(image_path)
@@ -60,7 +60,7 @@ class TotalSegmentatorBackend(BaseSegmentBackend):
         roi_subset = kwargs.get("roi_subset") or ["liver", "lung", "brain"]
 
         try:
-            totalsegmentator(
+            ts_predict(
                 str(nii_input),
                 str(out_dir),
                 fast=fast,
@@ -69,6 +69,7 @@ class TotalSegmentatorBackend(BaseSegmentBackend):
                 nr_thr_resamp=1,
                 nr_thr_saving=1,
                 device="cpu",
+                quiet=True,
             )
             mask = self._collect_mask(out_dir, image_path)
         except Exception as exc:

@@ -12,6 +12,8 @@ import type {
   SegModelInfo,
   SegmentResultItem,
   DrugItem,
+  VolumeAxis,
+  VolumeMeta,
 } from '@/types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -30,6 +32,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function imagingFileUrl(path: string): string {
   return `${BASE}/api/v1/imaging/file?path=${encodeURIComponent(path)}`
+}
+
+export function volumeSliceUrl(params: {
+  volume_path: string
+  axis: string
+  index: number
+  overlay_path?: string
+}): string {
+  const q = new URLSearchParams({
+    volume_path: params.volume_path,
+    axis: params.axis,
+    index: String(params.index),
+  })
+  if (params.overlay_path) q.set('overlay_path', params.overlay_path)
+  return `${BASE}/api/v1/imaging/volume/slice?${q}`
 }
 
 export const medsafeApi = {
@@ -71,10 +88,16 @@ export const medsafeApi = {
   listSegmentModels: () =>
     request<{ models: SegModelInfo[] }>('/api/v1/imaging/models'),
 
+  getVolumeMeta: (volume_path: string) =>
+    request<VolumeMeta>(`/api/v1/imaging/volume/meta?volume_path=${encodeURIComponent(volume_path)}`),
+
   segment: (body: {
     image_path: string
     model_ids: ModelId[]
     organ?: string
+    volume_path?: string
+    slice_axis?: VolumeAxis
+    slice_index?: number
   }) =>
     request<{ results: SegmentResultItem[]; memory_peak_mb: number }>(
       '/api/v1/imaging/segment',

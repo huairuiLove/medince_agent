@@ -23,23 +23,31 @@ class ChiefReviewerAgent:
         self,
         agent_opinions: list[AgentOpinion],
         rule_output: ReviewOutput,
+        debate=None,
+        safety_panel=None,
     ) -> ArbitrationResult:
         payload = {
             "rule_output": rule_output.model_dump(),
             "agent_opinions": [o.model_dump() for o in agent_opinions],
         }
+        if debate is not None:
+            payload["debate"] = debate.model_dump()
+        if safety_panel is not None:
+            payload["safety_panel"] = safety_panel.model_dump()
         data = self.llm.chat_json(CHIEF_SYSTEM_PROMPT, pretty_json(payload))
         if data:
-            return self._merge_llm_result(data, agent_opinions, rule_output)
-        return self._deterministic_arbitrate(agent_opinions, rule_output)
+            return self._merge_llm_result(data, agent_opinions, rule_output, debate, safety_panel)
+        return self._deterministic_arbitrate(agent_opinions, rule_output, debate, safety_panel)
 
     def _merge_llm_result(
         self,
         data: dict,
         agent_opinions: list[AgentOpinion],
         rule_output: ReviewOutput,
+        debate=None,
+        safety_panel=None,
     ) -> ArbitrationResult:
-        result = self._deterministic_arbitrate(agent_opinions, rule_output)
+        result = self._deterministic_arbitrate(agent_opinions, rule_output, debate, safety_panel)
         if not self.rule_strict:
             result.consensus_risk_level = data.get("consensus_risk_level", result.consensus_risk_level)
             result.consensus_block_decision = bool(
@@ -54,6 +62,8 @@ class ChiefReviewerAgent:
         self,
         agent_opinions: list[AgentOpinion],
         rule_output: ReviewOutput,
+        debate=None,
+        safety_panel=None,
     ) -> ArbitrationResult:
         risk = rule_output.risk_level
         block = rule_output.block_decision
@@ -93,6 +103,14 @@ class ChiefReviewerAgent:
 
         if rule_output.final_recommendation:
             final = rule_output.final_recommendation
+
+        if debate is not None and getattr(debate, "moderator_synthesis", None):
+            mod = debate.moderator_synthesis
+            if mod.integration_summary:
+                final = f"{mod.integration_summary} {final}".strip()
+
+        if safety_panel is not None and not safety_panel.passed:
+            final = f"{safety_panel.summary} {final}".strip()
 
         return ArbitrationResult(
             consensus_risk_level=risk,

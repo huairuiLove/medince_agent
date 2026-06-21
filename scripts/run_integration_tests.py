@@ -133,6 +133,31 @@ record("S4-F3: arbitration in case", replayed.arbitration is not None)
 save_json(replayed.model_dump(), PROJECT_ROOT / "data/demo_cases/complete_case_log.json")
 
 print("\n" + "=" * 70)
+print("STAGE 4b: Multi-Round Debate Tests")
+print("=" * 70)
+
+ma_debate = orchestrator.run(pc1, cd1)
+record("S4-D1: debate enabled", ma_debate.debate is not None and ma_debate.debate.enabled)
+record(
+    "S4-D2: multi-round debate",
+    ma_debate.debate is not None and len(ma_debate.debate.rounds) >= 2,
+    f"rounds={len(ma_debate.debate.rounds) if ma_debate.debate else 0}",
+)
+record(
+    "S4-D3: safety panel",
+    ma_debate.safety_panel is not None and len(ma_debate.safety_panel.flags) >= 1,
+)
+record(
+    "S4-D4: debate consensus or flag",
+    ma_debate.debate.final_consensus or ma_debate.debate.flagged_for_human,
+)
+record(
+    "S4-D5: min confidence tracked",
+    ma_debate.debate.min_confidence > 0,
+    f"min_conf={ma_debate.debate.min_confidence:.2f}",
+)
+
+print("\n" + "=" * 70)
 print("SUMMARY")
 print("=" * 70)
 passed = sum(1 for t in results_log["tests"] if t["status"] == "PASS")

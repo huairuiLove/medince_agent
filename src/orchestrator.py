@@ -1,8 +1,6 @@
 """Multi-agent drug safety review orchestrator."""
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 from src.agents.allergy_specialist import AllergySpecialistAgent
 from src.agents.chief_reviewer import ChiefReviewerAgent
 from src.agents.clinical_pharmacist import ClinicalPharmacistAgent
@@ -11,6 +9,8 @@ from src.agents.internal_medicine import InternalMedicineAgent
 from src.agents.pharmacy_inventory import PharmacyInventoryAgent
 from src.agents.specialist_router import SpecialistAgent
 from src.config import get_config
+from src.debate.debate_engine import DebateEngine
+from src.debate.safety_panel import SafetyPanel
 from src.llm.client import get_llm_client
 from src.review_engine import ReviewEngine
 from src.schemas import (
@@ -18,9 +18,11 @@ from src.schemas import (
     ArbitrationResult,
     CandidateDrug,
     ClarifyOutput,
+    DebateResult,
     MultiReviewResponse,
     PatientContext,
     ReviewOutput,
+    SafetyPanelResult,
 )
 
 
@@ -37,30 +39,17 @@ class MultiAgentOrchestrator:
         self.specialist = SpecialistAgent(self.llm)
         self.chief = ChiefReviewerAgent(self.llm, rule_strict=self.rule_strict)
         self.coordinator = CoordinatorAgent(self.llm)
+        self.debate_engine = DebateEngine(
+            self.llm,
+            agents=[],  # populated per run
+            safety_panel=SafetyPanel(self.review_engine),
+        )
 
     def _active_agents(self, patient_context: PatientContext, candidate_drugs: list[CandidateDrug]) -> list:
         agents = [self.pharmacist, self.attending, self.allergy, self.pharmacy]
         if SpecialistAgent.should_activate(patient_context, candidate_drugs):
             agents.append(self.specialist)
         return agents
-
-    def _run_agents_parallel(
-        self,
-        agents: list,
-        patient_context: PatientContext,
-        candidate_drugs: list[CandidateDrug],
-        rule_evidence: list,
-    ) -> list[AgentOpinion]:
-        opinions: list[AgentOpinion] = []
-        with ThreadPoolExecutor(max_workers=len(agents)) as pool:
-            futures = {
-                pool.submit(agent.review, patient_context, candidate_drugs, rule_evidence): agent
-                for agent in agents
-            }
-            for future in as_completed(futures):
-                opinions.append(future.result())
-        opinions.sort(key=lambda o: o.agent_id)
-        return opinions
 
     def run(
         self,
@@ -71,10 +60,27 @@ class MultiAgentOrchestrator:
     ) -> MultiReviewResponse:
         rule_output = self.review_engine.review(patient_context, candidate_drugs)
         agents = self._active_agents(patient_context, candidate_drugs)
-        agent_opinions = self._run_agents_parallel(
-            agents, patient_context, candidate_drugs, rule_output.evidence
+
+        self.debate_engine.agents = agents
+        agent_opinions, debate, safety_panel = self.debate_engine.run(
+            patient_context, candidate_drugs, rule_output.evidence
         )
-        arbitration = self.chief.arbitrate(agent_opinions, rule_output)
+
+        arbitration = self.chief.arbitrate(
+            agent_opinions,
+            rule_output,
+            debate=debate,
+            safety_panel=safety_panel,
+        )
+
+        if safety_panel.block_recommended and self.rule_strict:
+            arbitration.consensus_block_decision = True
+            if rule_output.risk_level in {"high", "unknown"}:
+                arbitration.consensus_risk_level = rule_output.risk_level
+
+        if debate.flagged_for_human:
+            arbitration.arbitration_notes += "；辩论未达共识，已标记人工复核。"
+            arbitration.need_clarification = True
 
         clarify_output: ClarifyOutput | None = None
         final_recommendation = arbitration.final_recommendation
@@ -89,7 +95,7 @@ class MultiAgentOrchestrator:
             final_recommendation=arbitration.final_recommendation,
         )
 
-        if not skip_clarify and (arbitration.need_clarification or unable_to_answer):
+        if not skip_clarify and (arbitration.need_clarification or unable_to_answer or debate.flagged_for_human):
             clarify_output = self.coordinator.clarify(
                 patient_context, candidate_drugs, review_for_clarify, unable_to_answer=unable_to_answer
             )
@@ -101,11 +107,21 @@ class MultiAgentOrchestrator:
         return MultiReviewResponse(
             rule_output=rule_output,
             agent_opinions=agent_opinions,
+            debate=debate,
+            safety_panel=safety_panel,
             arbitration=arbitration,
             clarify_output=clarify_output,
             final_recommendation=final_recommendation,
         )
 
     def list_agents(self) -> list[dict]:
-        roster = [self.pharmacist, self.attending, self.allergy, self.pharmacy, self.specialist, self.chief, self.coordinator]
+        roster = [
+            self.pharmacist,
+            self.attending,
+            self.allergy,
+            self.pharmacy,
+            self.specialist,
+            self.chief,
+            self.coordinator,
+        ]
         return [{"agent_id": a.agent_id, "agent_name": a.agent_name, "role": a.role} for a in roster]

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-21T11:33:28.329534",
+  "timestamp": "2026-06-21T22:23:59.205568",
   "tests": [
     {
       "name": "S3-C1: high risk warfarin+ibuprofen",
@@ -95,11 +95,36 @@
       "name": "S4-F3: arbitration in case",
       "status": "PASS",
       "detail": ""
+    },
+    {
+      "name": "S4-D1: debate enabled",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "S4-D2: multi-round debate",
+      "status": "PASS",
+      "detail": "rounds=3"
+    },
+    {
+      "name": "S4-D3: safety panel",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "S4-D4: debate consensus or flag",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "S4-D5: min confidence tracked",
+      "status": "PASS",
+      "detail": "min_conf=0.90"
     }
   ],
   "summary": {
-    "total": 19,
-    "passed": 19,
+    "total": 24,
+    "passed": 24,
     "failed": 0,
     "pass_rate": "100.0%"
   }

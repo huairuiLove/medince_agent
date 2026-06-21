@@ -76,6 +76,10 @@ class MockLLMClient(LLMClient):
             return json.dumps(self._mock_specialist(user), ensure_ascii=False)
         if "会诊主席" in system or "仲裁" in system:
             return json.dumps(self._mock_chief(user), ensure_ascii=False)
+        if "对抗审查" in system or "Critic" in system:
+            return json.dumps(self._mock_critic(user), ensure_ascii=False)
+        if "会诊主持人" in system or "Moderator" in system:
+            return json.dumps(self._mock_moderator(user), ensure_ascii=False)
         if "追问" in system or "信息协调" in system:
             return json.dumps(self._mock_coordinator(user), ensure_ascii=False)
         return json.dumps({"summary": "mock response", "risk_level": "unknown"}, ensure_ascii=False)
@@ -145,6 +149,9 @@ class MockLLMClient(LLMClient):
 
     def _mock_pharmacist(self, user: str) -> dict[str, Any]:
         risk, block, reasons = self._risk_from_evidence(user)
+        conf = 0.92 if block else 0.78
+        if "修订轮次" in user or "Critic" in user:
+            conf = min(0.95, conf + 0.05)
         return {
             "risk_level": risk,
             "block_decision": block,
@@ -152,7 +159,7 @@ class MockLLMClient(LLMClient):
             "alternatives": ["对乙酰氨基酚"] if self._has(user, "ibuprofen") else [],
             "need_clarification": risk == "unknown",
             "clarification_targets": ["allergies", "pregnancy_status"] if risk == "unknown" else [],
-            "confidence": 0.9 if risk == "high" else 0.75,
+            "confidence": conf,
             "evidence_cited": ["ddi_warfarin_ibuprofen_bleeding"] if self._has(user, "warfarin", "ibuprofen") else [],
             "summary": "临床药师审查完成。",
         }
@@ -162,6 +169,9 @@ class MockLLMClient(LLMClient):
         if self._has(user, "lisinopril") and self._has(user, "pregnancy"):
             reasons = ["ACEI 禁用于妊娠患者。"]
             risk, block = "high", True
+        conf = 0.88 if block else 0.72
+        if "修订轮次" in user:
+            conf = min(0.93, conf + 0.06)
         return {
             "risk_level": risk,
             "block_decision": block,
@@ -169,7 +179,7 @@ class MockLLMClient(LLMClient):
             "alternatives": ["调整降压方案"] if self._has(user, "lisinopril") else [],
             "need_clarification": "unknown" in user or risk == "unknown",
             "clarification_targets": ["pregnancy_status"] if self._has(user, "lisinopril") else [],
-            "confidence": 0.85,
+            "confidence": conf,
             "evidence_cited": [],
             "summary": "内科主治审查完成。",
         }
@@ -257,8 +267,48 @@ class MockLLMClient(LLMClient):
             "consensus_risk_level": risk,
             "consensus_block_decision": block,
             "final_recommendation": reasons[0] if reasons else "各专家意见一致，可继续标准审查流程。",
-            "arbitration_notes": "规则 evidence 优先；临床药师与过敏专员意见一致时采用阻断策略。",
-            "conflict_detected": False,
+            "arbitration_notes": "规则 evidence 优先；辩论汇总后临床药师与过敏专员意见一致时采用阻断策略。",
+            "conflict_detected": "block_split" in user or "分歧" in user,
+        }
+
+    def _mock_critic(self, user: str) -> dict[str, Any]:
+        risk, block, _ = self._risk_from_evidence(user)
+        block_split = "block_split" in user and "true" in user.lower()
+        low_conf = "low_confidence_agents" in user and "[" in user and "]" not in user.split("low_confidence_agents")[-1][:5]
+        round_num = 1
+        if '"round":' in user:
+            import re
+            m = re.search(r'"round":\s*(\d+)', user)
+            if m:
+                round_num = int(m.group(1))
+        consensus = not block_split and risk != "unknown" and round_num >= 2
+        dissent: list[str] = []
+        if block_split or self._has(user, "warfarin", "ibuprofen"):
+            dissent.append("临床药师与药房对阻断优先级存在分歧")
+        if risk == "unknown":
+            dissent.append("关键字段缺失导致风险等级无法统一")
+        return {
+            "round_number": round_num,
+            "ehr_contradictions": [],
+            "evidence_gaps": ["规则 evidence 需在各 Agent 意见中显式引用"] if round_num == 1 else [],
+            "safety_misses": [],
+            "overall_assessment": "Critic：第二轮起趋向共识。" if round_num >= 2 else "Critic：首轮存在分歧，需修订。",
+            "consensus_reached": consensus,
+            "dissent_log": dissent,
+            "low_confidence_agents": [] if round_num >= 2 else ["internal_medicine"],
+            "min_confidence": 0.88 if round_num >= 2 else 0.72,
+        }
+
+    def _mock_moderator(self, user: str) -> dict[str, Any]:
+        risk, block, reasons = self._risk_from_evidence(user)
+        return {
+            "consistency_notes": ["临床药师与过敏专员均支持阻断"] if block else ["多数专家允许继续评估"],
+            "conflict_notes": ["内科主治置信度偏低"] if not block else [],
+            "integration_summary": reasons[0] if reasons else "主持人：各轮辩论已汇总。",
+            "recommended_risk_level": risk,
+            "recommended_block": block,
+            "majority_block_votes": 3 if block else 1,
+            "total_agents": 4,
         }
 
     def _mock_coordinator(self, user: str) -> dict[str, Any]:

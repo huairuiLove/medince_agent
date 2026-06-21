@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import VolumeMprViewer from '@/components/imaging/VolumeMprViewer.vue'
 import { medsafeApi, imagingFileUrl } from '@/api/medsafe'
-import type { ClinicalReport, ImagingStudy, ModelId, SegModelInfo, SegmentResultItem } from '@/types'
+import type { ClinicalReport, ImagingStudy, ModelId, SegModelInfo, SegmentResultItem, VolumeAxis } from '@/types'
 
 const studies = ref<ImagingStudy[]>([])
 const models = ref<SegModelInfo[]>([])
 const selectedStudy = ref<ImagingStudy | null>(null)
 const selectedModels = ref<ModelId[]>(['sam2d'])
 const sliceIndex = ref(0)
+const viewMode = ref<'gallery' | 'mpr'>('gallery')
+const mprAxis = ref<VolumeAxis>('axial')
+const mprIndex = ref(0)
 const clinicalText = ref('')
 const organ = ref('brain')
 const loading = ref(false)
@@ -19,6 +23,9 @@ const qaQuestion = ref('')
 const qaAnswer = ref('')
 const viewerRef = ref<HTMLDivElement | null>(null)
 const memoryPeak = ref(0)
+const volumeMaskPath = ref<string | null>(null)
+
+const hasVolume = computed(() => Boolean(selectedStudy.value?.volume_path))
 
 const currentImage = computed(() => {
   if (!selectedStudy.value?.image_paths.length) return ''
@@ -27,6 +34,12 @@ const currentImage = computed(() => {
 })
 
 const overlayPaths = computed(() => segmentResults.value.map(r => r.overlay_path))
+
+const vista3dOverlayMask = computed(() => {
+  const v = segmentResults.value.find(r => r.model_id === 'vista3d')
+  const p = v?.stats?.volume_mask_path
+  return typeof p === 'string' ? p : volumeMaskPath.value
+})
 
 onMounted(async () => {
   try {
@@ -41,9 +54,13 @@ onMounted(async () => {
 function selectStudy(s: ImagingStudy) {
   selectedStudy.value = s
   sliceIndex.value = 0
+  mprIndex.value = 0
+  mprAxis.value = 'axial'
+  viewMode.value = s.volume_path ? 'mpr' : 'gallery'
   segmentResults.value = []
   screenshots.value = []
   report.value = null
+  volumeMaskPath.value = null
   clinicalText.value = `${s.title} — ${s.modality} 影像会诊`
 }
 
@@ -54,17 +71,30 @@ function toggleModel(id: ModelId) {
 }
 
 async function runSegmentation() {
-  if (!currentImage.value || !selectedModels.value.length) return
+  if (!selectedModels.value.length) return
+  if (viewMode.value === 'gallery' && !currentImage.value) return
+  if (viewMode.value === 'mpr' && !selectedStudy.value?.volume_path) return
+
   loading.value = true
   error.value = ''
   try {
+    const imagePath = viewMode.value === 'mpr'
+      ? (selectedStudy.value!.volume_path as string)
+      : currentImage.value
+
     const res = await medsafeApi.segment({
-      image_path: currentImage.value,
+      image_path: imagePath,
       model_ids: selectedModels.value,
       organ: organ.value,
+      volume_path: selectedStudy.value?.volume_path ?? undefined,
+      slice_axis: viewMode.value === 'mpr' ? mprAxis.value : 'axial',
+      slice_index: viewMode.value === 'mpr' ? mprIndex.value : sliceIndex.value,
     })
     segmentResults.value = res.results
     memoryPeak.value = res.memory_peak_mb
+    const vista = res.results.find(r => r.model_id === 'vista3d')
+    const mask = vista?.stats?.volume_mask_path
+    if (typeof mask === 'string') volumeMaskPath.value = mask
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -82,11 +112,14 @@ async function captureScreenshot() {
   const ctx = canvas.getContext('2d')!
   ctx.drawImage(img, 0, 0)
   const dataUrl = canvas.toDataURL('image/png')
+  const caption = viewMode.value === 'mpr'
+    ? `${mprAxis.value}_${mprIndex.value}`
+    : `slice_${sliceIndex.value}`
   const res = await medsafeApi.saveScreenshot({
     patient_id: selectedStudy.value.patient_id,
     study_id: selectedStudy.value.study_id,
     image_data: dataUrl,
-    caption: `slice_${sliceIndex.value}`,
+    caption,
   })
   screenshots.value.push({ path: res.path, caption: res.caption })
 }
@@ -102,7 +135,7 @@ async function generateReport() {
       primary_modality: selectedStudy.value.modality,
       modalities: [selectedStudy.value.modality],
       imaging_session_label: selectedStudy.value.study_id,
-      image_paths: [currentImage.value],
+      image_paths: [currentImage.value || selectedStudy.value.volume_path || ''],
       overlay_paths: overlayPaths.value,
       screenshot_paths: screenshots.value.map(s => s.path),
       models_used: selectedModels.value,
@@ -144,7 +177,7 @@ const sortedParagraphs = computed(() =>
     <header class="page-head">
       <div>
         <h1>影像分割与用药安全报告</h1>
-        <p class="sub">2D 串行分割 → 截图 → Qwen3-VL → DeepSeek 多智能体 → 结构化报告</p>
+        <p class="sub">3D MPR 浏览 · VISTA3D 真 3D 分割 · 截图 → Qwen3-VL → DeepSeek 报告</p>
       </div>
       <div v-if="memoryPeak" class="mem-badge">峰值内存 ~{{ memoryPeak.toFixed(0) }} MB</div>
     </header>
@@ -163,9 +196,24 @@ const sortedParagraphs = computed(() =>
           >
             <span class="mod">{{ s.modality }}</span>
             {{ s.title }}
-            <small>{{ s.slice_count }} 张</small>
+            <small>{{ s.volume_path ? '3D NIfTI' : `${s.slice_count} 张` }}</small>
           </li>
         </ul>
+
+        <div v-if="hasVolume" class="view-mode">
+          <button
+            type="button"
+            class="mode-btn"
+            :class="{ active: viewMode === 'mpr' }"
+            @click="viewMode = 'mpr'"
+          >3D MPR</button>
+          <button
+            type="button"
+            class="mode-btn"
+            :class="{ active: viewMode === 'gallery' }"
+            @click="viewMode = 'gallery'"
+          >2D 切片库</button>
+        </div>
 
         <h3>分割模型（医生选择，串行）</h3>
         <label v-for="m in models" :key="m.model_id" class="model-check">
@@ -185,32 +233,54 @@ const sortedParagraphs = computed(() =>
         </select>
 
         <button class="btn-primary full" :disabled="loading || !selectedModels.length" @click="runSegmentation">
-          运行 2D 分割
+          {{ viewMode === 'mpr' && hasVolume ? '运行 3D 分割' : '运行 2D 分割' }}
         </button>
       </aside>
 
       <section class="viewer card">
-        <div class="viewer-toolbar">
-          <button class="btn-secondary" :disabled="sliceIndex <= 0" @click="sliceIndex--">上一张</button>
-          <span>{{ sliceIndex + 1 }} / {{ selectedStudy?.image_paths.length ?? 0 }}</span>
-          <button
-            class="btn-secondary"
-            :disabled="!selectedStudy || sliceIndex >= selectedStudy.image_paths.length - 1"
-            @click="sliceIndex++"
-          >下一张</button>
-          <button class="btn-primary" @click="captureScreenshot">截取当前视图</button>
-        </div>
+        <template v-if="viewMode === 'mpr' && selectedStudy?.volume_path">
+          <div class="viewer-toolbar">
+            <button class="btn-primary" @click="captureScreenshot">截取当前视图</button>
+            <span v-if="volumeMaskPath" class="mask-tag">3D Mask 已生成</span>
+          </div>
+          <div ref="viewerRef">
+            <VolumeMprViewer
+              :volume-path="selectedStudy.volume_path"
+              :overlay-path="vista3dOverlayMask"
+              :axis="mprAxis"
+              :slice-index="mprIndex"
+              @update:axis="mprAxis = $event"
+              @update:slice-index="mprIndex = $event"
+            />
+          </div>
+        </template>
 
-        <div ref="viewerRef" class="viewer-canvas">
-          <img v-if="currentImage" :src="imagingFileUrl(currentImage)" alt="study slice" />
-        </div>
+        <template v-else>
+          <div class="viewer-toolbar">
+            <button class="btn-secondary" :disabled="sliceIndex <= 0" @click="sliceIndex--">上一张</button>
+            <span>{{ sliceIndex + 1 }} / {{ selectedStudy?.image_paths.length ?? 0 }}</span>
+            <button
+              class="btn-secondary"
+              :disabled="!selectedStudy || sliceIndex >= selectedStudy.image_paths.length - 1"
+              @click="sliceIndex++"
+            >下一张</button>
+            <button class="btn-primary" @click="captureScreenshot">截取当前视图</button>
+          </div>
+
+          <div ref="viewerRef" class="viewer-canvas">
+            <img v-if="currentImage" :src="imagingFileUrl(currentImage)" alt="study slice" />
+          </div>
+        </template>
 
         <div v-if="segmentResults.length" class="overlays">
           <h4>分割 Overlay</h4>
           <div class="overlay-row">
             <figure v-for="r in segmentResults" :key="r.model_id">
               <img :src="imagingFileUrl(r.overlay_path)" :alt="r.model_id" />
-              <figcaption>{{ r.model_id }} · {{ r.duration_ms.toFixed(0) }}ms · +{{ r.memory_mb.toFixed(1) }}MB</figcaption>
+              <figcaption>
+                {{ r.model_id }} · {{ r.duration_ms.toFixed(0) }}ms · +{{ r.memory_mb.toFixed(1) }}MB
+                <br /><small>{{ r.notes }}</small>
+              </figcaption>
             </figure>
           </div>
         </div>
@@ -284,11 +354,23 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
 .study-list li.active { background: var(--primary-light); border-color: var(--primary); }
 .mod { display: inline-block; background: var(--primary); color: #fff; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; margin-right: 0.35rem; }
 .study-list small { display: block; color: var(--text-muted); font-size: 0.72rem; }
+.view-mode { display: flex; gap: 0.35rem; margin-bottom: 0.5rem; }
+.mode-btn {
+  flex: 1;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .model-check { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.5rem; font-size: 0.85rem; cursor: pointer; }
 .model-check small { display: block; color: var(--text-muted); font-size: 0.75rem; }
 .model-check .warn { color: var(--warning); font-style: normal; font-size: 0.72rem; }
 .full { width: 100%; margin-top: 0.75rem; }
 .viewer-toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.mask-tag { font-size: 0.78rem; color: var(--primary-dark); background: var(--primary-light); padding: 0.2rem 0.5rem; border-radius: var(--radius); }
 .viewer-canvas { background: #000; border-radius: var(--radius); overflow: hidden; min-height: 280px; display: flex; align-items: center; justify-content: center; }
 .viewer-canvas img { max-width: 100%; max-height: 420px; object-fit: contain; }
 .overlays, .shots { margin-top: 1rem; }
