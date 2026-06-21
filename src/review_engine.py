@@ -58,7 +58,10 @@ class ReviewEngine:
             current_registry.append(
                 {
                     "name": med.name,
-                    "canonical": self.kb.resolve_drug(med.ingredient or med.name),
+                    "canonical": self.kb.resolve_drug(
+                        med.ingredient or med.name,
+                        hospital_drug_id=med.hospital_drug_id or None,
+                    ),
                     "source": "current",
                 }
             )
@@ -68,7 +71,10 @@ class ReviewEngine:
             candidate_registry.append(
                 {
                     "name": med.name,
-                    "canonical": self.kb.resolve_drug(med.ingredient or med.name),
+                    "canonical": self.kb.resolve_drug(
+                        med.ingredient or med.name,
+                        hospital_drug_id=med.hospital_drug_id or None,
+                    ),
                     "source": "candidate",
                 }
             )

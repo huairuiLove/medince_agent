@@ -3,8 +3,8 @@
 
 策略（难度递增，当前实现 L0+L1）：
   L0: 精确匹配 — 名称/别名直接命中图谱节点
-  L1: 模糊匹配 — 基于子串包含和编辑距离（Phase 2）
-  L2: LLM NER — 调用 LLM 做命名实体识别（Phase 3+）
+  L1: 模糊匹配 — 基于子串包含和编辑距离
+  L2: LLM NER — 调用 LLM 做命名实体识别
 """
 from __future__ import annotations
 import re

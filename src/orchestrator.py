@@ -11,6 +11,8 @@ from src.agents.specialist_router import SpecialistAgent
 from src.config import get_config
 from src.debate.debate_engine import DebateEngine
 from src.debate.safety_panel import SafetyPanel
+from src.drug_catalog.catalog_service import get_drug_catalog_service
+from src.drug_catalog.terminology import CatalogAwareKnowledgeBase
 from src.llm.client import get_llm_client
 from src.review_engine import ReviewEngine
 from src.schemas import (
@@ -31,7 +33,9 @@ class MultiAgentOrchestrator:
         cfg = get_config()
         self.llm = get_llm_client()
         self.rule_strict = cfg.get("agents", {}).get("rule_strict", True)
-        self.review_engine = ReviewEngine()
+        catalog = get_drug_catalog_service()
+        kb = CatalogAwareKnowledgeBase(catalog=catalog) if catalog.is_loaded() else None
+        self.review_engine = ReviewEngine(kb=kb) if kb else ReviewEngine()
         self.pharmacist = ClinicalPharmacistAgent(self.llm)
         self.attending = InternalMedicineAgent(self.llm)
         self.allergy = AllergySpecialistAgent(self.llm)

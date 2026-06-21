@@ -90,6 +90,16 @@ debate:
   confidence_threshold: 0.75
   flag_for_human_on_no_consensus: true
 
+# ── Hospital drug catalog (PIS CSV) ─────────────────────────────────────
+drug_catalog:
+  db_path: "data/hospital/formulary.db"
+  formulary_path: "data/hospital/formulary_demo.csv"
+  auto_import_on_startup: true
+
+clinical_knowledge:
+  version: "minimal_rules_v1"
+  ddi_source: "minimal_json"
+
 # ── Imaging segmentation ──────────────────────────────────────────────────
 imaging:
   serial_only: true

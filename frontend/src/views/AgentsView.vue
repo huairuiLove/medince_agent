@@ -23,7 +23,7 @@ onMounted(async () => {
 <template>
   <div>
     <h1>智能体阵容</h1>
-    <p class="sub">Stage 4 多智能体 — 规则 evidence 注入各 Agent prompt</p>
+    <p class="sub">多智能体会诊 — 规则 evidence 注入各 Agent prompt</p>
     <div class="grid">
       <article v-for="a in agents" :key="a.agent_id" class="card agent">
         <h3>{{ a.agent_name }}</h3>

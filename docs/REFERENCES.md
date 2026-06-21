@@ -11,7 +11,7 @@
 |------|------|-------------|
 | [ClinicalPilot](https://github.com/laksh-ya/ClinicalPilot) | 2~3 轮 Debate + Critic + Safety Panel | `src/debate/debate_engine.py`, `critic_agent.py`, `safety_panel.py` |
 | [MDAgents](https://github.com/mitmedialab/MDAgents) (NeurIPS 2024) | Moderator 组讨论汇总 | `src/debate/moderator.py` |
-| Stage 3 规则引擎 | 确定性 DDI / 过敏 / 妊娠 | `src/review_engine.py` + `rule_strict` |
+| 规则引擎 | 确定性 DDI / 过敏 / 妊娠 | `src/review_engine.py` + `rule_strict` |
 | [SafeRx-Agent](https://arxiv.org/html/2605.29146v2) | Critic-Revision + Safety Verifier | 部分实现（Safety Panel + Critic） |
 | [MedCoAct](https://arxiv.org/html/2510.10461) | 置信度反思 | `confidence_threshold` 门控 |
 
@@ -45,7 +45,7 @@
 
 ---
 
-## 四、医学影像（Stage 5~7）
+## 四、医学影像
 
 | 文献 / 项目 | 用途 |
 |-------------|------|

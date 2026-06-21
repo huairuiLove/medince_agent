@@ -1,7 +1,7 @@
 {
-  "case_id": "case_d08478750ae6",
-  "created_at": "2026-06-21T14:23:59+00:00",
-  "updated_at": "2026-06-21T14:23:59+00:00",
+  "case_id": "case_a111fb225013",
+  "created_at": "2026-06-21T16:22:18+00:00",
+  "updated_at": "2026-06-21T16:22:18+00:00",
   "status": "complete",
   "raw_input_text": "",
   "patient_context": {
@@ -37,13 +37,16 @@
         "ingredient": "propranolol",
         "dose": "40mg",
         "route": "PO",
-        "frequency": "bid"
+        "frequency": "bid",
+        "hospital_drug_id": ""
       }
     ],
     "allergies": [
       "penicillin"
     ],
     "pregnancy_status": "unknown",
+    "weight_kg": null,
+    "egfr": null,
     "missing_fields": [
       "pregnancy_status"
     ]
@@ -55,6 +58,7 @@
       "dose": "10mg",
       "route": "PO",
       "frequency": "qd",
+      "hospital_drug_id": "",
       "indication": "高血压",
       "source": "candidate"
     },
@@ -64,6 +68,7 @@
       "dose": "200mg",
       "route": "PO",
       "frequency": "prn",
+      "hospital_drug_id": "",
       "indication": "头痛",
       "source": "candidate"
     }
@@ -395,14 +400,14 @@
   "events": [
     {
       "stage": "agent_review",
-      "timestamp": "2026-06-21T14:23:59+00:00",
+      "timestamp": "2026-06-21T16:22:18+00:00",
       "payload": {
         "mode": "multi_agent"
       }
     },
     {
       "stage": "arbitration",
-      "timestamp": "2026-06-21T14:23:59+00:00",
+      "timestamp": "2026-06-21T16:22:18+00:00",
       "payload": {
         "consensus_risk_level": "unknown",
         "consensus_block_decision": true,
@@ -608,7 +613,7 @@
     },
     {
       "stage": "final",
-      "timestamp": "2026-06-21T14:23:59+00:00",
+      "timestamp": "2026-06-21T16:22:18+00:00",
       "payload": {
         "final_recommendation": "关键信息无法补充，建议暂缓用药并人工复核。"
       }

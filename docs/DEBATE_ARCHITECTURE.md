@@ -103,7 +103,7 @@ MEDSAFE_DEBATE__CONFIDENCE_THRESHOLD=0.75
 | `debate.moderator_synthesis` | 主持人汇总 |
 | `safety_panel.flags[]` | 规则命中列表 |
 
-Case Log 新增阶段：`debate`, `safety_panel`, `critic_review`
+Case Log 新增事件类型：`debate`, `safety_panel`, `critic_review`
 
 ---
 
@@ -136,7 +136,7 @@ Case Log 新增阶段：`debate`, `safety_panel`, `critic_review`
 
 ```bash
 python scripts/run_integration_tests.py
-# Stage 4b: S4-D1 ~ S4-D5 辩论专项
+# 含多轮辩论专项用例（warfarin+ibuprofen 等）
 ```
 
 验收标准：

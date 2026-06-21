@@ -38,6 +38,7 @@ class DrugItem(BaseModel):
     dose: str = Field(default="")
     route: str = Field(default="")
     frequency: str = Field(default="")
+    hospital_drug_id: str = Field(default="", description="院内药品码 (PIS/HIS)")
 
 
 class CandidateDrug(DrugItem):
@@ -65,6 +66,8 @@ class PatientContext(BaseModel):
     current_medications: List[DrugItem] = Field(default_factory=list)
     allergies: List[str] = Field(default_factory=list)
     pregnancy_status: str = Field(default="unknown")
+    weight_kg: Optional[float] = None
+    egfr: Optional[float] = Field(default=None, description="eGFR mL/min/1.73m²")
     missing_fields: List[str] = Field(default_factory=list)
 
 
@@ -433,3 +436,80 @@ class ReportAskResponse(BaseModel):
     answer: str
     related_paragraphs: List[ReportParagraph] = Field(default_factory=list)
     report: ClinicalReport
+
+
+# ── CPOE / Hospital Formulary ───────────────────────────────────────────
+
+AlertLevel = Literal["info", "warning", "hard_stop"]
+CpoeOverallStatus = Literal["passed", "warning", "blocked"]
+
+
+class CpoePatientSnapshot(BaseModel):
+    patient_id: str = Field(default="")
+    age: Optional[int] = None
+    gender: str = Field(default="unknown")
+    weight_kg: Optional[float] = None
+    egfr: Optional[float] = None
+    allergies: List[str] = Field(default_factory=list)
+    conditions: List[str] = Field(default_factory=list)
+    pregnancy_status: str = Field(default="unknown")
+
+
+class CpoeMedicationOrder(BaseModel):
+    order_id: str
+    hospital_drug_id: str = Field(default="")
+    display_name: str = Field(default="", description="HIS 展示名，无院内码时使用")
+    dose: str = Field(default="")
+    route: str = Field(default="")
+    frequency: str = Field(default="")
+    status: str = Field(default="new")
+
+
+class CpoeMedicationReviewRequest(BaseModel):
+    encounter_id: str = Field(default="")
+    patient: CpoePatientSnapshot
+    orders: List[CpoeMedicationOrder] = Field(default_factory=list)
+    existing_medications: List[DrugItem] = Field(default_factory=list)
+    review_mode: str = Field(default="pre_save")
+
+
+class CpoeReviewAlert(BaseModel):
+    alert_id: str
+    order_id: str = Field(default="")
+    rule_id: str
+    alert_level: AlertLevel = "warning"
+    category: str = Field(default="")
+    evidence_grade: str = Field(default="")
+    summary: str
+    recommendation: str = Field(default="")
+    alternatives: List[str] = Field(default_factory=list)
+    alternative_drug_ids: List[str] = Field(default_factory=list)
+    implicated_drugs: List[str] = Field(default_factory=list)
+    hospital_drug_id: str = Field(default="")
+    display_name: str = Field(default="")
+    overridable: bool = True
+
+
+class CpoeMedicationReviewResponse(BaseModel):
+    encounter_id: str = Field(default="")
+    overall_status: CpoeOverallStatus = "passed"
+    alerts: List[CpoeReviewAlert] = Field(default_factory=list)
+    unresolved_drugs: List[str] = Field(default_factory=list)
+    requires_pharmacist_review: bool = False
+    review_output: Optional[ReviewOutput] = None
+    knowledge_version: str = Field(default="")
+    formulary_drug_count: int = 0
+
+
+class FormularySyncRequest(BaseModel):
+    csv_path: str = Field(default="", description="相对项目根目录的 CSV 路径")
+    sync_version: str = Field(default="")
+
+
+class FormularySyncResponse(BaseModel):
+    status: str
+    sync_version: str = Field(default="")
+    rows_total: int = 0
+    rows_upserted: int = 0
+    source_path: str = Field(default="")
+    catalog_stats: Dict[str, Any] = Field(default_factory=dict)

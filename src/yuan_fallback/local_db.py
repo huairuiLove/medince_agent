@@ -4,7 +4,7 @@
 当 LLM API + KG + 规则引擎都不可用时，系统降级到此层。
 预计算药物相互作用表和药物信息表，可脱离外部服务独立运行。
 
-Phase 4 实现：从 KG JSON 数据初始化 SQLite，提供只读查询。
+从 KG JSON 数据初始化 SQLite，提供只读查询。
 """
 from __future__ import annotations
 import json

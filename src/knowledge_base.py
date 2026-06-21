@@ -32,7 +32,7 @@ class SafetyKnowledgeBase:
 
         return alias_map
 
-    def resolve_drug(self, name: str) -> str:
+    def resolve_drug(self, name: str, hospital_drug_id: str | None = None) -> str:
         normalized = normalize_text(name)
         if not normalized:
             return ""

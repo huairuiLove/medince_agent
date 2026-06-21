@@ -30,7 +30,7 @@ async function runReview() {
 
 <template>
   <div>
-    <h1>规则审查 (Stage 3)</h1>
+    <h1>规则审查</h1>
     <p class="sub">纯规则引擎，无 LLM 多智能体 — 确定性安全底线</p>
 
     <div class="card controls">

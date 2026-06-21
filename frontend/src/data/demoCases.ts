@@ -53,7 +53,7 @@ export const DEMO_CASES: DemoCase[] = [
   {
     id: 'demo-04',
     title: '自然语言病历抽取',
-    description: 'Stage 2 LLM Extract 全流程',
+    description: '自然语言病历 → LLM 结构化抽取',
     mode: 'text',
     text: '病人基本信息：性别M，年龄67。主诉胸痛和呼吸困难。既往有高血压和冠心病。当前服用 warfarin 和 metoprolol。候选用药 ibuprofen 400mg 止痛。',
     candidate_drugs: [{ name: 'ibuprofen', dose: '400mg' }],

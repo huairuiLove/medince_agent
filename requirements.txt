@@ -17,7 +17,7 @@ numpy>=1.26.0
 tqdm>=4.66.0
 Pillow>=10.0.0
 
-# Medical imaging (Stage 5)
+# Medical imaging
 nibabel>=5.2.0
 huggingface_hub>=0.23.0
 torch>=2.2.0

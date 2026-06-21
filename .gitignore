@@ -13,6 +13,9 @@ data/reports/
 data/imaging_cache/
 data/processed/
 data/raw/
+data/hospital/*.db
+data/hospital/cache/
+data/local_fallback.db
 
 # ── Secrets ──
 .env

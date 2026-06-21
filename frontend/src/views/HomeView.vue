@@ -17,11 +17,11 @@ onMounted(async () => {
   }
 })
 
-const stages = [
-  { n: 1, title: '方案设计', desc: 'MIMIC-III + 本地 LoRA 路线规划' },
-  { n: 2, title: 'Extract 原型', desc: '本地 Qwen LoRA → 后迁移 LLM API' },
-  { n: 3, title: '规则审查', desc: 'Review / Clarify 确定性引擎' },
-  { n: 4, title: '工程落地', desc: '多智能体 + Vue 前端 + Docker' },
+const features = [
+  { title: '规则审查', desc: '确定性 DDI、过敏、妊娠禁忌 — 安全硬底线' },
+  { title: '结构化抽取', desc: '病历文本 → PatientContext JSON' },
+  { title: '多智能体会诊', desc: '药师、内科、过敏、药房、专科联合审查与辩论' },
+  { title: '影像与报告', desc: '分割 overlay、VLM 临床报告、段落 RAG 追问' },
 ]
 </script>
 
@@ -48,13 +48,12 @@ const stages = [
       <p v-else-if="error" class="err">后端未连接：{{ error }} — 请先 <code>medsafe serve</code></p>
     </header>
 
-    <section class="stages">
-      <h2>四阶段演进</h2>
-      <div class="stage-grid">
-        <div v-for="s in stages" :key="s.n" class="stage card">
-          <span class="num">Stage {{ s.n }}</span>
-          <h3>{{ s.title }}</h3>
-          <p>{{ s.desc }}</p>
+    <section class="features">
+      <h2>核心能力</h2>
+      <div class="feature-grid">
+        <div v-for="f in features" :key="f.title" class="feature card">
+          <h3>{{ f.title }}</h3>
+          <p>{{ f.desc }}</p>
         </div>
       </div>
     </section>
@@ -98,11 +97,10 @@ h1 { font-size: 2rem; margin: 0.35rem 0 0.75rem; line-height: 1.2; }
 .ok { color: var(--success); }
 .err { color: var(--danger); font-size: 0.9rem; margin-top: 1rem; }
 h2 { font-size: 1.15rem; margin-bottom: 1rem; }
-.stage-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
-@media (max-width: 900px) { .stage-grid { grid-template-columns: 1fr 1fr; } .hero { flex-direction: column; } }
-.num { font-size: 0.78rem; color: var(--primary); font-weight: 700; }
-.stage h3 { margin: 0.35rem 0; font-size: 1rem; }
-.stage p { font-size: 0.85rem; color: var(--text-muted); }
+.feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+@media (max-width: 900px) { .feature-grid { grid-template-columns: 1fr 1fr; } .hero { flex-direction: column; } }
+.feature h3 { margin: 0 0 0.35rem; font-size: 1rem; }
+.feature p { font-size: 0.85rem; color: var(--text-muted); margin: 0; }
 .agent-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .chip {
   background: var(--surface);

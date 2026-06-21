@@ -113,7 +113,7 @@ async def run_react_loop(
     ) as client:
 
         # ================================================================
-        # Phase 1：第一次 LLM 调用（非流式）—— 决定是否需要工具
+        # 第一次 LLM 调用（非流式）—— 决定是否需要工具
         # ================================================================
         try:
             if config.is_mock:
@@ -128,7 +128,7 @@ async def run_react_loop(
             first_resp.raise_for_status()
             first_data = first_resp.json()
         except Exception as exc:
-            logger.error("Phase 1 LLM call failed: %s", exc)
+            logger.error("First LLM call failed: %s", exc)
             yield ErrorEvent(message=f"模型调用失败: {exc}")
             yield {"type": "done"}
             return
@@ -221,7 +221,7 @@ async def run_react_loop(
             })
 
         # ================================================================
-        # Phase 2：第二次 LLM 调用（流式）—— 基于工具结果生成最终回复
+        # 第二次 LLM 调用（流式）—— 基于工具结果生成最终回复
         # ================================================================
         try:
             final_stream = await client.send(
@@ -235,7 +235,7 @@ async def run_react_loop(
             )
             final_stream.raise_for_status()
         except Exception as exc:
-            logger.error("Phase 2 LLM call failed: %s", exc)
+            logger.error("Second LLM call failed: %s", exc)
             yield ErrorEvent(message=f"生成最终回复失败: {exc}")
             yield {"type": "done"}
             return

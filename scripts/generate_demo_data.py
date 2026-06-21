@@ -1,4 +1,4 @@
-"""Generate all demo case data and synthetic patient contexts for Phase 4 testing."""
+"""Generate demo case data and synthetic patient contexts for integration testing."""
 from __future__ import annotations
 
 import json

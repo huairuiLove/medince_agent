@@ -19,7 +19,8 @@ from src.config import load_config
 from src.llm.client import get_llm_client
 from src.logging_config import get_logger, setup_logging
 from src.orchestrator import MultiAgentOrchestrator
-from src.review_engine import ReviewEngine
+from src.drug_catalog.catalog_service import bootstrap_catalog_from_config, get_drug_catalog_service
+from src.drug_catalog.review_facade import CpoeReviewFacade
 from src.schemas import (
     CandidateDrug,
     ClarifyRequest,
@@ -27,6 +28,10 @@ from src.schemas import (
     ClinicalReport,
     ConsultRequest,
     ConsultResponse,
+    CpoeMedicationReviewRequest,
+    CpoeMedicationReviewResponse,
+    FormularySyncRequest,
+    FormularySyncResponse,
     DiagnosisItem,
     DrugItem,
     ExtractRequest,
@@ -64,12 +69,6 @@ VERSION = "3.0.0"
 DESCRIPTION = """
 MedSafe — 基于 MIMIC-III 场景的多智能体用药安全审查系统。
 
-## 架构（四阶段）
-1. **Stage 1** — 总体方案设计
-2. **Stage 2** — LLM API 结构化抽取
-3. **Stage 3** — 规则引擎 review / clarify
-4. **Stage 4** — 多智能体会诊 + 工程部署
-
 ## 核心流程
 - **Extract** — LLM API 从病历文本抽取结构化信息
 - **Rule Gate** — 确定性规则库预筛（硬安全底线）
@@ -94,6 +93,15 @@ async def lifespan(app: FastAPI):
     llm = get_llm_client()
     logger.info("MedSafe API ready", extra={"version": VERSION, "llm": type(llm).__name__})
     await init_chat_services()
+    try:
+        sync_result = bootstrap_catalog_from_config()
+        if sync_result:
+            logger.info(
+                "Drug catalog bootstrapped from CSV",
+                extra={"rows": sync_result.get("rows_upserted"), "version": sync_result.get("sync_version")},
+            )
+    except Exception as exc:
+        logger.warning("Drug catalog bootstrap skipped", extra={"error": str(exc)})
     yield
     await shutdown_chat_services()
     logger.info("MedSafe API shutdown")
@@ -111,11 +119,12 @@ app = FastAPI(
         {"name": "Extract", "description": "LLM structured extraction"},
         {"name": "Review", "description": "Rule-based drug safety review"},
         {"name": "Clarify", "description": "Clarification and conservative fallback"},
-        {"name": "Multi-Agent", "description": "Multi-agent consult pipeline (Stage 4)"},
+        {"name": "Multi-Agent", "description": "Multi-agent consult pipeline"},
         {"name": "Consult", "description": "Legacy rule-only consult pipeline"},
         {"name": "Cases", "description": "Case log management and replay"},
         {"name": "Imaging", "description": "Segmentation, screenshots, clinical reports"},
         {"name": "Chat", "description": "ReAct SSE chat with role-based prompts (doctor/patient)"},
+        {"name": "CPOE", "description": "Hospital formulary sync and CPOE medication review"},
     ],
 )
 
@@ -128,7 +137,9 @@ app.add_middleware(
 )
 
 CASE_STORE = CaseStore()
-REVIEW_ENGINE = ReviewEngine()
+DRUG_CATALOG = get_drug_catalog_service()
+CPOE_REVIEW = CpoeReviewFacade(catalog=DRUG_CATALOG)
+REVIEW_ENGINE = CPOE_REVIEW.review_engine
 CLARIFY_ENGINE = ClarifyEngine()
 ORCHESTRATOR = MultiAgentOrchestrator()
 EXTRACT_AGENT = ExtractAgent(get_llm_client())
@@ -143,6 +154,7 @@ _REQUEST_COUNTS: dict[str, int] = {
     "extract": 0, "review": 0, "clarify": 0, "consult": 0,
     "multi_review": 0, "multi_consult": 0, "case_get": 0,
     "imaging_segment": 0, "report_generate": 0, "report_ask": 0, "chat_stream": 0,
+    "cpoe_review": 0, "formulary_sync": 0,
 }
 
 
@@ -191,11 +203,16 @@ def run_extract(text: str) -> tuple[str, ExtractionOutput | None]:
 @app.get("/health", tags=["Health"])
 def health() -> dict:
     llm = get_llm_client()
+    catalog_stats = DRUG_CATALOG.stats()
     return {
         "status": "ok",
         "version": VERSION,
         "uptime_seconds": round(time.time() - _SERVER_START, 1),
         "llm_provider": type(llm).__name__,
+        "drug_catalog": {
+            "loaded": DRUG_CATALOG.is_loaded(),
+            "total_drugs": catalog_stats.get("total_drugs", 0),
+        },
     }
 
 
@@ -237,7 +254,7 @@ def extract_info(req: ExtractRequest, request: Request) -> ExtractResponse:
     return ExtractResponse(case_id=case_id, raw_output=raw_output, parsed_output=parsed)
 
 
-# ── Rule Review (Stage 3) ──────────────────────────────────────────────
+# ── Rule Review ──────────────────────────────────────────────────────────
 
 @app.post("/api/v1/review", response_model=ReviewResponse, tags=["Review"])
 @app.post("/api/review", response_model=ReviewResponse, tags=["Review"], include_in_schema=False)
@@ -265,6 +282,67 @@ def review_case(req: ReviewRequest, request: Request) -> ReviewResponse:
     return response
 
 
+# ── CPOE / Hospital Formulary ────────────────────────────────────────────
+
+@app.post("/api/v1/cpoe/medication-review", response_model=CpoeMedicationReviewResponse, tags=["CPOE"])
+def cpoe_medication_review(req: CpoeMedicationReviewRequest, request: Request) -> CpoeMedicationReviewResponse:
+    """Real-time medication review for CPOE — resolves hospital drug IDs via formulary CSV."""
+    _REQUEST_COUNTS["cpoe_review"] += 1
+    return CPOE_REVIEW.review(req)
+
+
+@app.get("/api/v1/drug-catalog/stats", tags=["CPOE"])
+def drug_catalog_stats() -> dict:
+    return DRUG_CATALOG.stats()
+
+
+@app.get("/api/v1/drug-catalog/drugs/{hospital_drug_id}", tags=["CPOE"])
+def drug_catalog_lookup(hospital_drug_id: str) -> dict:
+    record = DRUG_CATALOG.get_by_id(hospital_drug_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Drug not found: {hospital_drug_id}")
+    return record.to_dict()
+
+
+@app.get("/api/v1/drug-catalog/search", tags=["CPOE"])
+def drug_catalog_search(q: str, limit: int = 20) -> dict:
+    results = DRUG_CATALOG.search(q, limit=min(limit, 100))
+    return {"query": q, "count": len(results), "results": [r.to_dict() for r in results]}
+
+
+@app.post("/api/v1/drug-catalog/sync", response_model=FormularySyncResponse, tags=["CPOE"])
+def drug_catalog_sync(req: FormularySyncRequest, request: Request) -> FormularySyncResponse:
+    """Import/replace formulary from PIS CSV export."""
+    _REQUEST_COUNTS["formulary_sync"] += 1
+    from src.drug_catalog.csv_import import FormularyCsvImporter
+
+    cfg = load_config()
+    csv_rel = req.csv_path or cfg.get("drug_catalog", {}).get("formulary_path", "data/hospital/formulary_sample.csv")
+    csv_path = resolve_path(csv_rel)
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail=f"CSV not found: {csv_rel}")
+
+    global DRUG_CATALOG, CPOE_REVIEW, REVIEW_ENGINE
+    try:
+        result = FormularyCsvImporter(DRUG_CATALOG.db_path).import_csv(
+            csv_path,
+            sync_version=req.sync_version or None,
+        )
+        DRUG_CATALOG = get_drug_catalog_service(reload=True)
+        CPOE_REVIEW = CpoeReviewFacade(catalog=DRUG_CATALOG)
+        REVIEW_ENGINE = CPOE_REVIEW.review_engine
+        return FormularySyncResponse(
+            status=result["status"],
+            sync_version=result["sync_version"],
+            rows_total=result["rows_total"],
+            rows_upserted=result["rows_upserted"],
+            source_path=result["source_path"],
+            catalog_stats=DRUG_CATALOG.stats(),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/api/v1/clarify", response_model=ClarifyResponse, tags=["Clarify"])
 @app.post("/api/clarify", response_model=ClarifyResponse, tags=["Clarify"], include_in_schema=False)
 def clarify_case(req: ClarifyRequest, request: Request) -> ClarifyResponse:
@@ -288,7 +366,7 @@ def clarify_case(req: ClarifyRequest, request: Request) -> ClarifyResponse:
     return response
 
 
-# ── Multi-Agent (Stage 4) ──────────────────────────────────────────────
+# ── Multi-Agent ──────────────────────────────────────────────────────────
 
 @app.post("/api/v1/multi-review", response_model=MultiReviewResponse, tags=["Multi-Agent"])
 def multi_review(req: MultiReviewRequest, request: Request) -> MultiReviewResponse:
@@ -405,7 +483,7 @@ def multi_consult(req: MultiConsultRequest, request: Request) -> MultiConsultRes
     )
 
 
-# ── Legacy Consult (Stage 3 rule-only) ─────────────────────────────────
+# ── Legacy Consult (rule-only) ───────────────────────────────────────────
 
 @app.post("/api/v1/consult", response_model=ConsultResponse, tags=["Consult"])
 @app.post("/api/consult", response_model=ConsultResponse, tags=["Consult"], include_in_schema=False)
@@ -483,7 +561,7 @@ def list_cases(limit: int = 20):
     return {"count": len(case_ids), "cases": case_ids}
 
 
-# ── Imaging & Reports (Stage 5) ────────────────────────────────────────
+# ── Imaging & Reports ────────────────────────────────────────────────────
 
 @app.get("/api/v1/imaging/studies", tags=["Imaging"])
 def list_imaging_studies():
