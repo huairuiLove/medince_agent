@@ -1,0 +1,37 @@
+# Docker
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# Models (large files)
+outputs/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Data (sensitive)
+data/cases/*.json
+data/raw/
+
+# Logs
+logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/

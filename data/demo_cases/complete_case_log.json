@@ -1,0 +1,594 @@
+{
+  "case_id": "case_6a7efb67c0a6",
+  "created_at": "2026-06-21T03:33:28+00:00",
+  "updated_at": "2026-06-21T03:33:28+00:00",
+  "status": "complete",
+  "raw_input_text": "",
+  "patient_context": {
+    "subject_id": 10006,
+    "hadm_id": 20006,
+    "gender": "F",
+    "age": 35,
+    "admission_type": "EMERGENCY",
+    "source_text": "",
+    "chief_complaint": "剧烈头痛伴视力模糊",
+    "history_present_illness": "",
+    "symptoms_or_complaints": [
+      "头痛",
+      "视力模糊",
+      "恶心"
+    ],
+    "past_medical_history": [
+      "高血压"
+    ],
+    "diagnoses": [
+      {
+        "icd9_code": "401.9",
+        "name": "高血压"
+      },
+      {
+        "icd9_code": "346.9",
+        "name": "偏头痛"
+      }
+    ],
+    "current_medications": [
+      {
+        "name": "propranolol",
+        "ingredient": "propranolol",
+        "dose": "40mg",
+        "route": "PO",
+        "frequency": "bid"
+      }
+    ],
+    "allergies": [
+      "penicillin"
+    ],
+    "pregnancy_status": "unknown",
+    "missing_fields": [
+      "pregnancy_status"
+    ]
+  },
+  "candidate_drugs": [
+    {
+      "name": "lisinopril",
+      "ingredient": "lisinopril",
+      "dose": "10mg",
+      "route": "PO",
+      "frequency": "qd",
+      "indication": "高血压",
+      "source": "candidate"
+    },
+    {
+      "name": "ibuprofen",
+      "ingredient": "ibuprofen",
+      "dose": "200mg",
+      "route": "PO",
+      "frequency": "prn",
+      "indication": "头痛",
+      "source": "candidate"
+    }
+  ],
+  "extract_output": null,
+  "review_output": {
+    "risk_level": "unknown",
+    "block_decision": true,
+    "risk_reasons": [],
+    "alternative_suggestions": [],
+    "need_clarification": true,
+    "clarification_targets": [
+      "pregnancy_status"
+    ],
+    "evidence": [],
+    "final_recommendation": "当前信息不足，建议先补充关键字段后再继续用药审查；在未补全前应采用保守策略。"
+  },
+  "agent_opinions": [
+    {
+      "agent_id": "allergy_specialist",
+      "agent_name": "过敏专员",
+      "role": "过敏史与交叉过敏审查",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "青霉素过敏与阿莫西林存在交叉过敏风险。"
+      ],
+      "alternatives": [
+        "阿奇霉素",
+        "多西环素"
+      ],
+      "need_clarification": false,
+      "clarification_targets": [],
+      "confidence": 0.95,
+      "evidence_cited": [
+        "allergy_penicillin_amoxicillin"
+      ],
+      "summary": "过敏专员建议阻断阿莫西林。"
+    },
+    {
+      "agent_id": "clinical_pharmacist",
+      "agent_name": "临床药师",
+      "role": "药物相互作用、剂量、重复用药审查",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "华法林与 NSAIDs 联用出血风险显著升高。"
+      ],
+      "alternatives": [
+        "对乙酰氨基酚"
+      ],
+      "need_clarification": false,
+      "clarification_targets": [],
+      "confidence": 0.9,
+      "evidence_cited": [
+        "ddi_warfarin_ibuprofen_bleeding"
+      ],
+      "summary": "临床药师审查完成。"
+    },
+    {
+      "agent_id": "internal_medicine",
+      "agent_name": "内科主治",
+      "role": "适应证与疾病-药物匹配审查",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "ACEI 禁用于妊娠患者。"
+      ],
+      "alternatives": [
+        "调整降压方案"
+      ],
+      "need_clarification": true,
+      "clarification_targets": [
+        "pregnancy_status"
+      ],
+      "confidence": 0.85,
+      "evidence_cited": [],
+      "summary": "内科主治审查完成。"
+    },
+    {
+      "agent_id": "pharmacy_inventory",
+      "agent_name": "药房库管",
+      "role": "库存、院内可开品种与替代方案",
+      "risk_level": "none",
+      "block_decision": false,
+      "reasons": [
+        "候选药物库存充足。"
+      ],
+      "alternatives": [],
+      "need_clarification": false,
+      "clarification_targets": [],
+      "confidence": 0.92,
+      "evidence_cited": [],
+      "summary": "药房库管确认可调配。"
+    },
+    {
+      "agent_id": "specialist",
+      "agent_name": "专科医生",
+      "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+      "risk_level": "unknown",
+      "block_decision": true,
+      "reasons": [
+        "育龄女性使用 ACEI 前必须确认妊娠状态。"
+      ],
+      "alternatives": [
+        "甲基多巴",
+        "拉贝洛尔（若确认妊娠）"
+      ],
+      "need_clarification": true,
+      "clarification_targets": [
+        "pregnancy_status"
+      ],
+      "confidence": 0.9,
+      "evidence_cited": [
+        "contraindication_pregnancy_acei"
+      ],
+      "summary": "专科建议先确认妊娠状态。"
+    }
+  ],
+  "arbitration": {
+    "consensus_risk_level": "unknown",
+    "consensus_block_decision": true,
+    "agent_opinions": [
+      {
+        "agent_id": "allergy_specialist",
+        "agent_name": "过敏专员",
+        "role": "过敏史与交叉过敏审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "青霉素过敏与阿莫西林存在交叉过敏风险。"
+        ],
+        "alternatives": [
+          "阿奇霉素",
+          "多西环素"
+        ],
+        "need_clarification": false,
+        "clarification_targets": [],
+        "confidence": 0.95,
+        "evidence_cited": [
+          "allergy_penicillin_amoxicillin"
+        ],
+        "summary": "过敏专员建议阻断阿莫西林。"
+      },
+      {
+        "agent_id": "clinical_pharmacist",
+        "agent_name": "临床药师",
+        "role": "药物相互作用、剂量、重复用药审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "华法林与 NSAIDs 联用出血风险显著升高。"
+        ],
+        "alternatives": [
+          "对乙酰氨基酚"
+        ],
+        "need_clarification": false,
+        "clarification_targets": [],
+        "confidence": 0.9,
+        "evidence_cited": [
+          "ddi_warfarin_ibuprofen_bleeding"
+        ],
+        "summary": "临床药师审查完成。"
+      },
+      {
+        "agent_id": "internal_medicine",
+        "agent_name": "内科主治",
+        "role": "适应证与疾病-药物匹配审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "ACEI 禁用于妊娠患者。"
+        ],
+        "alternatives": [
+          "调整降压方案"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [],
+        "summary": "内科主治审查完成。"
+      },
+      {
+        "agent_id": "pharmacy_inventory",
+        "agent_name": "药房库管",
+        "role": "库存、院内可开品种与替代方案",
+        "risk_level": "none",
+        "block_decision": false,
+        "reasons": [
+          "候选药物库存充足。"
+        ],
+        "alternatives": [],
+        "need_clarification": false,
+        "clarification_targets": [],
+        "confidence": 0.92,
+        "evidence_cited": [],
+        "summary": "药房库管确认可调配。"
+      },
+      {
+        "agent_id": "specialist",
+        "agent_name": "专科医生",
+        "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+        "risk_level": "unknown",
+        "block_decision": true,
+        "reasons": [
+          "育龄女性使用 ACEI 前必须确认妊娠状态。"
+        ],
+        "alternatives": [
+          "甲基多巴",
+          "拉贝洛尔（若确认妊娠）"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status"
+        ],
+        "confidence": 0.9,
+        "evidence_cited": [
+          "contraindication_pregnancy_acei"
+        ],
+        "summary": "专科建议先确认妊娠状态。"
+      }
+    ],
+    "dissenting_opinions": [
+      {
+        "agent_id": "allergy_specialist",
+        "agent_name": "过敏专员",
+        "role": "过敏史与交叉过敏审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "青霉素过敏与阿莫西林存在交叉过敏风险。"
+        ],
+        "alternatives": [
+          "阿奇霉素",
+          "多西环素"
+        ],
+        "need_clarification": false,
+        "clarification_targets": [],
+        "confidence": 0.95,
+        "evidence_cited": [
+          "allergy_penicillin_amoxicillin"
+        ],
+        "summary": "过敏专员建议阻断阿莫西林。"
+      },
+      {
+        "agent_id": "clinical_pharmacist",
+        "agent_name": "临床药师",
+        "role": "药物相互作用、剂量、重复用药审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "华法林与 NSAIDs 联用出血风险显著升高。"
+        ],
+        "alternatives": [
+          "对乙酰氨基酚"
+        ],
+        "need_clarification": false,
+        "clarification_targets": [],
+        "confidence": 0.9,
+        "evidence_cited": [
+          "ddi_warfarin_ibuprofen_bleeding"
+        ],
+        "summary": "临床药师审查完成。"
+      },
+      {
+        "agent_id": "internal_medicine",
+        "agent_name": "内科主治",
+        "role": "适应证与疾病-药物匹配审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "ACEI 禁用于妊娠患者。"
+        ],
+        "alternatives": [
+          "调整降压方案"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [],
+        "summary": "内科主治审查完成。"
+      },
+      {
+        "agent_id": "pharmacy_inventory",
+        "agent_name": "药房库管",
+        "role": "库存、院内可开品种与替代方案",
+        "risk_level": "none",
+        "block_decision": false,
+        "reasons": [
+          "候选药物库存充足。"
+        ],
+        "alternatives": [],
+        "need_clarification": false,
+        "clarification_targets": [],
+        "confidence": 0.92,
+        "evidence_cited": [],
+        "summary": "药房库管确认可调配。"
+      }
+    ],
+    "conflict_detected": false,
+    "arbitration_notes": "规则 evidence 优先；临床药师与过敏专员意见一致时采用阻断策略。",
+    "final_recommendation": "华法林与 NSAIDs 联用出血风险显著升高。",
+    "need_clarification": true,
+    "clarification_targets": [
+      "pregnancy_status"
+    ],
+    "rule_evidence": []
+  },
+  "clarify_output": null,
+  "final_recommendation": "关键信息无法补充，建议暂缓用药并人工复核。",
+  "events": [
+    {
+      "stage": "agent_review",
+      "timestamp": "2026-06-21T03:33:28+00:00",
+      "payload": {
+        "mode": "multi_agent"
+      }
+    },
+    {
+      "stage": "arbitration",
+      "timestamp": "2026-06-21T03:33:28+00:00",
+      "payload": {
+        "consensus_risk_level": "unknown",
+        "consensus_block_decision": true,
+        "agent_opinions": [
+          {
+            "agent_id": "allergy_specialist",
+            "agent_name": "过敏专员",
+            "role": "过敏史与交叉过敏审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "青霉素过敏与阿莫西林存在交叉过敏风险。"
+            ],
+            "alternatives": [
+              "阿奇霉素",
+              "多西环素"
+            ],
+            "need_clarification": false,
+            "clarification_targets": [],
+            "confidence": 0.95,
+            "evidence_cited": [
+              "allergy_penicillin_amoxicillin"
+            ],
+            "summary": "过敏专员建议阻断阿莫西林。"
+          },
+          {
+            "agent_id": "clinical_pharmacist",
+            "agent_name": "临床药师",
+            "role": "药物相互作用、剂量、重复用药审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "华法林与 NSAIDs 联用出血风险显著升高。"
+            ],
+            "alternatives": [
+              "对乙酰氨基酚"
+            ],
+            "need_clarification": false,
+            "clarification_targets": [],
+            "confidence": 0.9,
+            "evidence_cited": [
+              "ddi_warfarin_ibuprofen_bleeding"
+            ],
+            "summary": "临床药师审查完成。"
+          },
+          {
+            "agent_id": "internal_medicine",
+            "agent_name": "内科主治",
+            "role": "适应证与疾病-药物匹配审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "ACEI 禁用于妊娠患者。"
+            ],
+            "alternatives": [
+              "调整降压方案"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [],
+            "summary": "内科主治审查完成。"
+          },
+          {
+            "agent_id": "pharmacy_inventory",
+            "agent_name": "药房库管",
+            "role": "库存、院内可开品种与替代方案",
+            "risk_level": "none",
+            "block_decision": false,
+            "reasons": [
+              "候选药物库存充足。"
+            ],
+            "alternatives": [],
+            "need_clarification": false,
+            "clarification_targets": [],
+            "confidence": 0.92,
+            "evidence_cited": [],
+            "summary": "药房库管确认可调配。"
+          },
+          {
+            "agent_id": "specialist",
+            "agent_name": "专科医生",
+            "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+            "risk_level": "unknown",
+            "block_decision": true,
+            "reasons": [
+              "育龄女性使用 ACEI 前必须确认妊娠状态。"
+            ],
+            "alternatives": [
+              "甲基多巴",
+              "拉贝洛尔（若确认妊娠）"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status"
+            ],
+            "confidence": 0.9,
+            "evidence_cited": [
+              "contraindication_pregnancy_acei"
+            ],
+            "summary": "专科建议先确认妊娠状态。"
+          }
+        ],
+        "dissenting_opinions": [
+          {
+            "agent_id": "allergy_specialist",
+            "agent_name": "过敏专员",
+            "role": "过敏史与交叉过敏审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "青霉素过敏与阿莫西林存在交叉过敏风险。"
+            ],
+            "alternatives": [
+              "阿奇霉素",
+              "多西环素"
+            ],
+            "need_clarification": false,
+            "clarification_targets": [],
+            "confidence": 0.95,
+            "evidence_cited": [
+              "allergy_penicillin_amoxicillin"
+            ],
+            "summary": "过敏专员建议阻断阿莫西林。"
+          },
+          {
+            "agent_id": "clinical_pharmacist",
+            "agent_name": "临床药师",
+            "role": "药物相互作用、剂量、重复用药审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "华法林与 NSAIDs 联用出血风险显著升高。"
+            ],
+            "alternatives": [
+              "对乙酰氨基酚"
+            ],
+            "need_clarification": false,
+            "clarification_targets": [],
+            "confidence": 0.9,
+            "evidence_cited": [
+              "ddi_warfarin_ibuprofen_bleeding"
+            ],
+            "summary": "临床药师审查完成。"
+          },
+          {
+            "agent_id": "internal_medicine",
+            "agent_name": "内科主治",
+            "role": "适应证与疾病-药物匹配审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "ACEI 禁用于妊娠患者。"
+            ],
+            "alternatives": [
+              "调整降压方案"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [],
+            "summary": "内科主治审查完成。"
+          },
+          {
+            "agent_id": "pharmacy_inventory",
+            "agent_name": "药房库管",
+            "role": "库存、院内可开品种与替代方案",
+            "risk_level": "none",
+            "block_decision": false,
+            "reasons": [
+              "候选药物库存充足。"
+            ],
+            "alternatives": [],
+            "need_clarification": false,
+            "clarification_targets": [],
+            "confidence": 0.92,
+            "evidence_cited": [],
+            "summary": "药房库管确认可调配。"
+          }
+        ],
+        "conflict_detected": false,
+        "arbitration_notes": "规则 evidence 优先；临床药师与过敏专员意见一致时采用阻断策略。",
+        "final_recommendation": "华法林与 NSAIDs 联用出血风险显著升高。",
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status"
+        ],
+        "rule_evidence": []
+      }
+    },
+    {
+      "stage": "final",
+      "timestamp": "2026-06-21T03:33:28+00:00",
+      "payload": {
+        "final_recommendation": "关键信息无法补充，建议暂缓用药并人工复核。"
+      }
+    }
+  ]
+}

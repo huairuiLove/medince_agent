@@ -34,9 +34,10 @@ class TotalSegmentatorBackend(BaseSegmentBackend):
 
     def _ensure_home(self) -> None:
         home = model_dir("totalsegmentator")
-        home.mkdir(parents=True, exist_ok=True)
-        os.environ.setdefault("TOTALSEG_HOME", str(home))
-        os.environ.setdefault("NNUNET_RESULTS_FOLDER", str(home / "nnunet_results"))
+        weights = home / "nnunet" / "results"
+        weights.mkdir(parents=True, exist_ok=True)
+        os.environ["TOTALSEG_WEIGHTS_PATH"] = str(weights)
+        os.environ["TOTALSEG_HOME_DIR"] = str(home)
 
     def unload(self) -> None:
         self._loaded = False

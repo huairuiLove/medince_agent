@@ -1,0 +1,58 @@
+# ── Model weights (run: python scripts/download_models.py --all) ──
+models/**
+!models/.gitkeep
+
+# ── Runtime / patient / imaging data ──
+data/brats2024/*
+!data/brats2024/.gitkeep
+data/mimic/*
+!data/mimic/.gitkeep
+data/cases/*
+!data/cases/.gitkeep
+data/reports/
+data/imaging_cache/
+data/processed/
+data/raw/
+
+# ── Secrets ──
+.env
+.env.local
+*.pem
+*.key
+
+# ── Python ──
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── Logs ──
+logs/
+*.log
+
+# ── IDE & OS ──
+.idea/
+.vscode/
+.DS_Store
+**/.DS_Store
+*.iml
+
+# ── Frontend build ──
+frontend/node_modules/
+frontend/dist/
+
+# ── Large medical imaging formats ──
+*.nii
+*.nii.gz
+*.dcm
+*.dicom

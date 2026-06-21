@@ -1,0 +1,16 @@
+病人基本信息：
+- 性别：M
+- 年龄：67
+- 入院类型：EMERGENCY
+
+主诉：
+chest pain and shortness of breath
+
+现病史：
+patient presented with worsening dyspnea for 2 days, history of coronary artery disease and hypertension
+
+诊断：
+410.71:Subendocardial infarction, initial; 401.9:Hypertension NOS
+
+当前用药：
+aspirin | 81mg | PO; metoprolol | 25mg | PO

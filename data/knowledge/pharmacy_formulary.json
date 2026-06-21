@@ -1,0 +1,17 @@
+{
+  "formulary": {
+    "warfarin": {"in_stock": true, "generic_available": true, "alternatives": ["enoxaparin"]},
+    "aspirin": {"in_stock": true, "generic_available": true, "alternatives": ["clopidogrel"]},
+    "ibuprofen": {"in_stock": true, "generic_available": true, "alternatives": ["acetaminophen"]},
+    "acetaminophen": {"in_stock": true, "generic_available": true, "alternatives": []},
+    "amoxicillin": {"in_stock": true, "generic_available": true, "alternatives": ["azithromycin", "doxycycline"]},
+    "lisinopril": {"in_stock": true, "generic_available": true, "alternatives": ["amlodipine", "hydrochlorothiazide"]},
+    "losartan": {"in_stock": true, "generic_available": true, "alternatives": ["amlodipine"]},
+    "metoprolol": {"in_stock": true, "generic_available": true, "alternatives": ["carvedilol"]},
+    "simvastatin": {"in_stock": true, "generic_available": true, "alternatives": ["atorvastatin", "rosuvastatin"]},
+    "clarithromycin": {"in_stock": false, "generic_available": false, "alternatives": ["azithromycin"]},
+    "heparin": {"in_stock": true, "generic_available": true, "alternatives": ["enoxaparin"]},
+    "enoxaparin": {"in_stock": true, "generic_available": true, "alternatives": []}
+  },
+  "default_out_of_stock_alternatives": ["consult_pharmacist", "transfer_to_central_pharmacy"]
+}

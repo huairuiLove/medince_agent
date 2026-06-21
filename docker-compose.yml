@@ -1,0 +1,43 @@
+# =============================================================================
+# MedSafe Docker Compose — API + Vue Frontend
+# =============================================================================
+# Start:  docker compose up -d --build
+# UI:      http://localhost:3000
+# API:     http://localhost:8000/docs
+
+services:
+  api:
+    build: .
+    image: medsafe-api:2.0.0
+    container_name: medsafe-api
+    ports:
+      - "${MEDSAFE_API_PORT:-8000}:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - MEDSAFE_LLM__PROVIDER=${MEDSAFE_LLM_PROVIDER:-mock}
+      - MEDSAFE_LLM__API_KEY=${MEDSAFE_LLM_API_KEY:-}
+      - MEDSAFE_LOGGING__FORMAT=structured
+    volumes:
+      - ./data/cases:/app/data/cases
+      - ./data/knowledge:/app/data/knowledge
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  web:
+    build: ./frontend
+    image: medsafe-web:2.0.0
+    container_name: medsafe-web
+    ports:
+      - "${MEDSAFE_WEB_PORT:-3000}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

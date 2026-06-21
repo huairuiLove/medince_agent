@@ -1,0 +1,155 @@
+{
+  "drug_aliases": {
+    "acetaminophen": ["paracetamol", "tylenol", "对乙酰氨基酚"],
+    "ibuprofen": ["advil", "motrin", "布洛芬"],
+    "aspirin": ["阿司匹林"],
+    "warfarin": ["华法林"],
+    "heparin": ["肝素"],
+    "enoxaparin": ["依诺肝素"],
+    "amoxicillin": ["阿莫西林"],
+    "ampicillin": ["氨苄西林"],
+    "penicillin": ["青霉素"],
+    "lisinopril": ["赖诺普利"],
+    "losartan": ["氯沙坦"],
+    "clarithromycin": ["克拉霉素"],
+    "simvastatin": ["辛伐他汀"]
+  },
+  "interaction_rules": [
+    {
+      "rule_id": "ddi_warfarin_aspirin_bleeding",
+      "drugs": ["warfarin", "aspirin"],
+      "risk_level": "high",
+      "summary": "华法林与阿司匹林联用会显著增加出血风险。",
+      "mechanism": "抗凝与抗血小板作用叠加。",
+      "recommendation": "如非明确指征，避免联用；若必须使用需严密监测出血和 INR。",
+      "alternatives": ["优先评估是否可停用阿司匹林或更换止痛方案。"],
+      "clarification_fields": ["current_medications"]
+    },
+    {
+      "rule_id": "ddi_warfarin_ibuprofen_bleeding",
+      "drugs": ["warfarin", "ibuprofen"],
+      "risk_level": "high",
+      "summary": "华法林与布洛芬联用增加严重出血风险。",
+      "mechanism": "抗凝作用与 NSAIDs 出血风险叠加。",
+      "recommendation": "避免联用；若需镇痛，优先考虑更安全替代。",
+      "alternatives": ["可优先评估对乙酰氨基酚等替代止痛方案。"],
+      "clarification_fields": ["current_medications"]
+    },
+    {
+      "rule_id": "ddi_heparin_warfarin_bleeding",
+      "drugs": ["heparin", "warfarin"],
+      "risk_level": "high",
+      "summary": "肝素与华法林同时使用存在高出血风险。",
+      "mechanism": "双重抗凝。",
+      "recommendation": "仅在明确桥接方案下使用，并加强监测。",
+      "alternatives": ["确认是否为桥接抗凝，否则避免直接叠加。"],
+      "clarification_fields": ["current_medications"]
+    },
+    {
+      "rule_id": "ddi_aspirin_ibuprofen_antiplatelet",
+      "drugs": ["aspirin", "ibuprofen"],
+      "risk_level": "medium",
+      "summary": "阿司匹林与布洛芬同用可增加胃肠道出血风险，并可能影响抗血小板保护。",
+      "mechanism": "NSAIDs 与阿司匹林药效重叠。",
+      "recommendation": "如需联合，评估必要性并关注出血风险。",
+      "alternatives": ["如为止痛需求，可优先考虑对乙酰氨基酚。"],
+      "clarification_fields": ["current_medications"]
+    },
+    {
+      "rule_id": "ddi_clarithromycin_simvastatin_muscle",
+      "drugs": ["clarithromycin", "simvastatin"],
+      "risk_level": "high",
+      "summary": "克拉霉素与辛伐他汀联用可显著增加肌病和横纹肌溶解风险。",
+      "mechanism": "CYP3A4 抑制导致辛伐他汀暴露升高。",
+      "recommendation": "避免联用；抗感染期间考虑停用或更换他汀。",
+      "alternatives": ["可评估更换不经 CYP3A4 的他汀方案。"],
+      "clarification_fields": ["current_medications"]
+    }
+  ],
+  "duplicate_ingredient_rules": [
+    {
+      "rule_id": "dup_acetaminophen",
+      "ingredient": "acetaminophen",
+      "aliases": ["acetaminophen", "paracetamol", "tylenol", "对乙酰氨基酚"],
+      "risk_level": "medium",
+      "summary": "重复使用含对乙酰氨基酚成分的药物可能导致超量。",
+      "mechanism": "相同成分叠加。",
+      "recommendation": "保留一个含对乙酰氨基酚的制剂，避免重复开具。",
+      "alternatives": ["统一为单一对乙酰氨基酚制剂。"],
+      "clarification_fields": ["current_medications"]
+    },
+    {
+      "rule_id": "dup_ibuprofen",
+      "ingredient": "ibuprofen",
+      "aliases": ["ibuprofen", "advil", "motrin", "布洛芬"],
+      "risk_level": "medium",
+      "summary": "重复使用布洛芬相关制剂会增加胃肠道和肾脏不良反应风险。",
+      "mechanism": "同类 NSAIDs 成分叠加。",
+      "recommendation": "避免重复使用多个布洛芬制剂。",
+      "alternatives": ["只保留一个 NSAIDs 方案。"],
+      "clarification_fields": ["current_medications"]
+    }
+  ],
+  "population_rules": [
+    {
+      "rule_id": "pop_pregnancy_lisinopril",
+      "trigger_drugs": ["lisinopril"],
+      "population_field": "pregnancy_status",
+      "match_values": ["pregnant"],
+      "risk_level": "high",
+      "summary": "妊娠期避免使用赖诺普利，存在胎儿风险。",
+      "mechanism": "ACEI 相关胎儿毒性风险。",
+      "recommendation": "妊娠期不建议使用，需改用更安全方案。",
+      "alternatives": ["可由专科评估拉贝洛尔等替代方案。"],
+      "clarification_fields": ["pregnancy_status"]
+    },
+    {
+      "rule_id": "pop_pregnancy_losartan",
+      "trigger_drugs": ["losartan"],
+      "population_field": "pregnancy_status",
+      "match_values": ["pregnant"],
+      "risk_level": "high",
+      "summary": "妊娠期避免使用氯沙坦，存在胎儿风险。",
+      "mechanism": "ARB 相关胎儿毒性风险。",
+      "recommendation": "妊娠期不建议使用，需更换方案。",
+      "alternatives": ["改由专科评估孕期更安全降压方案。"],
+      "clarification_fields": ["pregnancy_status"]
+    },
+    {
+      "rule_id": "pop_child_aspirin",
+      "trigger_drugs": ["aspirin"],
+      "population_field": "age",
+      "age_max": 12,
+      "risk_level": "high",
+      "summary": "儿童使用阿司匹林需高度谨慎，存在严重不良反应风险。",
+      "mechanism": "儿童特殊人群用药风险更高。",
+      "recommendation": "除明确专科指征外，不建议常规使用。",
+      "alternatives": ["可优先评估对乙酰氨基酚等儿科方案。"],
+      "clarification_fields": ["age"]
+    }
+  ],
+  "allergy_rules": [
+    {
+      "rule_id": "alg_penicillin_amoxicillin",
+      "allergy_terms": ["penicillin", "青霉素"],
+      "trigger_drugs": ["amoxicillin", "ampicillin"],
+      "risk_level": "high",
+      "summary": "已知青霉素过敏患者使用阿莫西林/氨苄西林存在过敏风险。",
+      "mechanism": "同类 beta-lactam 过敏交叉风险。",
+      "recommendation": "避免直接使用相关药物，先确认过敏史并评估替代方案。",
+      "alternatives": ["可由临床结合感染场景评估非青霉素方案。"],
+      "clarification_fields": ["allergies"]
+    },
+    {
+      "rule_id": "alg_aspirin_ibuprofen",
+      "allergy_terms": ["aspirin", "阿司匹林", "nsaid", "布洛芬"],
+      "trigger_drugs": ["ibuprofen", "aspirin"],
+      "risk_level": "high",
+      "summary": "已知 NSAIDs 过敏患者再次使用相关药物存在过敏风险。",
+      "mechanism": "同类药物再暴露。",
+      "recommendation": "避免再次暴露，优先采用其他镇痛退热方案。",
+      "alternatives": ["可优先评估对乙酰氨基酚等替代。"],
+      "clarification_fields": ["allergies"]
+    }
+  ]
+}

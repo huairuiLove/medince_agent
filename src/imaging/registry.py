@@ -83,6 +83,9 @@ def list_models() -> list[dict]:
 
 def _weights_present(model_id: ModelId) -> bool:
     d = model_dir(model_id)
+    if model_id == "totalsegmentator":
+        ts = d / "nnunet" / "results" / "Dataset297_TotalSegmentator_total_3mm_1559subj"
+        return ts.exists()
     if not d.exists():
         return False
     files = list(d.rglob("*"))
