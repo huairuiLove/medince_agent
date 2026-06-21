@@ -6,6 +6,19 @@
 
 > **整合说明**：原 yuan-agent 已并入 MedSafe「智能问答」模块（`/chat`），支持医护专业模式与患者大众模式双角色。
 
+### 阶段报告（落盘 Blog）
+
+| 阶段 | 内容 | 报告 |
+|------|------|------|
+| Stage 1 | 总体方案（含初版 LoRA 规划） | [STAGE1_REPORT_CSDN.md](STAGE1_REPORT_CSDN.md) |
+| Stage 2 | Extract 原型（LoRA → LLM API） | [STAGE2_REPORT_CSDN.md](STAGE2_REPORT_CSDN.md) |
+| Stage 3 | 规则引擎 review/clarify | [STAGE3_REPORT_CSDN.md](STAGE3_REPORT_CSDN.md) |
+| Stage 4 | 多智能体 + Vue 前端 + Docker | [STAGE4_REPORT_CSDN.md](STAGE4_REPORT_CSDN.md) |
+| Stage 5 | 临床 UI + 影像 2D 分割 | [STAGE5_REPORT_CSDN.md](STAGE5_REPORT_CSDN.md) |
+| Stage 6 | 视觉报告 + 段落 RAG | [STAGE6_REPORT_CSDN.md](STAGE6_REPORT_CSDN.md) |
+| Stage 7 | 3D MPR + VISTA3D Bundle | [STAGE7_REPORT_CSDN.md](STAGE7_REPORT_CSDN.md) |
+| Stage 8 | 院级药库 CSV + CPOE 审查（1120 行演示目录） | [STAGE8_REPORT_CSDN.md](STAGE8_REPORT_CSDN.md) |
+
 ---
 
 ## 环境要求
