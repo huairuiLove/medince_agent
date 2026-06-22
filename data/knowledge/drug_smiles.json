@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "description": "Canonical drug name → SMILES for Bio_ClinicalBERT DDI model input",
+    "source": "PubChem / DrugBank common structures"
+  },
+  "smiles": {
+    "warfarin": "CC(=O)CC(C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O",
+    "ibuprofen": "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O",
+    "aspirin": "CC(=O)OC1=CC=CC=C1C(=O)O",
+    "acetaminophen": "CC(=O)NC1=CC=C(C=C1)O",
+    "amoxicillin": "CC1(C(N2C(C(C2=O)NC(=O)C(C3=CC=CC=C3)O)SC1)C(=O)O",
+    "ampicillin": "CC1(C(N2C(C(C2=O)NC(=O)C(C3=CC=CC=C3)N)SC1)C(=O)O",
+    "penicillin": "CC1(C(N2C(C(C2=O)NC(=O)C(C3=CC=CC=C3)N)SC1)C(=O)O",
+    "lisinopril": "C1CCN(C1)C(=O)[C@H](CCCN=C(N)N)N[C@@H](CC(C)C)C(=O)O",
+    "losartan": "CCCCC1=NC=C(C1)C(=O)N(C2=CC=C(C=C2)C3=CC=CC=C3C3=NNN=N3)C",
+    "clarithromycin": "CC1=CC=C(C=C1)OCC(C)NCC(C2=CC(=C(C=C2)O)OC)OC3C(C(C(C(O3)C)OC)OC)OC",
+    "simvastatin": "CCC(C)(C)C(=O)O[C@H]1C[C@@H](C)C=C2C=C[C@H](C[C@H]2C1)OC",
+    "metoprolol": "CC(C)NCC(COC1=CC=C(C=C1)CCOC)O",
+    "levothyroxine": "N[C@@H](CC1=CC(I)=C(OC2=CC(I)=C(O)C(I)=C2)C(I)=C1)C(=O)O",
+    "heparin": "CC(=O)NC1C(C(C(OC1OC(C(C(CO)O)O)CO)OC(C(C(CO)O)O)CO)OC(C(C(CO)O)O)O)OC(C(C(CO)O)O)O",
+    "enoxaparin": "CC(=O)NC1C(C(C(OC1OC(C(C(CO)O)O)CO)OC(C(C(CO)O)O)CO)OC(C(C(CO)O)O)O)OC(C(C(CO)O)O)O",
+    "clopidogrel": "COC(=O)C(C1=CC=CC=C1Cl)N2CCC3=C(C2)C=CS3",
+    "metformin": "CN(C)C(=N)N=C(N)N",
+    "atorvastatin": "CC(C)C1=C(C(=C(N1CCC(CC(CC(=O)O)O)O)C2=CC=C(C=C2)F)C3=CC=CC=C3)C(=O)NC4=CC=CC=C4",
+    "omeprazole": "CC1=CN=C(C(=C1OC)C)CS(=O)C2=NC3=C(N2)C=C(C=C3)OC",
+    "azithromycin": "CCC1C(C(C(N(CC(CC(C(C(C(C(C(=O)O1)C)OC2CC(C(C(O2)C)O)(C)OC)C)OC3C(C(CC(O3)C)N(C)C)O)(C)O)C)C)C)O)(C)O",
+    "rivaroxaban": "C1COCC(=O)N1C2=CC=C(C=C2)N3CC(OC3=O)CNC(=O)C4=CC=C(S4)Cl",
+    "diclofenac": "C1=CC=C(C(=C1)CC(=O)O)NC2=C(C=CC=C2Cl)Cl",
+    "celecoxib": "CC1=CC=C(C=C1)C2=CC(=NN2C3=CC=C(C=C3)S(=O)(=O)N)C(F)(F)F",
+    "digoxin": "CC1C(C(CC(O1)OC2C(OC(CC2O)OC3C(OC(CC3O)OC4CCC5(C(C4)CCC6C5CC(C7(C6(CCC7C8=CC(=O)OC8)O)C)O)C)C)C)O)O",
+    "fluoxetine": "CNCCC(C1=CC=CC=C1)OC2=CC=C(C=C2)C(F)(F)F",
+    "morphine": "CN1CCC23C4C1CC5=C2C(=C(C=C5)O)OC3C(C=C4)O",
+    "nifedipine": "CC1=C(C(C(=C(N1)C)C(=O)OC)C2=CC=CC=C2[N+](=O)[O-])C(=O)OC",
+    "captopril": "CC(CS)C(=O)N1CCCC1C(=O)O",
+    "levofloxacin": "CC1COC2=C3N1C=C(C(=O)C3=CC(=C2N4CCN(CC4)C)F)C(=O)O",
+    "ticagrelor": "CCCSC1=NC(=C2C(=N1)N(N=N2)C3CC(C(C3O)O)OCCO)NC4CC4C5=CC(=C(C=C5)F)F",
+    "dabigatran": "CN1C2=C(C=C(C=C2)C(=O)N(CCC(=O)O)C3=CC=CC=N3)N=C1CNC4=CC=C(C=C4)C(=N)N",
+    "apixaban": "COC1=CC=C(C=C1)N2C3=C(CCN(C3=O)C4=CC=C(C=C4)N5CCCCC5=O)C(=N2)C(=O)N",
+    "cephalexin": "CC1=C(N2C(C(C2=O)NC(=O)C(C3=CC=CC=C3)N)SC1)C(=O)O",
+    "cefuroxime": "CON=C(C1=CC=CO1)C(=O)NC2C3N(C2=O)C(=C(CS3)COC(=O)N)C(=O)O",
+    "ceftriaxone": "CN1C(=NC(=O)C(=O)N1)SCC2=C(N3C(C(C3=O)NC(=O)C(=NOC)C4=CSC(=N4)N)SC2)C(=O)O"
+  }
+}

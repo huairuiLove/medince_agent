@@ -7,6 +7,8 @@ data/brats2024/*
 !data/brats2024/.gitkeep
 data/mimic/*
 !data/mimic/.gitkeep
+data/mimic_cxr/*
+!data/mimic_cxr/.gitkeep
 data/cases/*
 !data/cases/.gitkeep
 data/reports/
@@ -17,6 +19,7 @@ data/hospital/*.db
 data/hospital/cache/
 data/local_fallback.db
 data/knowledge/smiles_cache.db
+data/knowledge/mined_ddi_scores.jsonl
 data/auth/*.db
 
 # ── Secrets ──
@@ -46,6 +49,7 @@ logs/
 *.log
 
 # ── IDE & OS ──
+.cursor/
 .idea/
 .vscode/
 .DS_Store

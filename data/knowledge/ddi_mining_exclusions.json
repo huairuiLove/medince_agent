@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "version": "v1",
+    "description": "DDI 挖掘假阳性过滤：显式排除的药对与不参与全组合打分的药物"
+  },
+  "excluded_drugs": [
+    "normal saline",
+    "glucose",
+    "sodium chloride",
+    "water for injection",
+    "vitamin b6",
+    "vitamin c",
+    "folic acid"
+  ],
+  "excluded_pairs": [
+    {
+      "drug_a": "metoprolol",
+      "drug_b": "clopidogrel",
+      "reason": "常见联用，模型易误报；无确定性 DDI 文献支持阻断"
+    },
+    {
+      "drug_a": "metoprolol",
+      "drug_b": "aspirin",
+      "reason": "心血管二级预防常见组合"
+    },
+    {
+      "drug_a": "atorvastatin",
+      "drug_b": "clopidogrel",
+      "reason": "冠心病标准三联组分，模型中等概率误报"
+    },
+    {
+      "drug_a": "omeprazole",
+      "drug_b": "clopidogrel",
+      "reason": "PPI+抗血小板临床普遍使用，争议性 DDI 不自动阻断"
+    },
+    {
+      "drug_a": "pantoprazole",
+      "drug_b": "clopidogrel",
+      "reason": "同上"
+    },
+    {
+      "drug_a": "levothyroxine",
+      "drug_b": "calcium carbonate",
+      "reason": "吸收干扰可通过间隔服药管理，非硬阻断 DDI"
+    },
+    {
+      "drug_a": "levothyroxine",
+      "drug_b": "ferrous sulfate",
+      "reason": "同上"
+    },
+    {
+      "drug_a": "insulin glargine",
+      "drug_b": "insulin aspart",
+      "reason": "基础+餐时胰岛素方案，非 DDI"
+    },
+    {
+      "drug_a": "insulin glargine",
+      "drug_b": "insulin nph",
+      "reason": "胰岛素制剂组合方案"
+    },
+    {
+      "drug_a": "amoxicillin",
+      "drug_b": "clavulanate",
+      "reason": "复方成分，非药对 DDI"
+    }
+  ]
+}

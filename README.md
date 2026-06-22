@@ -193,6 +193,12 @@ python scripts/warm_smiles_cache.py
 
 # 仅查看待预热药名
 python scripts/warm_smiles_cache.py --dry-run
+
+# DDI 规则挖掘（Bio_ClinicalBERT 全组合打分 → expanded_drug_safety_rules.json）
+python scripts/mine_ddi_rules.py --max-drugs 150 --warm-smiles --update-config
+# 全量：--max-drugs 0 --batch-size 64（约 8.5 万对，CPU 较慢）
+# 阈值：config clinical_knowledge.mining_thresholds；分析：python scripts/analyze_ddi_scores.py
+# 假阳性：编辑 data/knowledge/ddi_mining_exclusions.json
 ```
 
 中文通用名会先映射到英文 INN（`data/knowledge/drug_inn_map.json`，由预热脚本自动生成）。PubChem 可在 `config.yaml` → `safety_models.pubchem` 关闭（`enabled: false` 时仅使用静态 JSON + 本地缓存）。
