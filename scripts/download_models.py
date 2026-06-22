@@ -186,25 +186,35 @@ def download_brats_tumor(force: bool = False):
 
 
 def download_cxr_lesion(force: bool = False):
-    """Install torchxrayvision — weights auto-download on first inference."""
-    print("Installing torchxrayvision for CXR lesion localization ...")
+    """Download CXR lesion U-Net (RSNA/SIIM) + install torchxrayvision for pathology fallback."""
+    print("Installing CXR lesion dependencies (torchxrayvision, timm, albumentations) ...")
     subprocess.check_call(
         [sys.executable, "-m", "pip", "install", "--trusted-host", "pypi.org",
-         "--trusted-host", "files.pythonhosted.org", "torchxrayvision>=1.2.0"],
+         "--trusted-host", "files.pythonhosted.org",
+         "torchxrayvision>=1.2.0", "timm>=0.9.0", "albumentations>=1.3.0"],
     )
-    target = MODELS / "cxr_lesion"
-    target.mkdir(parents=True, exist_ok=True)
-    marker = target / "README.txt"
-    if force or not marker.exists():
-        marker.write_text(
-            "CXR lesion model uses torchxrayvision densenet121-res224-all.\n"
-            "Weights download automatically on first segment run.\n"
-            "Supported lesions: opacity, consolidation, pneumonia, effusion, pneumothorax, ...\n",
+    _, snapshot_download = ensure_hf()
+    target = MODELS / "cxr_lesion" / "pneumonia_unet"
+    ckpt = target / "model.safetensors"
+    if not force and _exists(ckpt, min_mb=10):
+        print(f"CXR pneumonia U-Net already present -> {ckpt}")
+    else:
+        target.mkdir(parents=True, exist_ok=True)
+        print("Downloading Dimaodessa/pneumonia-cxr (EfficientNetV2 U-Net, RSNA+SIIM) ...")
+        snapshot_download(repo_id="Dimaodessa/pneumonia-cxr", local_dir=str(target))
+        print(f"  -> {target}")
+
+    readme = MODELS / "cxr_lesion" / "README.txt"
+    if force or not readme.exists():
+        readme.parent.mkdir(parents=True, exist_ok=True)
+        readme.write_text(
+            "CXR lesion segmentation:\n"
+            "  - Opacity/consolidation/pneumonia: Dimaodessa/pneumonia-cxr U-Net (pneumonia_unet/)\n"
+            "  - Effusion/pneumothorax/etc.: torchxrayvision Grad-CAM fallback\n"
+            "Download: python scripts/download_models.py --cxr-lesion\n",
             encoding="utf-8",
         )
-    print(f"  -> {target} (runtime weights via torchxrayvision)")
-    download_ddi_bert(force=force)
-    download_med7(force=force)
+    print(f"  -> {MODELS / 'cxr_lesion'}")
 
 
 def verify_all() -> bool:
@@ -215,7 +225,7 @@ def verify_all() -> bool:
         "totalseg_297": TS_WEIGHTS / "Dataset297_TotalSegmentator_total_3mm_1559subj",
         "totalseg_298": TS_WEIGHTS / "Dataset298_TotalSegmentator_total_6mm_1559subj",
         "brats_tumor": MODELS / "brats_tumor" / "models" / "model.pt",
-        "cxr_lesion": MODELS / "cxr_lesion" / "README.txt",
+        "cxr_lesion": MODELS / "cxr_lesion" / "pneumonia_unet" / "model.safetensors",
         "ddi_bert": MODELS / "ddi_bert" / "pytorch_model.bin",
         "med7": MODELS / "med7" / "en_core_med7_lg-1.1.0-py3-none-any.whl",
     }

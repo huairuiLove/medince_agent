@@ -27,8 +27,8 @@
       "vision_models": [
         {
           "model_id": "cxr_lesion",
-          "name": "CXR Lesion (torchxrayvision DenseNet121)",
-          "task": "胸片病灶热图 / opacity·effusion·pneumothorax",
+          "name": "CXR Lesion (U-Net + pathology)",
+          "task": "胸片病灶像素分割 — opacity/pneumonia 用 RSNA U-Net；effusion 等用 pathology 定位",
           "download": "python scripts/download_models.py --cxr-lesion"
         },
         {

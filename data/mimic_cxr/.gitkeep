@@ -1,0 +1,9 @@
+# MIMIC-CXR chest X-ray images for lesion segmentation (cxr_lesion model).
+#
+# Layout:
+#   data/mimic_cxr/{patient_id}/{study_id}/*.jpg|png
+#
+# Example (PhysioNet MIMIC-CXR-JPG export):
+#   data/mimic_cxr/p10000032/s50414267/00000001.jpg
+#
+# Use model: cxr_lesion (torchxrayvision pretrained pathology localization)

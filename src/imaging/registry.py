@@ -34,8 +34,8 @@ class SegModelSpec:
 MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
     "cxr_lesion": SegModelSpec(
         model_id="cxr_lesion",
-        name="CXR Lesion (torchxrayvision)",
-        description="MIMIC/CheXpert 风格胸片病灶定位 — opacity/effusion/pneumothorax 等（Grad-CAM 预训练 DenseNet121）",
+        name="CXR Lesion (U-Net + pathology)",
+        description="MIMIC 胸片病灶分割 — opacity/pneumonia 用 RSNA U-Net 像素掩膜；effusion/pneumothorax 等用 pathology Grad-CAM",
         modalities=("XR",),
         dim="2d",
         local_dir="models/cxr_lesion",
@@ -134,6 +134,9 @@ def list_models() -> list[dict]:
 
 def _weights_present(model_id: ModelId) -> bool:
     if model_id == "cxr_lesion":
+        unet = model_dir("cxr_lesion") / "pneumonia_unet" / "model.safetensors"
+        if unet.exists():
+            return True
         try:
             import torchxrayvision  # noqa: F401
             return True
