@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_gastroenterology_03_ddi_sucralfate_quinolone",
+  "department": "gastroenterology",
+  "description": "消化内科用药安全：硫糖铝螯合喹诺酮降低其吸收。",
+  "difficulty": "medium",
+  "tags": [
+    "gastroenterology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50049,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "消化内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "sucralfate",
+          "ingredient": "sucralfate",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "ciprofloxacin",
+        "ingredient": "ciprofloxacin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_sucralfate_quinolone",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

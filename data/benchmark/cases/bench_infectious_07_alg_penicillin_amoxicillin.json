@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_infectious_07_alg_penicillin_amoxicillin",
+  "department": "infectious",
+  "description": "感染科用药安全：已知青霉素过敏患者使用阿莫西林/氨苄西林存在过敏风险。",
+  "difficulty": "hard",
+  "tags": [
+    "infectious",
+    "allergy"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50085,
+      "gender": "F",
+      "age": 45,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "感染科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "penicillin"
+      ],
+      "pregnancy_status": "not_pregnant",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "amoxicillin",
+        "ingredient": "amoxicillin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "alg_penicillin_amoxicillin",
+        "category": "allergy_contraindication",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

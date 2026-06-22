@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_icu_05_ddi_icu_sedative_nmb_midazolam_rocuronium",
+  "department": "icu",
+  "description": "ICU/急诊用药安全：镇静剂与肌松药联用呼吸抑制风险叠加。",
+  "difficulty": "hard",
+  "tags": [
+    "icu",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50103,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "ICU/急诊用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "midazolam",
+          "ingredient": "midazolam",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "rocuronium",
+        "ingredient": "rocuronium",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_icu_sedative_nmb_midazolam_rocuronium",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

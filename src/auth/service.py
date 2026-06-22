@@ -43,6 +43,7 @@ class AuthService:
             self._conn = connect(self.db_path)
             init_schema(self._conn)
             self._seed_if_empty()
+            self._seed_chief_pharm_if_missing()
         return self._conn
 
     def _secret(self) -> str:
@@ -78,15 +79,15 @@ class AuthService:
         user_count = self.conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()
         if user_count and user_count["c"] == 0:
             demos = [
-                ("resp_doc", "呼吸科张医生", "respiratory", "resp123"),
-                ("neuro_doc", "神内李医生", "neurology", "neuro123"),
-                ("radio_admin", "放射科管理员", "radiology", "admin123"),
-                ("pharm_doc", "临床药师王", "pharmacy", "pharm123"),
+                ("resp_doc", "呼吸科张医生", "respiratory", "resp123", "doctor"),
+                ("neuro_doc", "神内李医生", "neurology", "neuro123", "doctor"),
+                ("radio_admin", "放射科管理员", "radiology", "admin123", "admin"),
+                ("pharm_doc", "临床药师王", "pharmacy", "pharm123", "pharmacist"),
+                ("chief_pharm", "主管药师陈", "pharmacy", "chief123", "pharmacist"),
             ]
             now = _utc_now()
-            for username, display, dept_id, password in demos:
+            for username, display, dept_id, password, role in demos:
                 uid = new_user_id()
-                role = "admin" if username == "radio_admin" else "doctor"
                 self.conn.execute(
                     """
                     INSERT INTO users (user_id, username, password_hash, display_name, role, dept_id, created_at)
@@ -96,6 +97,32 @@ class AuthService:
                 )
                 self._init_default_agent_prefs(uid)
             self.conn.commit()
+
+    def _seed_chief_pharm_if_missing(self) -> None:
+        self.conn.execute(
+            "UPDATE users SET role = 'pharmacist' WHERE username = 'pharm_doc' AND role = 'doctor'"
+        )
+        row = self.conn.execute(
+            "SELECT user_id FROM users WHERE username = ?",
+            ("chief_pharm",),
+        ).fetchone()
+        if row:
+            return
+        uid = new_user_id()
+        now = _utc_now()
+        self.conn.execute(
+            """
+            INSERT INTO users (user_id, username, password_hash, display_name, role, dept_id, created_at)
+            VALUES (?, ?, ?, ?, 'pharmacist', 'pharmacy', ?)
+            """,
+            (uid, "chief_pharm", hash_password("chief123"), "主管药师陈", now),
+        )
+        self._init_default_agent_prefs(uid)
+        self.conn.commit()
+
+    @staticmethod
+    def is_pharmacy_role(role: str) -> bool:
+        return role in {"admin", "pharmacist"}
 
     def _init_default_agent_prefs(self, user_id: str) -> None:
         for spec in self._registry.list_specs():

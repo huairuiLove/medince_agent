@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_cardiology_05_ddi_acei_spironolactone_lisinopril_spironolactone",
+  "department": "cardiology",
+  "description": "心内科用药安全：ACEI 与螺内酯联用可致高钾血症。",
+  "difficulty": "hard",
+  "tags": [
+    "cardiology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50004,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "心内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "lisinopril",
+          "ingredient": "lisinopril",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "spironolactone",
+        "ingredient": "spironolactone",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_acei_spironolactone_lisinopril_spironolactone",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

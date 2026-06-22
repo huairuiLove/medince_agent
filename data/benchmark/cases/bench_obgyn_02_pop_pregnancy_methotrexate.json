@@ -1,0 +1,56 @@
+{
+  "case_id": "bench_obgyn_02_pop_pregnancy_methotrexate",
+  "department": "obgyn",
+  "description": "妇产科用药安全：methotrexate 在妊娠期使用存在胎儿安全风险。",
+  "difficulty": "hard",
+  "tags": [
+    "obgyn",
+    "special_population",
+    "pregnancy"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50106,
+      "gender": "F",
+      "age": 28,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "妇产科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "pregnant",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "methotrexate",
+        "ingredient": "methotrexate",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_pregnancy_methotrexate",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

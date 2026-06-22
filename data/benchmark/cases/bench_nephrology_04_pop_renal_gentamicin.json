@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_nephrology_04_pop_renal_gentamicin",
+  "department": "nephrology",
+  "description": "肾内科用药安全：eGFR<60 时氨基糖苷类需 TDM 并监测耳肾毒性。",
+  "difficulty": "hard",
+  "tags": [
+    "nephrology",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50058,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "肾内科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 55.0,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "gentamicin",
+        "ingredient": "gentamicin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_renal_gentamicin",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

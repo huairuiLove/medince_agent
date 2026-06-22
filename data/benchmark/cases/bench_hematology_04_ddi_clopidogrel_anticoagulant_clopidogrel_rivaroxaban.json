@@ -1,0 +1,64 @@
+{
+  "case_id": "bench_hematology_04_ddi_clopidogrel_anticoagulant_clopidogrel_rivaroxaban",
+  "department": "hematology",
+  "description": "血液科用药安全：氯吡格雷与抗凝剂联用出血风险叠加。",
+  "difficulty": "hard",
+  "tags": [
+    "hematology",
+    "drug_interaction",
+    "anticoagulation"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50066,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "血液科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "clopidogrel",
+          "ingredient": "clopidogrel",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "rivaroxaban",
+        "ingredient": "rivaroxaban",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_clopidogrel_anticoagulant_clopidogrel_rivaroxaban",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

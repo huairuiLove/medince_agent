@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_respiratory_07_pop_pediatric_levofloxacin",
+  "department": "respiratory",
+  "description": "呼吸科用药安全：18 岁以下使用氟喹诺酮类存在关节软骨损伤风险。",
+  "difficulty": "medium",
+  "tags": [
+    "respiratory",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50021,
+      "gender": "M",
+      "age": 16,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "呼吸科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "levofloxacin",
+        "ingredient": "levofloxacin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_pediatric_levofloxacin",
+        "category": "special_population",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

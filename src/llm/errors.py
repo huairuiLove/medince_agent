@@ -13,3 +13,13 @@ class LLMNotConfiguredError(RuntimeError):
             msg = f"{msg} {hint}"
         super().__init__(msg)
         self.service = service
+
+
+class DrugSearchModelNotReadyError(RuntimeError):
+    """Raised when semantic drug search model/index is unavailable."""
+
+    def __init__(self, detail: str = "") -> None:
+        msg = "Drug catalog semantic search is not ready."
+        if detail:
+            msg = f"{msg} {detail}"
+        super().__init__(msg)

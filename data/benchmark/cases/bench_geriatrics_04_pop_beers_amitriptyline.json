@@ -1,0 +1,56 @@
+{
+  "case_id": "bench_geriatrics_04_pop_beers_amitriptyline",
+  "department": "geriatrics",
+  "description": "老年科用药安全：三环抗抑郁药在老年患者中抗胆碱能及直立低血压风险高。",
+  "difficulty": "hard",
+  "tags": [
+    "geriatrics",
+    "special_population",
+    "beers"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50096,
+      "gender": "M",
+      "age": 70,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "老年科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "amitriptyline",
+        "ingredient": "amitriptyline",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_beers_amitriptyline",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

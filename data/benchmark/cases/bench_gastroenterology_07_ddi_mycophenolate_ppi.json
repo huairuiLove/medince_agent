@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_gastroenterology_07_ddi_mycophenolate_ppi",
+  "department": "gastroenterology",
+  "description": "消化内科用药安全：PPI 降低吗替麦考酚酯吸收。",
+  "difficulty": "medium",
+  "tags": [
+    "gastroenterology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50053,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "消化内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "mycophenolate",
+          "ingredient": "mycophenolate",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "omeprazole",
+        "ingredient": "omeprazole",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_mycophenolate_ppi",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

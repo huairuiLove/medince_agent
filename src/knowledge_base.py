@@ -10,18 +10,16 @@ DEFAULT_KB_PATH = Path(__file__).resolve().parent.parent / "data" / "knowledge" 
 
 
 def get_default_kb_path() -> Path:
-    """Resolve knowledge base path from config, falling back to minimal rules."""
-    try:
-        from src.config import get_config, resolve_path
+    """Resolve knowledge base path from config."""
+    from src.config import get_config, resolve_path
 
-        rel = get_config().get("data", {}).get("knowledge_base")
-        if rel:
-            path = resolve_path(rel)
-            if path.exists():
-                return path
-    except Exception:  # pragma: no cover
-        pass
-    return DEFAULT_KB_PATH
+    rel = get_config().get("data", {}).get("knowledge_base")
+    if not rel:
+        raise FileNotFoundError("config data.knowledge_base is not set")
+    path = resolve_path(rel)
+    if not path.exists():
+        raise FileNotFoundError(f"Knowledge base not found: {path}")
+    return path
 
 
 class SafetyKnowledgeBase:
@@ -70,6 +68,9 @@ class SafetyKnowledgeBase:
 
     def get_allergy_rules(self) -> list[dict[str, Any]]:
         return list(self.data.get("allergy_rules", []))
+
+    def get_scenario_rules(self) -> list[dict[str, Any]]:
+        return list(self.data.get("scenario_rules", []))
 
     def interaction_rules_for_pair(self, drug_a: str, drug_b: str) -> list[dict[str, Any]]:
         """Lookup interaction rules by canonical pair (O(1) index)."""

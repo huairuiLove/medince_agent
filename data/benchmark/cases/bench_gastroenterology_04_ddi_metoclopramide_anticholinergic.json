@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_gastroenterology_04_ddi_metoclopramide_anticholinergic",
+  "department": "gastroenterology",
+  "description": "消化内科用药安全：甲氧氯普胺与抗胆碱能药药理拮抗。",
+  "difficulty": "medium",
+  "tags": [
+    "gastroenterology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50050,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "消化内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "metoclopramide",
+          "ingredient": "metoclopramide",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "oxybutynin",
+        "ingredient": "oxybutynin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_metoclopramide_anticholinergic",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

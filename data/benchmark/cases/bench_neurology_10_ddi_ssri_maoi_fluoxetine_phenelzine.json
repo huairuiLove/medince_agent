@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_neurology_10_ddi_ssri_maoi_fluoxetine_phenelzine",
+  "department": "neurology",
+  "description": "神经内科用药安全：SSRI 与 MAO 抑制剂联用可致致命性 5-羟色胺综合征。",
+  "difficulty": "hard",
+  "tags": [
+    "neurology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50034,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "神经内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "fluoxetine",
+          "ingredient": "fluoxetine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "phenelzine",
+        "ingredient": "phenelzine",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ssri_maoi_fluoxetine_phenelzine",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

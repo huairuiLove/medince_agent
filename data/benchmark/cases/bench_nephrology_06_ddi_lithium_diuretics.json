@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_nephrology_06_ddi_lithium_diuretics",
+  "department": "nephrology",
+  "description": "肾内科用药安全：噻嗪类利尿剂可致锂中毒（钠丢失→锂重吸收增加）。",
+  "difficulty": "hard",
+  "tags": [
+    "nephrology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50060,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "肾内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "lithium",
+          "ingredient": "lithium",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "hydrochlorothiazide",
+        "ingredient": "hydrochlorothiazide",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_lithium_diuretics",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

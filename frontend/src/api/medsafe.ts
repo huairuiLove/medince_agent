@@ -1,28 +1,42 @@
 import type {
   AgentInfo,
+  AlertDecisionAction,
   CaseLog,
   ClinicalReport,
+  DoctorWorkspace,
   HealthResponse,
   ImagingStudy,
   ModelId,
   MultiConsultResponse,
+  OverrideAuditLog,
   PatientContext,
+  PharmacistReview,
+  PharmacyQueueItem,
+  PharmacyStats,
   ReportParagraph,
   ReviewOutput,
+  RiskAcceptance,
   SegModelInfo,
   SegmentResultItem,
   SegmentRunRecord,
   DrugItem,
+  TokenResponse,
   VolumeAxis,
   VolumeMeta,
   VlmAnalysis,
 } from '@/types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
+const TOKEN_KEY = 'medsafe_token'
+
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem(TOKEN_KEY)
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
     ...init,
   })
   if (!res.ok) {
@@ -53,6 +67,87 @@ export function volumeSliceUrl(params: {
 
 export const medsafeApi = {
   health: () => request<HealthResponse>('/health'),
+
+  login: (username: string, password: string) =>
+    request<TokenResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+
+  register: (body: { username: string; password: string; display_name?: string; dept_id: string }) =>
+    request<TokenResponse & DoctorWorkspace>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  getMe: () => request<DoctorWorkspace>('/api/v1/auth/me'),
+
+  updateAgentPrefs: (body: { agents: { agent_id: string; enabled: boolean }[] }) =>
+    request<DoctorWorkspace>('/api/v1/auth/agent-prefs', { method: 'PUT', body: JSON.stringify(body) }),
+
+  updateSkillPrefs: (body: { skills: { agent_id: string; skill_id: string; enabled: boolean }[] }) =>
+    request<DoctorWorkspace>('/api/v1/auth/skill-prefs', { method: 'PUT', body: JSON.stringify(body) }),
+
+  addCustomSkill: (body: { agent_id: string; title: string; content_md: string }) =>
+    request<{ skill_id: string }>('/api/v1/auth/custom-skills', { method: 'POST', body: JSON.stringify(body) }),
+
+  pharmacyQueue: (params?: { page?: number; page_size?: number; status?: string }) => {
+    const q = new URLSearchParams()
+    if (params?.page) q.set('page', String(params.page))
+    if (params?.page_size) q.set('page_size', String(params.page_size))
+    if (params?.status) q.set('status', params.status)
+    const suffix = q.toString() ? `?${q}` : ''
+    return request<{ items: PharmacyQueueItem[]; total: number }>(`/api/v1/pharmacy/queue${suffix}`)
+  },
+
+  pharmacyReview: (reviewId: string) =>
+    request<PharmacistReview>(`/api/v1/pharmacy/review/${reviewId}`),
+
+  pharmacyDecide: (
+    reviewId: string,
+    body: {
+      alert_id: string
+      action: AlertDecisionAction
+      override_reason?: string
+      override_risk_acceptance?: RiskAcceptance
+      pharmacist_notes?: string
+    },
+  ) =>
+    request<PharmacistReview>(`/api/v1/pharmacy/review/${reviewId}/decide`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  pharmacySubmit: (reviewId: string, body: { notes?: string }) =>
+    request<PharmacistReview>(`/api/v1/pharmacy/review/${reviewId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  pharmacyAudit: (filters: {
+    start_date?: string
+    end_date?: string
+    drug_name?: string
+    alert_level?: string
+  }) => {
+    const q = new URLSearchParams()
+    Object.entries(filters).forEach(([k, v]) => { if (v) q.set(k, v) })
+    const suffix = q.toString() ? `?${q}` : ''
+    return request<{ items: OverrideAuditLog[]; total: number }>(`/api/v1/pharmacy/audit${suffix}`)
+  },
+
+  pharmacyAuditExport: async (query: string) => {
+    const res = await fetch(`${BASE}/api/v1/pharmacy/audit/export${query ? `?${query}` : ''}`, {
+      headers: authHeaders(),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.blob()
+  },
+
+  pharmacyAuditExportUrl: (query: string) =>
+    `${BASE}/api/v1/pharmacy/audit/export${query ? `?${query}` : ''}`,
+
+  pharmacyStats: () => request<PharmacyStats>('/api/v1/pharmacy/stats'),
 
   listAgents: () => request<{ agents: AgentInfo[] }>('/api/v1/agents'),
 

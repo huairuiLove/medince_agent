@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_endocrinology_10_pop_lactation_lithium",
+  "department": "endocrinology",
+  "description": "内分泌科用药安全：锂盐乳汁浓度高，可致婴儿中毒。",
+  "difficulty": "hard",
+  "tags": [
+    "endocrinology",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50046,
+      "gender": "F",
+      "age": 30,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "内分泌科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_pregnant",
+      "lactation_status": "lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "lithium",
+        "ingredient": "lithium",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_lactation_lithium",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

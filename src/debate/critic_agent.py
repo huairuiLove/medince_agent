@@ -81,9 +81,22 @@ class CriticAgent:
             "dissent_log": dissent,
         }
 
+    def _normalize_dissent(self, items: list) -> list[str]:
+        normalized: list[str] = []
+        for item in items:
+            if isinstance(item, str):
+                normalized.append(item)
+            elif isinstance(item, dict):
+                message = item.get("message") or item.get("summary") or item.get("text")
+                normalized.append(str(message) if message else pretty_json(item))
+            else:
+                normalized.append(str(item))
+        return normalized
+
     def _merge(self, data: dict, deterministic: dict) -> CriticOutput:
         dissent = list(dict.fromkeys(
-            list(data.get("dissent_log", [])) + deterministic.get("dissent_log", [])
+            self._normalize_dissent(list(data.get("dissent_log", [])))
+            + deterministic.get("dissent_log", [])
         ))
         low_conf = list(dict.fromkeys(
             list(data.get("low_confidence_agents", [])) + deterministic.get("low_confidence_agents", [])

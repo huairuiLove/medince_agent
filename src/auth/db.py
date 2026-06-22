@@ -67,6 +67,16 @@ CREATE TABLE IF NOT EXISTS doctor_custom_skills (
 );
 
 CREATE INDEX IF NOT EXISTS idx_custom_skills_user ON doctor_custom_skills(user_id, agent_id);
+
+CREATE TABLE IF NOT EXISTS pharmacist_review_stats (
+    user_id TEXT PRIMARY KEY,
+    reviews_completed INTEGER NOT NULL DEFAULT 0,
+    overrides_count INTEGER NOT NULL DEFAULT 0,
+    escalations_count INTEGER NOT NULL DEFAULT 0,
+    last_review_at TEXT,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
 """
 
 

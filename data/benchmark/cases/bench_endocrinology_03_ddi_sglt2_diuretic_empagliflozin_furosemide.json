@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_endocrinology_03_ddi_sglt2_diuretic_empagliflozin_furosemide",
+  "department": "endocrinology",
+  "description": "内分泌科用药安全：SGLT2 抑制剂与利尿剂联用可致脱水和低血压。",
+  "difficulty": "medium",
+  "tags": [
+    "endocrinology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50039,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "内分泌科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "empagliflozin",
+          "ingredient": "empagliflozin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "furosemide",
+        "ingredient": "furosemide",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_sglt2_diuretic_empagliflozin_furosemide",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

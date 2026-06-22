@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_rheumatology_01_ddi_methotrexate_leflunomide",
+  "department": "rheumatology",
+  "description": "风湿免疫科用药安全：甲氨蝶呤与来氟米特联用肝毒性叠加。",
+  "difficulty": "hard",
+  "tags": [
+    "rheumatology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50071,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "风湿免疫科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "methotrexate",
+          "ingredient": "methotrexate",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "leflunomide",
+        "ingredient": "leflunomide",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_methotrexate_leflunomide",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

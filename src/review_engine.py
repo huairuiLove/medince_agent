@@ -228,6 +228,9 @@ class ReviewEngine:
         evidence: list[RuleEvidence] = []
         age = patient_context.age
         pregnancy_status = normalize_text(patient_context.pregnancy_status)
+        egfr = patient_context.egfr
+        lactation_status = normalize_text(patient_context.lactation_status)
+        hepatic_context = " ".join(normalize_text(diag.name) for diag in patient_context.diagnoses)
 
         for rule in self.kb.get_population_rules():
             triggers = {self.kb.resolve_drug(drug) for drug in rule.get("trigger_drugs", [])}
@@ -239,14 +242,29 @@ class ReviewEngine:
             should_trigger = False
             if field_name == "pregnancy_status":
                 should_trigger = pregnancy_status in {normalize_text(value) for value in rule.get("match_values", [])}
+            elif field_name in ("lactation", "lactation_status"):
+                should_trigger = lactation_status in {normalize_text(value) for value in rule.get("match_values", [])}
+            elif field_name == "egfr":
+                egfr_max = rule.get("egfr_max")
+                if egfr is not None and egfr_max is not None and egfr < egfr_max:
+                    should_trigger = True
+            elif field_name == "hepatic":
+                match_values = [normalize_text(value) for value in rule.get("match_values", [])]
+                should_trigger = any(term and term in hepatic_context for term in match_values)
             elif field_name == "age":
                 age_min = rule.get("age_min")
                 age_max = rule.get("age_max")
+                age_compare = rule.get("age_compare", "lt")
                 if age is not None:
-                    if age_min is not None and age < age_min:
+                    if age_compare == "gte" and age_min is not None and age >= age_min:
                         should_trigger = True
-                    if age_max is not None and age > age_max:
+                    elif age_compare == "lte" and age_max is not None and age <= age_max:
                         should_trigger = True
+                    else:
+                        if age_min is not None and age < age_min:
+                            should_trigger = True
+                        if age_max is not None and age > age_max:
+                            should_trigger = True
 
             if should_trigger:
                 evidence.append(
@@ -290,6 +308,80 @@ class ReviewEngine:
                         recommendation=rule.get("recommendation", ""),
                         alternatives=rule.get("alternatives", []),
                         clarification_fields=rule.get("clarification_fields", []),
+                    )
+                )
+        return evidence
+
+    def _collect_scenario_evidence(
+        self,
+        patient_context: PatientContext,
+        current_registry: list[dict[str, str]],
+        candidate_registry: list[dict[str, str]],
+    ) -> list[RuleEvidence]:
+        if not candidate_registry:
+            return []
+
+        evidence: list[RuleEvidence] = []
+        combined = current_registry + candidate_registry
+        all_canonical = {item["canonical"] for item in combined if item["canonical"]}
+        age = patient_context.age
+        egfr = patient_context.egfr
+
+        for rule in self.kb.get_scenario_rules():
+            scenario_type = rule.get("scenario_type", "")
+            should_trigger = False
+            implicated: list[str] = []
+
+            if scenario_type == "polypharmacy":
+                min_total = rule.get("min_total_drugs", 5)
+                if len(all_canonical) >= min_total:
+                    should_trigger = True
+                    implicated = [item["name"] for item in candidate_registry]
+
+            elif scenario_type == "fall_risk_combo":
+                drug_classes = rule.get("drug_classes", {})
+                if drug_classes and all(
+                    any(self.kb.resolve_drug(drug) in all_canonical for drug in drugs)
+                    for drugs in drug_classes.values()
+                ):
+                    should_trigger = True
+                    class_hits = {
+                        self.kb.resolve_drug(drug)
+                        for drugs in drug_classes.values()
+                        for drug in drugs
+                    }
+                    implicated = [item["name"] for item in combined if item["canonical"] in class_hits]
+
+            elif scenario_type == "renal_age_adjustment":
+                age_min = rule.get("age_min", 75)
+                egfr_max = rule.get("egfr_max", 45)
+                if age is not None and age >= age_min and egfr is not None and egfr < egfr_max:
+                    should_trigger = True
+                    implicated = [item["name"] for item in candidate_registry]
+
+            elif scenario_type == "anticholinergic_burden":
+                drug_list = rule.get("drug_list", [])
+                min_count = rule.get("min_drug_count", 3)
+                anticholinergic = {self.kb.resolve_drug(drug) for drug in drug_list}
+                matched = [item for item in combined if item["canonical"] in anticholinergic]
+                unique_hits = {item["canonical"] for item in matched}
+                if len(unique_hits) >= min_count and any(item["source"] == "candidate" for item in matched):
+                    should_trigger = True
+                    implicated = [item["name"] for item in matched]
+
+            if should_trigger:
+                evidence.append(
+                    RuleEvidence(
+                        rule_id=rule["rule_id"],
+                        category="clinical_scenario",
+                        risk_level=rule["risk_level"],
+                        summary=rule["summary"],
+                        mechanism=rule.get("mechanism", ""),
+                        implicated_drugs=dedupe_preserve_order(implicated),
+                        recommendation=rule.get("recommendation", ""),
+                        alternatives=rule.get("alternatives", []),
+                        clarification_fields=rule.get("clarification_fields", []),
+                        source=rule.get("source", "rule_base"),
                     )
                 )
         return evidence
@@ -353,6 +445,7 @@ class ReviewEngine:
         evidence.extend(self._collect_duplicate_evidence(current_registry, candidate_registry))
         evidence.extend(self._collect_population_evidence(patient_context, candidate_registry))
         evidence.extend(self._collect_allergy_evidence(patient_context, candidate_registry))
+        evidence.extend(self._collect_scenario_evidence(patient_context, current_registry, candidate_registry))
         return evidence
 
     def review(

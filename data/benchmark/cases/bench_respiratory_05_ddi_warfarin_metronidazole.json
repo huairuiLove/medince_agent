@@ -1,0 +1,64 @@
+{
+  "case_id": "bench_respiratory_05_ddi_warfarin_metronidazole",
+  "department": "respiratory",
+  "description": "呼吸科用药安全：甲硝唑抑制 CYP2C9，可致华法林 INR 升高。",
+  "difficulty": "hard",
+  "tags": [
+    "respiratory",
+    "drug_interaction",
+    "anticoagulation"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50019,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "呼吸科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "warfarin",
+          "ingredient": "warfarin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "metronidazole",
+        "ingredient": "metronidazole",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_warfarin_metronidazole",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

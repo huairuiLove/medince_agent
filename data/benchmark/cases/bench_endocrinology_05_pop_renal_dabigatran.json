@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_endocrinology_05_pop_renal_dabigatran",
+  "department": "endocrinology",
+  "description": "内分泌科用药安全：eGFR<30 时达比加群禁用，出血风险显著增加。",
+  "difficulty": "hard",
+  "tags": [
+    "endocrinology",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50041,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "内分泌科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 25.0,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "dabigatran",
+        "ingredient": "dabigatran",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_renal_dabigatran",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

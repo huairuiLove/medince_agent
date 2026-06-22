@@ -15,6 +15,9 @@ const router = createRouter({
     { path: '/agents', name: 'agents', component: () => import('@/views/AgentsView.vue') },
     { path: '/imaging', name: 'imaging', component: () => import('@/views/ImagingView.vue') },
     { path: '/settings', name: 'settings', component: () => import('@/views/SettingsView.vue') },
+    { path: '/pharmacy', name: 'pharmacy', component: () => import('@/views/PharmacyWorkbenchView.vue') },
+    { path: '/pharmacy/review/:id', name: 'pharmacy-review', component: () => import('@/views/PharmacyReviewDetailView.vue') },
+    { path: '/pharmacy/audit', name: 'pharmacy-audit', component: () => import('@/views/OverrideAuditView.vue') },
   ],
 })
 

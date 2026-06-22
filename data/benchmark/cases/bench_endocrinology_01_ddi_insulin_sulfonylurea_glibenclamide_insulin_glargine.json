@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_endocrinology_01_ddi_insulin_sulfonylurea_glibenclamide_insulin_glargine",
+  "department": "endocrinology",
+  "description": "内分泌科用药安全：胰岛素与磺脲类联用低血糖风险叠加。",
+  "difficulty": "hard",
+  "tags": [
+    "endocrinology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50037,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "内分泌科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "glibenclamide",
+          "ingredient": "glibenclamide",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "insulin glargine",
+        "ingredient": "insulin glargine",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_insulin_sulfonylurea_glibenclamide_insulin glargine",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

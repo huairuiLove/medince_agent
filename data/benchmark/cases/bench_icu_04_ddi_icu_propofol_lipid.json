@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_icu_04_ddi_icu_propofol_lipid",
+  "department": "icu",
+  "description": "ICU/急诊用药安全：丙泊酚与脂肪乳联用可致脂肪超载综合征。",
+  "difficulty": "medium",
+  "tags": [
+    "icu",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50102,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "ICU/急诊用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "propofol",
+          "ingredient": "propofol",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "lipid emulsion",
+        "ingredient": "lipid emulsion",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_icu_propofol_lipid",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

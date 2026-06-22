@@ -73,6 +73,7 @@ class PatientContext(BaseModel):
     current_medications: List[DrugItem] = Field(default_factory=list)
     allergies: List[str] = Field(default_factory=list)
     pregnancy_status: str = Field(default="unknown")
+    lactation_status: str = Field(default="unknown")
     weight_kg: Optional[float] = None
     egfr: Optional[float] = Field(default=None, description="eGFR mL/min/1.73m²")
     missing_fields: List[str] = Field(default_factory=list)
@@ -521,12 +522,14 @@ class CpoePatientSnapshot(BaseModel):
     allergies: List[str] = Field(default_factory=list)
     conditions: List[str] = Field(default_factory=list)
     pregnancy_status: str = Field(default="unknown")
+    lactation_status: str = Field(default="unknown")
 
 
 class CpoeMedicationOrder(BaseModel):
     order_id: str
     hospital_drug_id: str = Field(default="")
     display_name: str = Field(default="", description="HIS 展示名，无院内码时使用")
+    ingredient: str = Field(default="", description="处方成分名，优先于院目录 generic 解析")
     dose: str = Field(default="")
     route: str = Field(default="")
     frequency: str = Field(default="")

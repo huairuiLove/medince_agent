@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_rheumatology_07_ddi_colchicine_cyp3a4i_colchicine_ketoconazole",
+  "department": "rheumatology",
+  "description": "风湿免疫科用药安全：CYP3A4 抑制剂可致秋水仙碱中毒（可致命）。",
+  "difficulty": "hard",
+  "tags": [
+    "rheumatology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50077,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "风湿免疫科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "colchicine",
+          "ingredient": "colchicine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "ketoconazole",
+        "ingredient": "ketoconazole",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_colchicine_cyp3a4i_colchicine_ketoconazole",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

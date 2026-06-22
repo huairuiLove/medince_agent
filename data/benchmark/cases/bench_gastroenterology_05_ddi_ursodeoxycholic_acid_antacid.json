@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_gastroenterology_05_ddi_ursodeoxycholic_acid_antacid",
+  "department": "gastroenterology",
+  "description": "消化内科用药安全：抗酸剂螯合熊去氧胆酸降低其吸收。",
+  "difficulty": "easy",
+  "tags": [
+    "gastroenterology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50051,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "消化内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "ursodeoxycholic acid",
+          "ingredient": "ursodeoxycholic acid",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "aluminum hydroxide",
+        "ingredient": "aluminum hydroxide",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "low",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ursodeoxycholic_acid_antacid",
+        "category": "drug_interaction",
+        "risk_level": "low",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

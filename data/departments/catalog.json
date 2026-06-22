@@ -193,7 +193,7 @@
       "default_models": [],
       "recommended_datasets": [],
       "vision_models": [],
-      "nav_routes": ["/consult", "/chat", "/rule-review", "/drugs", "/cases", "/agents", "/settings"],
+      "nav_routes": ["/pharmacy", "/pharmacy/audit", "/consult", "/chat", "/rule-review", "/drugs", "/cases", "/agents", "/settings"],
       "description": "以用药审查与 formulary 为主，无默认影像工作台"
     },
     {

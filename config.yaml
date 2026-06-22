@@ -20,7 +20,7 @@ data:
   knowledge_dir: data/knowledge
   cases_dir: data/cases
   demo_dir: data/demo_cases
-  knowledge_base: data/knowledge/expanded_drug_safety_rules.json
+  knowledge_base: data/knowledge/hospital_production_v4.json
   formulary: data/knowledge/pharmacy_formulary.json
 server:
   host: 0.0.0.0
@@ -60,7 +60,7 @@ chat:
   timeout: 120
   max_retries: 2
   fallback_enabled: true
-  knowledge_graph: data/knowledge/drug_kg.json
+  knowledge_graph: data/knowledge/drug_kg_v2.json
 debate:
   enabled: true
   max_rounds: 3
@@ -70,11 +70,25 @@ drug_catalog:
   db_path: data/hospital/formulary.db
   formulary_path: data/hospital/formulary_demo.csv
   auto_import_on_startup: true
+pharmacy:
+  enabled: true
+  db_path: data/pharmacy/pharmacy_reviews.db
+  auto_enqueue_cpoe: true
+  queue_page_size: 25
+  require_override_reason: true
+  audit_retention_days: 365
+auth:
+  db_path: data/auth/medsafe_auth.db
+  jwt_secret: ''
+  token_ttl_hours: 72
 clinical_knowledge:
-  version: expanded_mined_v1
+  version: hospital_production_v4
   ddi_source: ddi_bert_mined
   mined_rules_path: data/knowledge/mined_ddi_rules.json
   expanded_rules_path: data/knowledge/expanded_drug_safety_rules.json
+  production_rules_path: data/knowledge/hospital_production_v4.json
+  drug_kg_v2_path: data/knowledge/drug_kg_v2.json
+  twosides_signals_path: data/knowledge/twosides_ddi_signals.json
   mining_exclusions: data/knowledge/ddi_mining_exclusions.json
   mining_thresholds:
     high: 0.7
@@ -104,3 +118,13 @@ imaging:
   default_lesion_models:
     mimic_cxr: cxr_lesion
     brats2024: brats_tumor
+fhir:
+  enabled: true
+  base_path: /api/v1/fhir
+  resource_version: R4
+  default_profile: MedSafeDetectedIssue
+  coding_systems:
+    rxnorm: http://www.nlm.nih.gov/research/umls/rxnorm
+    loinc: http://loinc.org
+    snomed: http://snomed.info/sct
+    icd10: http://hl7.org/fhir/sid/icd-10-cm

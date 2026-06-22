@@ -7,9 +7,9 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Annotated, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
@@ -23,6 +23,20 @@ from src.logging_config import get_logger, setup_logging
 from src.orchestrator import MultiAgentOrchestrator
 from src.drug_catalog.catalog_service import bootstrap_catalog_from_config, get_drug_catalog_service
 from src.drug_catalog.review_facade import CpoeReviewFacade
+from src.auth.dependencies import get_current_user, get_optional_user
+from src.auth.models import (
+    CreateCustomSkillRequest,
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    UpdateAgentPrefsRequest,
+    UpdateSkillPrefsRequest,
+    UserProfile,
+)
+from src.auth.service import get_auth_service
+from src.fhir.routes import create_fhir_router
+from src.pharmacy import PHARMACY_QUEUE
+from src.pharmacy.routes import router as pharmacy_router
 from src.schemas import (
     CandidateDrug,
     ClarifyRequest,
@@ -143,6 +157,9 @@ app = FastAPI(
         {"name": "Imaging", "description": "Segmentation, screenshots, clinical reports"},
         {"name": "Chat", "description": "ReAct SSE chat with role-based prompts (doctor/patient)"},
         {"name": "CPOE", "description": "Hospital formulary sync and CPOE medication review"},
+        {"name": "FHIR", "description": "FHIR R4 medication review adapter (Bundle ↔ CPOE)"},
+        {"name": "Auth", "description": "Login, registration, and user profile"},
+        {"name": "Pharmacy", "description": "Pharmacist workbench queue, override audit, stats"},
     ],
 )
 
@@ -173,8 +190,11 @@ _REQUEST_COUNTS: dict[str, int] = {
     "extract": 0, "review": 0, "clarify": 0, "consult": 0,
     "multi_review": 0, "multi_consult": 0, "case_get": 0,
     "imaging_segment": 0, "imaging_vlm": 0, "report_generate": 0, "report_ask": 0, "chat_stream": 0,
-    "cpoe_review": 0, "formulary_sync": 0,
+    "cpoe_review": 0, "formulary_sync": 0, "fhir_review": 0,
 }
+
+app.include_router(create_fhir_router(CPOE_REVIEW, version=VERSION))
+app.include_router(pharmacy_router, prefix="/api/v1/pharmacy")
 
 
 @app.middleware("http")
@@ -319,11 +339,96 @@ def review_case(req: ReviewRequest, request: Request) -> ReviewResponse:
 
 # ── CPOE / Hospital Formulary ────────────────────────────────────────────
 
+@app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Auth"])
+def auth_login(body: LoginRequest) -> TokenResponse:
+    result = get_auth_service().login(body.username, body.password)
+    if result is None:
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+    return result
+
+
+@app.post("/api/v1/auth/register", tags=["Auth"])
+def auth_register(body: RegisterRequest) -> dict:
+    svc = get_auth_service()
+    profile = svc.register(body.username, body.password, body.display_name, body.dept_id)
+    if profile is None:
+        raise HTTPException(status_code=400, detail="注册失败：用户名已存在或科室无效")
+    token = svc.login(body.username, body.password)
+    if token is None:
+        raise HTTPException(status_code=500, detail="注册成功但登录失败")
+    workspace = svc.get_workspace(profile.user_id)
+    if workspace is None:
+        raise HTTPException(status_code=500, detail="注册成功但工作区初始化失败")
+    return {
+        "access_token": token.access_token,
+        "token_type": "bearer",
+        "expires_in_hours": token.expires_in_hours,
+        "profile": workspace.profile,
+        "agents": workspace.agents,
+        "custom_skills": workspace.custom_skills,
+    }
+
+
+@app.get("/api/v1/auth/me", tags=["Auth"])
+def auth_me(user: Annotated[UserProfile, Depends(get_current_user)]) -> dict:
+    workspace = get_auth_service().get_workspace(user.user_id)
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return workspace.model_dump()
+
+
+@app.put("/api/v1/auth/agent-prefs", tags=["Auth"])
+def auth_update_agent_prefs(
+    body: UpdateAgentPrefsRequest,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> dict:
+    svc = get_auth_service()
+    svc.update_agent_prefs(user.user_id, body.agents)
+    workspace = svc.get_workspace(user.user_id)
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return workspace.model_dump()
+
+
+@app.put("/api/v1/auth/skill-prefs", tags=["Auth"])
+def auth_update_skill_prefs(
+    body: UpdateSkillPrefsRequest,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> dict:
+    svc = get_auth_service()
+    svc.update_skill_prefs(user.user_id, body.skills)
+    workspace = svc.get_workspace(user.user_id)
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return workspace.model_dump()
+
+
+@app.post("/api/v1/auth/custom-skills", tags=["Auth"])
+def auth_add_custom_skill(
+    body: CreateCustomSkillRequest,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> dict:
+    return get_auth_service().add_custom_skill(user.user_id, body)
+
+
 @app.post("/api/v1/cpoe/medication-review", response_model=CpoeMedicationReviewResponse, tags=["CPOE"])
-def cpoe_medication_review(req: CpoeMedicationReviewRequest, request: Request) -> CpoeMedicationReviewResponse:
+def cpoe_medication_review(
+    req: CpoeMedicationReviewRequest,
+    request: Request,
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+) -> CpoeMedicationReviewResponse:
     """Real-time medication review for CPOE — resolves hospital drug IDs via formulary CSV."""
     _REQUEST_COUNTS["cpoe_review"] += 1
-    return CPOE_REVIEW.review(req)
+    response = CPOE_REVIEW.review(req)
+    if response.requires_pharmacist_review:
+        PHARMACY_QUEUE.enqueue(
+            encounter_id=req.encounter_id,
+            patient_id=req.patient.patient_id,
+            cpoe_response=response,
+            department=user.dept_id if user else "unknown",
+            ordering_user_id=user.user_id if user else "",
+        )
+    return response
 
 
 @app.get("/api/v1/drug-catalog/stats", tags=["CPOE"])

@@ -46,7 +46,7 @@ class CpoeReviewFacade:
             record = self.catalog.resolve_by_name(order.display_name)
 
         display = order.display_name or (record.display_name if record else "")
-        ingredient = record.generic_name_en or record.generic_name_cn if record else ""
+        ingredient = order.ingredient or (record.generic_name_en or record.generic_name_cn if record else "")
         canonical = self.kb.resolve_drug(display or ingredient, order.hospital_drug_id)
 
         candidate = CandidateDrug(
@@ -70,6 +70,7 @@ class CpoeReviewFacade:
             allergies=list(patient.allergies),
             current_medications=existing,
             pregnancy_status=patient.pregnancy_status,
+            lactation_status=patient.lactation_status,
         )
 
     def _catalog_alerts(

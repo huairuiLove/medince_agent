@@ -16,6 +16,8 @@ const allLinks = [
   { to: '/drugs', label: '药品库' },
   { to: '/cases', label: '病例回放' },
   { to: '/agents', label: '智能体' },
+  { to: '/pharmacy', label: '药师工作台' },
+  { to: '/pharmacy/audit', label: 'Override 审计' },
   { to: '/settings', label: '个人配置' },
 ]
 

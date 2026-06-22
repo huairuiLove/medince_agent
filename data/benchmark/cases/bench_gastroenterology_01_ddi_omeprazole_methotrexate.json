@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_gastroenterology_01_ddi_omeprazole_methotrexate",
+  "department": "gastroenterology",
+  "description": "消化内科用药安全：PPI 减少甲氨蝶呤清除，高剂量 MTX 时毒性风险增加。",
+  "difficulty": "hard",
+  "tags": [
+    "gastroenterology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50047,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "消化内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "omeprazole",
+          "ingredient": "omeprazole",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "methotrexate",
+        "ingredient": "methotrexate",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_omeprazole_methotrexate",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

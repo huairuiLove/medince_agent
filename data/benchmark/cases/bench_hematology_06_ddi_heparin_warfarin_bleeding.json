@@ -1,0 +1,64 @@
+{
+  "case_id": "bench_hematology_06_ddi_heparin_warfarin_bleeding",
+  "department": "hematology",
+  "description": "血液科用药安全：肝素与华法林同时使用存在高出血风险。",
+  "difficulty": "hard",
+  "tags": [
+    "hematology",
+    "drug_interaction",
+    "anticoagulation"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50068,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "血液科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "heparin",
+          "ingredient": "heparin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "warfarin",
+        "ingredient": "warfarin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_heparin_warfarin_bleeding",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

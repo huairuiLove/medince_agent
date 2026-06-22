@@ -308,3 +308,116 @@ export interface ClinicalReport {
   screenshot_paths: string[]
   metadata: Record<string, unknown>
 }
+
+export interface DepartmentInfo {
+  dept_id: string
+  name_cn: string
+  name_en?: string
+  nav_routes?: string[]
+  description?: string
+}
+
+export interface UserProfile {
+  user_id: string
+  username: string
+  display_name: string
+  role: string
+  dept_id: string
+  department?: DepartmentInfo | null
+}
+
+export interface AgentConfigInfo {
+  agent_id: string
+  agent_name: string
+  role: string
+  enabled?: boolean
+}
+
+export interface DoctorWorkspace {
+  profile: UserProfile
+  agents: AgentConfigInfo[]
+  custom_skills: Record<string, unknown>[]
+}
+
+export interface TokenResponse {
+  access_token: string
+  token_type: string
+  expires_in_hours: number
+}
+
+export type AlertDecisionAction = 'acknowledge' | 'override' | 'escalate' | 'hold'
+export type RiskAcceptance = 'low' | 'medium' | 'high'
+
+export interface CpoeReviewAlert {
+  alert_id: string
+  order_id?: string
+  rule_id: string
+  alert_level: 'info' | 'warning' | 'hard_stop'
+  category?: string
+  summary: string
+  recommendation?: string
+  display_name?: string
+  implicated_drugs?: string[]
+  overridable?: boolean
+}
+
+export interface CpoeMedicationReviewResponse {
+  overall_status: 'passed' | 'warning' | 'blocked'
+  requires_pharmacist_review: boolean
+  alerts: CpoeReviewAlert[]
+}
+
+export interface AlertDecision {
+  alert_id: string
+  action: AlertDecisionAction
+  override_reason?: string | null
+  override_risk_acceptance?: RiskAcceptance | null
+  pharmacist_notes?: string | null
+  decided_at: string
+  pharmacist_id?: string
+}
+
+export interface PharmacistReview {
+  review_id: string
+  encounter_id?: string
+  patient_id?: string
+  department?: string
+  status: 'pending' | 'reviewed' | 'expired'
+  created_at: string
+  reviewed_at?: string | null
+  cpoe_response: CpoeMedicationReviewResponse
+  alert_decisions: AlertDecision[]
+  max_alert_level?: string
+}
+
+export interface PharmacyQueueItem {
+  review_id: string
+  encounter_id?: string
+  patient_id?: string
+  department?: string
+  created_at: string
+  status: string
+  max_alert_level: string
+  alert_count: number
+  wait_minutes: number
+}
+
+export interface OverrideAuditLog {
+  log_id: string
+  review_id: string
+  alert_id: string
+  drug_name: string
+  alert_level: string
+  action: string
+  override_reason: string
+  risk_acceptance: string
+  timestamp: string
+  pharmacist_name: string
+}
+
+export interface PharmacyStats {
+  pending_count: number
+  override_rate: number
+  high_risk_override_rate: number
+  top_override_drugs: { drug_name: string; count: number }[]
+}

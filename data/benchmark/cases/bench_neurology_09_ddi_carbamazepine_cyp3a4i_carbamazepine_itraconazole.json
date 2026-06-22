@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_neurology_09_ddi_carbamazepine_cyp3a4i_carbamazepine_itraconazole",
+  "department": "neurology",
+  "description": "神经内科用药安全：CYP3A4 抑制剂可致卡马西平中毒（共济失调、复视）。",
+  "difficulty": "hard",
+  "tags": [
+    "neurology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50033,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "神经内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "carbamazepine",
+          "ingredient": "carbamazepine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "itraconazole",
+        "ingredient": "itraconazole",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_carbamazepine_cyp3a4i_carbamazepine_itraconazole",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

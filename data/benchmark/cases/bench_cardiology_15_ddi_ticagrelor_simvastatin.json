@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_cardiology_15_ddi_ticagrelor_simvastatin",
+  "department": "cardiology",
+  "description": "心内科用药安全：替格瑞洛与辛伐他汀>40mg 联用横纹肌溶解风险增加。",
+  "difficulty": "hard",
+  "tags": [
+    "cardiology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50014,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "心内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "ticagrelor",
+          "ingredient": "ticagrelor",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "simvastatin",
+        "ingredient": "simvastatin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ticagrelor_simvastatin",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}
