@@ -373,6 +373,7 @@ medince_agent/
 ├── models/                # 分割权重（download_models.py 下载）
 ├── scripts/               # setup / run_api / sync_formulary / 测试
 ├── docs/                  # DEBATE_ARCHITECTURE.md、REFERENCES.md
+├── STAGE1~8_REPORT_CSDN.md  # 阶段落盘 Blog
 ├── config.yaml
 └── docker-compose.yml
 ```
