@@ -3,8 +3,7 @@ import { ref } from 'vue'
 import { medsafeApi } from '@/api/medsafe'
 import { DEMO_CASES } from '@/data/demoCases'
 import type { ReviewOutput } from '@/types'
-import RuleEvidencePanel from '@/components/consult/RuleEvidencePanel.vue'
-import RiskBadge from '@/components/common/RiskBadge.vue'
+import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
 
 const loading = ref(false)
 const error = ref('')
@@ -43,19 +42,7 @@ async function runReview() {
 
     <p v-if="error" class="err">{{ error }}</p>
 
-    <div v-if="review" class="results">
-      <div class="card">
-        <RiskBadge :level="review.risk_level" :block="review.block_decision" />
-        <p class="rec">{{ review.final_recommendation }}</p>
-        <ul v-if="review.risk_reasons.length">
-          <li v-for="(r, i) in review.risk_reasons" :key="i">{{ r }}</li>
-        </ul>
-        <p v-if="review.need_clarification" class="clarify-hint">
-          需澄清：{{ review.clarification_targets.join(', ') }}
-        </p>
-      </div>
-      <RuleEvidencePanel :evidence="review.evidence" />
-    </div>
+    <RuleReviewSummary v-if="review" :rule-output="review" />
   </div>
 </template>
 

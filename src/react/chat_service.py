@@ -80,16 +80,14 @@ async def chat_event_stream(req: ChatRequest) -> AsyncGenerator[str, None]:
             f"{json.dumps({'level': level, 'description': state_machine.get_mode_description()}, ensure_ascii=False)}\n\n"
         )
 
-        if level in ("rule_fallback", "offline") or config.is_mock:
+        if level in ("rule_fallback", "offline"):
             result_text = (
                 check_interactions_by_rules(user_msg)
-                if level == "rule_fallback" or config.is_mock
+                if level == "rule_fallback"
                 else offline_drug_check(user_msg)
             )
-            if config.is_mock and level == "full":
-                result_text = (
-                    f"**[Mock 模式]** 当前未配置 LLM API Key，已使用本地规则引擎回答。\n\n{result_text}"
-                )
+            prefix = f"**[{state_machine.get_mode_description()}]**\n\n"
+            result_text = prefix + result_text
             for char in result_text:
                 yield f"event: token\ndata: {json.dumps({'token': char}, ensure_ascii=False)}\n\n"
                 await asyncio.sleep(0.002)
@@ -153,9 +151,9 @@ async def init_chat_services() -> None:
     except Exception as exc:
         logger.warning("Local DB init failed (non-fatal): %s", exc)
 
-    if config.is_mock:
+    if not config.is_configured:
         await state_machine.report_llm_failure()
-        logger.info("Chat running in mock mode — rule engine fallback active")
+        logger.warning("Chat LLM not configured — rule engine fallback when evaluated")
 
     try:
         await tool_registry.connect()

@@ -10,7 +10,13 @@ from src.schemas import ReportAskRequest, ReportAskResponse, ReportParagraph
 class ReportQAService:
     def __init__(self) -> None:
         self.store = ReportStore()
-        self.llm = get_llm_client()
+        self._llm = None
+
+    @property
+    def llm(self):
+        if self._llm is None:
+            self._llm = get_llm_client()
+        return self._llm
 
     def ask(self, req: ReportAskRequest) -> ReportAskResponse:
         report = self.store.get_report(req.patient_id, req.report_id)

@@ -1,0 +1,382 @@
+{
+  "departments": [
+    {
+      "dept_id": "respiratory",
+      "name_cn": "呼吸内科",
+      "name_en": "Respiratory Medicine",
+      "sort_order": 10,
+      "description": "胸片与肺部病灶分析；COPD/肺炎/气胸等呼吸专科用药审查",
+      "imaging_sources": ["mimic_cxr"],
+      "default_models": ["cxr_lesion", "sam2d"],
+      "recommended_datasets": [
+        {
+          "id": "mimic_cxr",
+          "name": "MIMIC-CXR-JPG",
+          "modality": "XR",
+          "url": "https://physionet.org/content/mimic-cxr-jpg/2.1.0/",
+          "notes": "本院演示目录 data/mimic_cxr/；含胸片 DICOM→JPG 与 NLP 报告"
+        },
+        {
+          "id": "chexpert",
+          "name": "CheXpert",
+          "modality": "XR",
+          "url": "https://stanfordmlgroup.github.io/competitions/chexpert/",
+          "notes": "多标签胸片标注，可补充 cxr_lesion 训练/验证"
+        }
+      ],
+      "vision_models": [
+        {
+          "model_id": "cxr_lesion",
+          "name": "CXR Lesion (torchxrayvision DenseNet121)",
+          "task": "胸片病灶热图 / opacity·effusion·pneumothorax",
+          "download": "python scripts/download_models.py --cxr-lesion"
+        },
+        {
+          "model_id": "sam2d",
+          "name": "SAM2D",
+          "task": "交互式 2D 病灶框选",
+          "download": "python scripts/download_models.py --sam2d"
+        }
+      ],
+      "nav_routes": ["/imaging", "/consult", "/chat", "/rule-review", "/drugs", "/cases", "/agents", "/settings"]
+    },
+    {
+      "dept_id": "neurology",
+      "name_cn": "神经内科",
+      "name_en": "Neurology",
+      "sort_order": 20,
+      "description": "脑 MRI 胶质瘤/卒中相关影像；抗癫痫/抗凝专科用药",
+      "imaging_sources": ["brats2024"],
+      "default_models": ["brats_tumor", "vista3d", "sam_med3d"],
+      "recommended_datasets": [
+        {
+          "id": "brats2024",
+          "name": "BraTS 2024",
+          "modality": "MRI",
+          "url": "https://www.synapse.org/Synapse:syn51156910/wiki/",
+          "notes": "演示目录 data/brats2024/；T1/T1ce/T2/FLAIR + 可选 seg"
+        },
+        {
+          "id": "isles2022",
+          "name": "ISLES (Stroke)",
+          "modality": "MRI/CT",
+          "url": "http://www.isles-challenge.org/",
+          "notes": "卒中病灶分割，可与 VISTA3D 脑区分割联用"
+        }
+      ],
+      "vision_models": [
+        {
+          "model_id": "brats_tumor",
+          "name": "BraTS Tumor (MONAI)",
+          "task": "胶质瘤 WT/TC/ET 3D 分割",
+          "download": "python scripts/download_models.py --brats-tumor"
+        },
+        {
+          "model_id": "vista3d",
+          "name": "VISTA3D",
+          "task": "脑区交互式分割",
+          "download": "python scripts/download_models.py --vista3d"
+        }
+      ]
+    },
+    {
+      "dept_id": "neurosurgery",
+      "name_cn": "神经外科",
+      "name_en": "Neurosurgery",
+      "sort_order": 25,
+      "imaging_sources": ["brats2024"],
+      "default_models": ["brats_tumor", "vista3d", "sam_med3d"],
+      "recommended_datasets": [
+        {"id": "brats2024", "name": "BraTS 2024", "modality": "MRI", "url": "https://www.synapse.org/Synapse:syn51156910/wiki/"},
+        {"id": "asnr_morphology", "name": "ASNR 颅脑肿瘤", "modality": "MRI", "notes": "手术规划辅助，需机构申请"}
+      ],
+      "vision_models": [
+        {"model_id": "brats_tumor", "name": "BraTS Tumor", "task": "术前肿瘤体积评估"},
+        {"model_id": "vista3d", "name": "VISTA3D", "task": "脑组织交互勾画"}
+      ],
+      "description": "颅脑肿瘤/血肿影像与围术期用药审查"
+    },
+    {
+      "dept_id": "radiology",
+      "name_cn": "放射科",
+      "name_en": "Radiology",
+      "sort_order": 5,
+      "imaging_sources": ["mimic", "mimic_cxr", "brats2024"],
+      "default_models": ["cxr_lesion", "brats_tumor", "totalsegmentator", "vista3d", "sam2d"],
+      "recommended_datasets": [
+        {"id": "mimic_cxr", "name": "MIMIC-CXR-JPG", "modality": "XR"},
+        {"id": "brats2024", "name": "BraTS 2024", "modality": "MRI"},
+        {"id": "mimic_ct", "name": "MIMIC-III CT 采样", "modality": "CT", "notes": "data/mimic/ 演示 CT 切片"}
+      ],
+      "vision_models": [
+        {"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "胸片"},
+        {"model_id": "brats_tumor", "name": "BraTS Tumor", "task": "脑 MRI"},
+        {"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "CT 全器官"},
+        {"model_id": "sam2d", "name": "SAM2D", "task": "通用 2D 交互"}
+      ],
+      "description": "全模态影像读片与 AI 分割工具箱"
+    },
+    {
+      "dept_id": "cardiology",
+      "name_cn": "心血管内科",
+      "name_en": "Cardiology",
+      "sort_order": 30,
+      "imaging_sources": ["mimic_cxr", "mimic"],
+      "default_models": ["cxr_lesion", "totalsegmentator", "sam2d"],
+      "recommended_datasets": [
+        {"id": "mimic_cxr", "name": "MIMIC-CXR", "modality": "XR", "notes": "心影/肺水肿"},
+        {"id": "acdc", "name": "ACDC Cardiac MRI", "modality": "MRI", "url": "https://www.creatis.insa-lyon.fr/Challenge/acdc/"}
+      ],
+      "vision_models": [
+        {"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "cardiomegaly·edema·effusion"},
+        {"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "CT 心胸轮廓"}
+      ],
+      "description": "心胸影像与抗凝/抗血小板用药审查"
+    },
+    {
+      "dept_id": "gastroenterology",
+      "name_cn": "消化内科",
+      "name_en": "Gastroenterology",
+      "sort_order": 40,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator", "vista3d", "sam2d"],
+      "recommended_datasets": [
+        {"id": "mimic_ct", "name": "MIMIC CT 腹部", "modality": "CT"},
+        {"id": "btcv", "name": "BTCV Multi-Organ", "modality": "CT", "notes": "腹部多器官分割基准"}
+      ],
+      "vision_models": [
+        {"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "肝脾胰等腹部器官"},
+        {"model_id": "vista3d", "name": "VISTA3D", "task": "肝区交互分割"}
+      ],
+      "description": "腹部 CT 与 PPI/抗凝/肝代谢用药"
+    },
+    {
+      "dept_id": "oncology",
+      "name_cn": "肿瘤科",
+      "name_en": "Oncology",
+      "sort_order": 50,
+      "imaging_sources": ["brats2024", "mimic", "mimic_cxr"],
+      "default_models": ["brats_tumor", "cxr_lesion", "totalsegmentator"],
+      "recommended_datasets": [
+        {"id": "brats2024", "name": "BraTS 2024", "modality": "MRI"},
+        {"id": "lidc_idri", "name": "LIDC-IDRI", "modality": "CT", "notes": "肺结节；可扩展至呼吸/肿瘤联合"}
+      ],
+      "vision_models": [
+        {"model_id": "brats_tumor", "name": "BraTS Tumor", "task": "CNS 肿瘤"},
+        {"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "肺转移/胸腔积液"}
+      ],
+      "description": "肿瘤影像随访与化疗/靶向/免疫用药审查"
+    },
+    {
+      "dept_id": "emergency",
+      "name_cn": "急诊科",
+      "name_en": "Emergency",
+      "sort_order": 15,
+      "imaging_sources": ["mimic_cxr", "mimic"],
+      "default_models": ["cxr_lesion", "sam2d", "totalsegmentator"],
+      "recommended_datasets": [
+        {"id": "mimic_cxr", "name": "MIMIC-CXR", "modality": "XR"},
+        {"id": "rsna_pe", "name": "RSNA PE CT", "modality": "CT", "notes": "肺栓塞检测竞赛数据"}
+      ],
+      "vision_models": [
+        {"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "急诊胸片快速筛查"},
+        {"model_id": "sam2d", "name": "SAM2D", "task": "床旁快速勾画"}
+      ],
+      "description": "急诊胸片/CT 快速评估与急性用药安全"
+    },
+    {
+      "dept_id": "pharmacy",
+      "name_cn": "临床药学",
+      "name_en": "Clinical Pharmacy",
+      "sort_order": 60,
+      "imaging_sources": [],
+      "default_models": [],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "nav_routes": ["/consult", "/chat", "/rule-review", "/drugs", "/cases", "/agents", "/settings"],
+      "description": "以用药审查与 formulary 为主，无默认影像工作台"
+    },
+    {
+      "dept_id": "general_internal",
+      "name_cn": "普通内科",
+      "name_en": "General Internal Medicine",
+      "sort_order": 70,
+      "imaging_sources": ["mimic_cxr", "mimic"],
+      "default_models": ["cxr_lesion", "sam2d"],
+      "recommended_datasets": [{"id": "mimic_cxr", "name": "MIMIC-CXR", "modality": "XR"}],
+      "vision_models": [{"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "常规胸片"}],
+      "description": "全科住院患者常规审查"
+    },
+    {
+      "dept_id": "nephrology",
+      "name_cn": "肾内科",
+      "name_en": "Nephrology",
+      "sort_order": 80,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator"],
+      "recommended_datasets": [{"id": "kiTS19", "name": "KiTS Kidney Tumor", "modality": "CT"}],
+      "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "肾脏/泌尿轮廓"}],
+      "description": "肾功能相关剂量调整与造影剂风险"
+    },
+    {
+      "dept_id": "endocrinology",
+      "name_cn": "内分泌科",
+      "name_en": "Endocrinology",
+      "sort_order": 90,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator"],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "description": "糖尿病/甲状腺等慢病用药与内分泌专科规则"
+    },
+    {
+      "dept_id": "hematology",
+      "name_cn": "血液内科",
+      "name_en": "Hematology",
+      "sort_order": 100,
+      "imaging_sources": ["mimic", "mimic_cxr"],
+      "default_models": ["cxr_lesion"],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "description": "抗凝/化疗骨髓抑制与出血风险审查"
+    },
+    {
+      "dept_id": "infectious_disease",
+      "name_cn": "感染科",
+      "name_en": "Infectious Disease",
+      "sort_order": 110,
+      "imaging_sources": ["mimic_cxr", "mimic"],
+      "default_models": ["cxr_lesion"],
+      "recommended_datasets": [{"id": "mimic_cxr", "name": "MIMIC-CXR pneumonia labels", "modality": "XR"}],
+      "vision_models": [{"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "肺炎/浸润影"}],
+      "description": "抗感染谱系、DDI 与肝肾功能剂量"
+    },
+    {
+      "dept_id": "obstetrics_gynecology",
+      "name_cn": "妇产科",
+      "name_en": "Obstetrics & Gynecology",
+      "sort_order": 120,
+      "imaging_sources": ["mimic"],
+      "default_models": ["sam2d"],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "description": "妊娠分级、致畸风险与围产期用药"
+    },
+    {
+      "dept_id": "pediatrics",
+      "name_cn": "儿科",
+      "name_en": "Pediatrics",
+      "sort_order": 130,
+      "imaging_sources": ["mimic_cxr"],
+      "default_models": ["cxr_lesion", "sam2d"],
+      "recommended_datasets": [{"id": "ped_cxr", "name": "Pediatric CXR collections", "notes": "需单独采购/合作"}],
+      "vision_models": [{"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "儿童胸片（需儿科微调）"}],
+      "description": "体重/年龄剂量与儿科禁忌"
+    },
+    {
+      "dept_id": "orthopedic",
+      "name_cn": "骨科",
+      "name_en": "Orthopedics",
+      "sort_order": 140,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator", "sam2d"],
+      "recommended_datasets": [{"id": "verse", "name": "VerSe Spine", "modality": "CT"}],
+      "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "骨/软组织轮廓"}],
+      "description": "围术期镇痛/抗凝与 NSAIDs 风险"
+    },
+    {
+      "dept_id": "urology",
+      "name_cn": "泌尿外科",
+      "name_en": "Urology",
+      "sort_order": 150,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator"],
+      "recommended_datasets": [{"id": "picai", "name": "PI-CAI Prostate", "modality": "MRI"}],
+      "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "盆腔 CT"}],
+      "description": "泌尿系影像与 α-blocker/抗凝联用"
+    },
+    {
+      "dept_id": "icu",
+      "name_cn": "重症医学科",
+      "name_en": "Critical Care",
+      "sort_order": 18,
+      "imaging_sources": ["mimic_cxr", "mimic"],
+      "default_models": ["cxr_lesion", "totalsegmentator", "sam2d"],
+      "recommended_datasets": [
+        {"id": "mimic_cxr", "name": "MIMIC-CXR", "modality": "XR"},
+        {"id": "mimic_icu", "name": "MIMIC-III ICU", "modality": "EHR+Imaging"}
+      ],
+      "vision_models": [
+        {"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "床旁胸片"},
+        {"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "CT 器官评估"}
+      ],
+      "description": "ICU 多药联用、镇静/血管活性药与影像监测"
+    },
+    {
+      "dept_id": "anesthesiology",
+      "name_cn": "麻醉科",
+      "name_en": "Anesthesiology",
+      "sort_order": 160,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator"],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "description": "围术期麻醉药物与抗凝桥接"
+    },
+    {
+      "dept_id": "psychiatry",
+      "name_cn": "精神科",
+      "name_en": "Psychiatry",
+      "sort_order": 170,
+      "imaging_sources": ["brats2024"],
+      "default_models": ["vista3d"],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "description": "精神药物 QT/五羟色胺综合征等审查"
+    },
+    {
+      "dept_id": "dermatology",
+      "name_cn": "皮肤科",
+      "name_en": "Dermatology",
+      "sort_order": 180,
+      "imaging_sources": [],
+      "default_models": ["sam2d"],
+      "recommended_datasets": [{"id": "isic", "name": "ISIC Skin Lesion", "modality": "Dermoscopy"}],
+      "vision_models": [{"model_id": "sam2d", "name": "SAM2D", "task": "皮肤病灶交互分割（需皮肤数据微调）"}],
+      "description": "外用/系统用药与免疫抑制剂审查"
+    },
+    {
+      "dept_id": "ophthalmology",
+      "name_cn": "眼科",
+      "name_en": "Ophthalmology",
+      "sort_order": 190,
+      "imaging_sources": [],
+      "default_models": ["sam2d"],
+      "recommended_datasets": [{"id": "eye_pacs", "name": "EyePACS / REFUGE", "modality": "Fundus"}],
+      "vision_models": [],
+      "description": "眼内用药与全身药物眼毒性"
+    },
+    {
+      "dept_id": "ent",
+      "name_cn": "耳鼻喉科",
+      "name_en": "ENT",
+      "sort_order": 200,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator", "sam2d"],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "description": "头颈区 CT 与局部/全身用药"
+    },
+    {
+      "dept_id": "rehabilitation",
+      "name_cn": "康复医学科",
+      "name_en": "Rehabilitation",
+      "sort_order": 210,
+      "imaging_sources": ["mimic", "brats2024"],
+      "default_models": ["vista3d", "sam2d"],
+      "recommended_datasets": [],
+      "vision_models": [],
+      "description": "神经康复与长期用药管理"
+    }
+  ]
+}

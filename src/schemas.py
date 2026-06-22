@@ -29,7 +29,14 @@ ReportSection = Literal[
     "risk_summary",
 ]
 ReportStatus = Literal["active", "superseded"]
-ModelId = Literal["totalsegmentator", "vista3d", "sam_med3d", "sam2d"]
+ModelId = Literal[
+    "totalsegmentator",
+    "vista3d",
+    "sam_med3d",
+    "sam2d",
+    "cxr_lesion",
+    "brats_tumor",
+]
 
 
 class DrugItem(BaseModel):
@@ -389,6 +396,63 @@ class SegmentRequest(BaseModel):
     slice_index: Optional[int] = None
     point: Optional[List[int]] = None
     bbox: Optional[List[int]] = None
+    patient_id: str = Field(default="")
+    study_id: str = Field(default="")
+    persist: bool = Field(default=True)
+
+
+class SegmentResultStored(BaseModel):
+    model_id: str
+    source_image: str
+    overlay_path: str
+    labels: List[str] = Field(default_factory=list)
+    stats: Dict[str, Any] = Field(default_factory=dict)
+    memory_mb: float = 0.0
+    duration_ms: float = 0.0
+    notes: str = ""
+
+
+class SegmentRunRecord(BaseModel):
+    run_id: str
+    patient_id: str
+    study_id: str
+    image_key: str
+    source_image: str
+    volume_path: Optional[str] = None
+    slice_axis: str = "axial"
+    slice_index: Optional[int] = None
+    organ: str = "brain"
+    model_ids: List[str] = Field(default_factory=list)
+    results: List[SegmentResultStored] = Field(default_factory=list)
+    memory_peak_mb: float = 0.0
+    created_at: str = ""
+
+
+class ListSegmentRunsResponse(BaseModel):
+    patient_id: str
+    study_id: str
+    image_key: str
+    count: int
+    runs: List[SegmentRunRecord] = Field(default_factory=list)
+
+
+class VlmAnalyzeRequest(BaseModel):
+    clinical_text: str = Field(default="")
+    primary_modality: str = Field(default="CT")
+    image_paths: List[str] = Field(default_factory=list)
+    overlay_paths: List[str] = Field(default_factory=list)
+    segmentation_summary: str = Field(default="")
+    include_source_image: bool = Field(default=False)
+
+
+class VlmAnalyzeResponse(BaseModel):
+    analysis: Dict[str, Any] = Field(default_factory=dict)
+    images_used: List[str] = Field(default_factory=list)
+    model: str = ""
+    configured: bool = True
+    overlay_count: int = 0
+    source_count: int = 0
+    duration_ms: float = 0.0
 
 
 class VolumeMetaResponse(BaseModel):
@@ -402,6 +466,8 @@ class VolumeMetaResponse(BaseModel):
 class SegmentResponse(BaseModel):
     results: List[Dict[str, Any]] = Field(default_factory=list)
     memory_peak_mb: float = 0.0
+    run_id: Optional[str] = None
+    image_key: Optional[str] = None
 
 
 class SaveScreenshotRequest(BaseModel):
@@ -424,6 +490,8 @@ class GenerateReportRequest(BaseModel):
     segmentation_summary: str = Field(default="")
     patient_context: Optional[PatientContext] = None
     candidate_drugs: List[CandidateDrug] = Field(default_factory=list)
+    include_source_image: bool = Field(default=False)
+    run_medication_review: bool = Field(default=False)
 
 
 class ReportAskRequest(BaseModel):

@@ -11,5 +11,5 @@ class ClinicalPharmacistAgent(LLMAgent):
     role = "药物相互作用、剂量、重复用药审查"
     system_prompt = PHARMACIST_SYSTEM_PROMPT
 
-    def __init__(self, llm: LLMClient) -> None:
-        super().__init__(llm)
+    def __init__(self, llm: LLMClient, system_prompt: str | None = None) -> None:
+        super().__init__(llm, system_prompt=system_prompt)

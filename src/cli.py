@@ -56,15 +56,20 @@ def cmd_demo_data(args: argparse.Namespace) -> None:
 
 def cmd_info(args: argparse.Namespace) -> None:
     from src.config import load_config
-    from src.llm.client import get_llm_client
+    from src.llm.client import get_llm_client, is_llm_configured
 
     cfg = load_config()
-    llm = get_llm_client()
+    provider = cfg.get("llm", {}).get("provider", "")
+    if is_llm_configured():
+        llm = get_llm_client()
+        llm_line = f"{type(llm).__name__} (provider={provider})"
+    else:
+        llm_line = f"未配置 (provider={provider or 'unset'})"
     print("MedSafe v2.0.0 — Multi-Agent Drug Safety Review")
     print(f"Python: {platform.python_version()}")
     print(f"Platform: {platform.platform()}")
     print(f"Project: {PROJECT_ROOT}")
-    print(f"LLM: {type(llm).__name__} (provider={cfg.get('llm', {}).get('provider', 'mock')})")
+    print(f"LLM: {llm_line}")
     print(f"Rule strict: {cfg.get('agents', {}).get('rule_strict', True)}")
 
 

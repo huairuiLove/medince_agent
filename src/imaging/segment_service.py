@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 
 from src.imaging.backends.base import BaseSegmentBackend, SegmentResult
+from src.imaging.backends.brats_tumor import BraTSTumorBackend
+from src.imaging.backends.cxr_lesion import CXRLesionBackend
 from src.imaging.backends.sam2d import SAM2DBackend
 from src.imaging.backends.sam_med3d import SAMMed3DBackend
 from src.imaging.backends.totalsegmentator import TotalSegmentatorBackend
@@ -16,6 +18,8 @@ from src.logging_config import get_logger
 logger = get_logger("imaging.segment_service")
 
 BACKEND_MAP: dict[ModelId, type[BaseSegmentBackend]] = {
+    "cxr_lesion": CXRLesionBackend,
+    "brats_tumor": BraTSTumorBackend,
     "totalsegmentator": TotalSegmentatorBackend,
     "vista3d": Vista3DBackend,
     "sam_med3d": SAMMed3DBackend,

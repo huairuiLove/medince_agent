@@ -119,7 +119,7 @@
       "rule_id": "pop_child_aspirin",
       "trigger_drugs": ["aspirin"],
       "population_field": "age",
-      "age_max": 12,
+      "age_min": 13,
       "risk_level": "high",
       "summary": "儿童使用阿司匹林需高度谨慎，存在严重不良反应风险。",
       "mechanism": "儿童特殊人群用药风险更高。",

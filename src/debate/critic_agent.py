@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from src.llm.client import LLMClient
 from src.prompts import CRITIC_SYSTEM_PROMPT, pretty_json
+from src.utils import parse_confidence
 from src.schemas import (
     AgentOpinion,
     CandidateDrug,
@@ -102,7 +103,7 @@ class CriticAgent:
             consensus_reached=consensus,
             dissent_log=dissent,
             low_confidence_agents=low_conf,
-            min_confidence=float(data.get("min_confidence", 0.0)),
+            min_confidence=parse_confidence(data.get("min_confidence"), default=0.0),
         )
 
     def _from_deterministic(self, deterministic: dict, round_number: int) -> CriticOutput:

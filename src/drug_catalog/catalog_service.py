@@ -6,8 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from src.config import get_config, resolve_path
+from src.drug_catalog.atc_taxonomy import build_classification_tree, list_special_filters
 from src.drug_catalog.db import connect, init_schema
 from src.drug_catalog.models import HospitalDrug
+from src.drug_catalog.semantic_search import get_semantic_index, rebuild_semantic_index
+from src.llm.errors import DrugSearchModelNotReadyError
 from src.utils import normalize_text
 
 
@@ -130,7 +133,56 @@ class DrugCatalogService:
                 result.append((row["alias_text"], drug["canonical_key"]))
         return result
 
-    def search(self, query: str, limit: int = 20) -> list[HospitalDrug]:
+    def search(
+        self,
+        query: str,
+        limit: int = 20,
+        mode: str = "semantic",
+    ) -> tuple[list[HospitalDrug], str]:
+        """Search formulary. mode: keyword (explicit) | semantic | auto (semantic, no fallback)."""
+        normalized = normalize_text(query)
+        if not normalized:
+            return [], mode
+
+        if mode == "keyword":
+            return self._search_keyword(query, limit), "keyword"
+
+        effective_mode = "semantic"
+        index = get_semantic_index()
+        download_hint = "python scripts/download_models.py --drug-search"
+
+        if not index.model_present:
+            raise DrugSearchModelNotReadyError(
+                "模型文件缺失",
+                f"请运行: {download_hint}",
+            )
+
+        status = index.status()
+        if status["indexed_drugs"] == 0:
+            self._ensure_semantic_index()
+            status = index.status()
+
+        if status.get("load_error"):
+            raise DrugSearchModelNotReadyError(status["load_error"], download_hint)
+
+        if not status.get("index_built") or status["indexed_drugs"] == 0:
+            raise DrugSearchModelNotReadyError(
+                "语义索引未构建",
+                f"请运行上述命令后 POST /api/v1/drug-catalog/search-model/rebuild",
+            )
+
+        semantic_pairs = index.search(query, limit=limit)
+        results: list[HospitalDrug] = []
+        for drug_id, _score in semantic_pairs:
+            drug = self.get_by_id(drug_id)
+            if drug:
+                results.append(drug)
+            if len(results) >= limit:
+                break
+
+        return results, effective_mode
+
+    def _search_keyword(self, query: str, limit: int) -> list[HospitalDrug]:
         normalized = normalize_text(query)
         if not normalized:
             return []
@@ -152,6 +204,89 @@ class DrugCatalogService:
             return [_row_to_drug(row) for row in rows]
         finally:
             conn.close()
+
+    def browse(
+        self,
+        *,
+        atc_prefix: str = "",
+        filter_id: str = "",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        conn = connect(self.db_path)
+        try:
+            where: list[str] = []
+            params: list[Any] = []
+
+            prefix = (atc_prefix or "").strip().upper()
+            if prefix:
+                where.append("upper(atc_code) LIKE ?")
+                params.append(f"{prefix}%")
+
+            facet = (filter_id or "").strip()
+            if facet == "high_alert":
+                where.append("high_alert = 1")
+            elif facet == "in_stock":
+                where.append("in_stock = 1")
+            elif facet == "antibiotic":
+                where.append("upper(atc_code) LIKE 'J01%'")
+            elif facet == "narcotic":
+                where.append("(narcotic_class IS NOT NULL AND trim(narcotic_class) != '' AND narcotic_class != '0')")
+            elif facet == "restricted":
+                where.append("(restricted_dept IS NOT NULL AND trim(restricted_dept) != '')")
+
+            clause = f"WHERE {' AND '.join(where)}" if where else ""
+            total = conn.execute(
+                f"SELECT COUNT(*) AS c FROM hospital_drugs {clause}",
+                tuple(params),
+            ).fetchone()["c"]
+
+            rows = conn.execute(
+                f"""
+                SELECT * FROM hospital_drugs
+                {clause}
+                ORDER BY generic_name_cn, strength
+                LIMIT ? OFFSET ?
+                """,
+                tuple(params + [limit, offset]),
+            ).fetchall()
+            return {
+                "atc_prefix": prefix,
+                "filter_id": facet,
+                "total": total,
+                "offset": offset,
+                "limit": limit,
+                "results": [_row_to_drug(row).to_dict() for row in rows],
+            }
+        finally:
+            conn.close()
+
+    def classification_tree(self, max_level: int = 4) -> dict[str, Any]:
+        conn = connect(self.db_path)
+        try:
+            tree = build_classification_tree(conn, max_level=max_level)
+            return {
+                "max_level": max_level,
+                "special_filters": list_special_filters(),
+                "tree": tree,
+            }
+        finally:
+            conn.close()
+
+    def search_model_status(self) -> dict[str, Any]:
+        index = get_semantic_index()
+        status = index.status()
+        status["download_command"] = "python scripts/download_models.py --drug-search"
+        return status
+
+    def _ensure_semantic_index(self) -> None:
+        conn = connect(self.db_path)
+        try:
+            rows = conn.execute("SELECT * FROM hospital_drugs").fetchall()
+            drugs = [_row_to_drug(row) for row in rows]
+        finally:
+            conn.close()
+        rebuild_semantic_index(drugs)
 
     def list_alternatives(self, hospital_drug_id: str) -> list[HospitalDrug]:
         drug = self.get_by_id(hospital_drug_id)
@@ -229,4 +364,9 @@ def bootstrap_catalog_from_config() -> dict[str, Any] | None:
 
     from src.drug_catalog.csv_import import FormularyCsvImporter
 
-    return FormularyCsvImporter(service.db_path).import_csv(csv_path)
+    result = FormularyCsvImporter(service.db_path).import_csv(csv_path)
+    try:
+        service._ensure_semantic_index()
+    except DrugSearchModelNotReadyError:
+        pass
+    return result

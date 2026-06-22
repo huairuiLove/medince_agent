@@ -16,6 +16,8 @@ data/raw/
 data/hospital/*.db
 data/hospital/cache/
 data/local_fallback.db
+data/knowledge/smiles_cache.db
+data/auth/*.db
 
 # ── Secrets ──
 .env

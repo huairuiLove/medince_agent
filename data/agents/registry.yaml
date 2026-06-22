@@ -1,0 +1,131 @@
+# MedSafe Agent Registry — add agents here or via data/agents/registry.yaml
+agents:
+  clinical_pharmacist:
+    module: src.agents.clinical_pharmacist
+    class: ClinicalPharmacistAgent
+    agent_id: clinical_pharmacist
+    agent_name: 临床药师
+    role: 药物相互作用、剂量、重复用药审查
+    debate: true
+    default_enabled: true
+    default_skills: [base, ddi_review, dose_review]
+    skills:
+      - id: base
+        title: 基础角色
+        file: base.md
+      - id: ddi_review
+        title: 药物相互作用审查
+        file: ddi_review.md
+      - id: dose_review
+        title: 剂量与给药途径
+        file: dose_review.md
+      - id: duplicate_review
+        title: 重复用药审查
+        file: duplicate_review.md
+
+  internal_medicine:
+    module: src.agents.internal_medicine
+    class: InternalMedicineAgent
+    agent_id: internal_medicine
+    agent_name: 内科主治
+    role: 适应证与诊断匹配、off-label 风险评估
+    debate: true
+    default_enabled: true
+    default_skills: [base, indication_match]
+    skills:
+      - id: base
+        title: 基础角色
+        file: base.md
+      - id: indication_match
+        title: 适应证匹配
+        file: indication_match.md
+      - id: comorbidity
+        title: 合并症评估
+        file: comorbidity.md
+
+  allergy_specialist:
+    module: src.agents.allergy_specialist
+    class: AllergySpecialistAgent
+    agent_id: allergy_specialist
+    agent_name: 过敏专员
+    role: 过敏史、交叉过敏、ADR 审查
+    debate: true
+    default_enabled: true
+    default_skills: [base, cross_allergy]
+    skills:
+      - id: base
+        title: 基础角色
+        file: base.md
+      - id: cross_allergy
+        title: 交叉过敏
+        file: cross_allergy.md
+      - id: adr_history
+        title: 既往 ADR
+        file: adr_history.md
+
+  pharmacy_inventory:
+    module: src.agents.pharmacy_inventory
+    class: PharmacyInventoryAgent
+    agent_id: pharmacy_inventory
+    agent_name: 药房库管
+    role: 库存、formulary、替代方案
+    debate: true
+    default_enabled: true
+    default_skills: [base, formulary_check]
+    skills:
+      - id: base
+        title: 基础角色
+        file: base.md
+      - id: formulary_check
+        title: Formulary 审查
+        file: formulary_check.md
+      - id: stock_alternative
+        title: 缺货替代
+        file: stock_alternative.md
+
+  specialist:
+    module: src.agents.specialist_router
+    class: SpecialistAgent
+    agent_id: specialist
+    agent_name: 专科医生
+    role: 专科禁忌（妊娠/抗凝/老年/感染等）
+    debate: true
+    default_enabled: false
+    default_skills: [base, pregnancy, anticoagulation]
+    activate_when:
+      drug_keywords: [warfarin, heparin, enoxaparin, lisinopril, losartan]
+      female_reproductive_age: true
+      age_gte: 65
+    skills:
+      - id: base
+        title: 基础角色
+        file: base.md
+      - id: pregnancy
+        title: 妊娠用药
+        file: pregnancy.md
+      - id: anticoagulation
+        title: 抗凝桥接
+        file: anticoagulation.md
+      - id: geriatric
+        title: 老年用药
+        file: geriatric.md
+
+  chief_reviewer:
+    module: src.agents.chief_reviewer
+    class: ChiefReviewerAgent
+    agent_id: chief_reviewer
+    agent_name: 会诊主席
+    role: 冲突仲裁与最终建议
+    debate: false
+    default_enabled: true
+    default_skills: [base]
+
+  coordinator:
+    module: src.agents.coordinator
+    class: CoordinatorAgent
+    agent_id: coordinator
+    agent_name: 信息协调员
+    role: 追问生成与保守降级
+    debate: false
+    default_enabled: true
+    default_skills: [base]

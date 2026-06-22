@@ -7,6 +7,11 @@ from src.knowledge_base import SafetyKnowledgeBase
 from src.schemas import CandidateDrug, PatientContext, ReviewOutput, RuleEvidence
 from src.utils import dedupe_preserve_order, normalize_text
 
+try:
+    from src.safety_models.ddi_classifier import get_ddi_classifier
+except ImportError:  # pragma: no cover
+    get_ddi_classifier = None  # type: ignore[assignment,misc]
+
 
 RISK_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3, "unknown": 4}
 
@@ -96,10 +101,13 @@ class ReviewEngine:
                 if not all(pair):
                     continue
 
-                for rule in self.kb.get_interaction_rules():
-                    rule_pair = tuple(sorted(self.kb.resolve_drug(drug) for drug in rule["drugs"]))
+                matched_rules = self.kb.interaction_rules_for_pair(
+                    candidate["canonical"],
+                    other["canonical"],
+                )
+                for rule in matched_rules:
                     cache_key = (rule["rule_id"], pair[0], pair[1])
-                    if pair == rule_pair and cache_key not in pair_cache:
+                    if cache_key not in pair_cache:
                         pair_cache.add(cache_key)
                         evidence.append(
                             RuleEvidence(
@@ -112,8 +120,69 @@ class ReviewEngine:
                                 recommendation=rule.get("recommendation", ""),
                                 alternatives=rule.get("alternatives", []),
                                 clarification_fields=rule.get("clarification_fields", []),
+                                source=rule.get("source", "rule_base"),
                             )
                         )
+        return evidence
+
+    def _collect_model_ddi_evidence(
+        self,
+        current_registry: list[dict[str, str]],
+        candidate_registry: list[dict[str, str]],
+        existing_evidence: list[RuleEvidence],
+    ) -> list[RuleEvidence]:
+        if get_ddi_classifier is None:
+            return []
+        classifier = get_ddi_classifier()
+        if not classifier.available and not classifier._ensure_loaded():  # noqa: SLF001
+            return []
+
+        covered_canonical: set[tuple[str, str]] = set()
+        for item in existing_evidence:
+            if item.category != "drug_interaction" or item.source == "ddi_bert_model":
+                continue
+            if len(item.implicated_drugs) >= 2:
+                pair = tuple(sorted([
+                    self.kb.resolve_drug(item.implicated_drugs[0]),
+                    self.kb.resolve_drug(item.implicated_drugs[1]),
+                ]))
+                if all(pair):
+                    covered_canonical.add(pair)
+
+        evidence: list[RuleEvidence] = []
+        seen: set[tuple[str, str]] = set()
+        for candidate in candidate_registry:
+            for other in current_registry + candidate_registry:
+                if candidate is other:
+                    continue
+                pair = tuple(sorted([candidate["canonical"], other["canonical"]]))
+                if not all(pair) or pair in seen or pair in covered_canonical:
+                    continue
+                seen.add(pair)
+                if candidate["source"] != "candidate" and other["source"] != "candidate":
+                    continue
+
+                result = classifier.predict_pair(pair[0], pair[1])
+                if not result or result["risk_level"] == "none":
+                    continue
+
+                evidence.append(
+                    RuleEvidence(
+                        rule_id=f"ddi_model_{pair[0]}_{pair[1]}",
+                        category="drug_interaction",
+                        risk_level=result["risk_level"],
+                        summary=(
+                            f"DDI 模型预测 {candidate['name']} 与 {other['name']} 存在相互作用"
+                            f"（概率 {result['positive_prob']:.0%}）。"
+                        ),
+                        mechanism="Bio_ClinicalBERT SMILES 药对分类",
+                        implicated_drugs=[candidate["name"], other["name"]],
+                        recommendation="建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+                        alternatives=["优先查阅药品说明书或药学咨询。"],
+                        clarification_fields=["current_medications"],
+                        source="ddi_bert_model",
+                    )
+                )
         return evidence
 
     def _collect_duplicate_evidence(
@@ -280,6 +349,7 @@ class ReviewEngine:
 
         evidence = []
         evidence.extend(self._collect_interaction_evidence(current_registry, candidate_registry))
+        evidence.extend(self._collect_model_ddi_evidence(current_registry, candidate_registry, evidence))
         evidence.extend(self._collect_duplicate_evidence(current_registry, candidate_registry))
         evidence.extend(self._collect_population_evidence(patient_context, candidate_registry))
         evidence.extend(self._collect_allergy_evidence(patient_context, candidate_registry))

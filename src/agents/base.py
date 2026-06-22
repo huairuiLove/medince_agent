@@ -6,6 +6,7 @@ from typing import Any
 from src.llm.client import LLMClient
 from src.prompts import pretty_json
 from src.schemas import AgentOpinion, CandidateDrug, PatientContext, RuleEvidence
+from src.utils import parse_confidence
 
 
 class BaseAgent(ABC):
@@ -52,7 +53,7 @@ class BaseAgent(ABC):
             alternatives=list(data.get("alternatives", [])),
             need_clarification=bool(data.get("need_clarification", False)),
             clarification_targets=list(data.get("clarification_targets", [])),
-            confidence=float(data.get("confidence", 0.5)),
+            confidence=parse_confidence(data.get("confidence"), default=0.5),
             evidence_cited=list(data.get("evidence_cited", [])),
             summary=str(data.get("summary", "")),
             debate_round=debate_round,
@@ -69,6 +70,11 @@ class BaseAgent(ABC):
 
 
 class LLMAgent(BaseAgent):
+    def __init__(self, llm: LLMClient, system_prompt: str | None = None) -> None:
+        super().__init__(llm)
+        if system_prompt is not None:
+            self.system_prompt = system_prompt
+
     def review(
         self,
         patient_context: PatientContext,

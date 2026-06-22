@@ -26,7 +26,7 @@ onMounted(async () => {
         <span>查看详情 →</span>
       </RouterLink>
     </div>
-    <p v-else-if="!error" class="empty">暂无 Case，请先在会诊页提交并勾选「保存 Case Log」</p>
+    <p v-else-if="!error" class="empty">暂无属于您的 Case，请在会诊页提交并勾选「保存 Case Log」（需已登录）</p>
   </div>
 </template>
 

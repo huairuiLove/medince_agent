@@ -6,8 +6,16 @@ from typing import Literal
 
 from src.config import resolve_path
 
-ModelId = Literal["totalsegmentator", "vista3d", "sam_med3d", "sam2d"]
+ModelId = Literal[
+    "totalsegmentator",
+    "vista3d",
+    "sam_med3d",
+    "sam2d",
+    "cxr_lesion",
+    "brats_tumor",
+]
 ModalitySupport = Literal["CT", "MRI", "XR", "ALL"]
+TaskKind = Literal["organ", "lesion", "interactive"]
 
 
 @dataclass(frozen=True)
@@ -18,10 +26,43 @@ class SegModelSpec:
     modalities: tuple[ModalitySupport, ...]
     dim: Literal["2d", "3d"]
     local_dir: str
+    task: TaskKind = "organ"
     organs: tuple[str, ...] = ()
+    datasets: tuple[str, ...] = ()
 
 
 MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
+    "cxr_lesion": SegModelSpec(
+        model_id="cxr_lesion",
+        name="CXR Lesion (torchxrayvision)",
+        description="MIMIC/CheXpert 风格胸片病灶定位 — opacity/effusion/pneumothorax 等（Grad-CAM 预训练 DenseNet121）",
+        modalities=("XR",),
+        dim="2d",
+        local_dir="models/cxr_lesion",
+        task="lesion",
+        organs=(
+            "opacity",
+            "consolidation",
+            "pneumonia",
+            "atelectasis",
+            "edema",
+            "cardiomegaly",
+            "effusion",
+            "pneumothorax",
+        ),
+        datasets=("mimic_cxr",),
+    ),
+    "brats_tumor": SegModelSpec(
+        model_id="brats_tumor",
+        name="BraTS Tumor (MONAI)",
+        description="BraTS 胶质瘤病灶 3D 分割 — WT / TC / ET（MONAI brats_mri_segmentation 预训练权重）",
+        modalities=("MRI",),
+        dim="3d",
+        local_dir="models/brats_tumor",
+        task="lesion",
+        organs=("whole_tumor", "tumor_core", "enhancing_tumor"),
+        datasets=("brats2024",),
+    ),
     "totalsegmentator": SegModelSpec(
         model_id="totalsegmentator",
         name="TotalSegmentator",
@@ -29,7 +70,9 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         modalities=("CT",),
         dim="2d",
         local_dir="models/totalsegmentator",
+        task="organ",
         organs=("multi_organ",),
+        datasets=("mimic",),
     ),
     "vista3d": SegModelSpec(
         model_id="vista3d",
@@ -38,7 +81,9 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         modalities=("CT", "MRI"),
         dim="2d",
         local_dir="models/vista3d",
+        task="organ",
         organs=("brain", "liver", "lung"),
+        datasets=("mimic", "brats2024"),
     ),
     "sam_med3d": SegModelSpec(
         model_id="sam_med3d",
@@ -47,7 +92,9 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         modalities=("CT", "MRI", "ALL"),
         dim="2d",
         local_dir="models/SAM-Med3D",
+        task="interactive",
         organs=("interactive",),
+        datasets=("mimic", "brats2024"),
     ),
     "sam2d": SegModelSpec(
         model_id="sam2d",
@@ -56,7 +103,9 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         modalities=("CT", "MRI", "XR", "ALL"),
         dim="2d",
         local_dir="models/SAM2D",
+        task="interactive",
         organs=("interactive",),
+        datasets=("mimic", "mimic_cxr", "brats2024"),
     ),
 }
 
@@ -73,7 +122,9 @@ def list_models() -> list[dict]:
             "description": spec.description,
             "modalities": list(spec.modalities),
             "dim": spec.dim,
+            "task": spec.task,
             "organs": list(spec.organs),
+            "datasets": list(spec.datasets),
             "local_dir": spec.local_dir,
             "weights_present": _weights_present(spec.model_id),
         }
@@ -82,6 +133,14 @@ def list_models() -> list[dict]:
 
 
 def _weights_present(model_id: ModelId) -> bool:
+    if model_id == "cxr_lesion":
+        try:
+            import torchxrayvision  # noqa: F401
+            return True
+        except ImportError:
+            return False
+    if model_id == "brats_tumor":
+        return (model_dir("brats_tumor") / "models" / "model.pt").exists()
     d = model_dir(model_id)
     if model_id == "totalsegmentator":
         ts = d / "nnunet" / "results" / "Dataset297_TotalSegmentator_total_3mm_1559subj"

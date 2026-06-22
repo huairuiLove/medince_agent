@@ -16,7 +16,7 @@ class ChatConfig:
         llm = cfg.get("llm", {})
         deepseek = cfg.get("deepseek_llm", {})
 
-        self.provider: str = chat.get("provider") or llm.get("provider") or "mock"
+        self.provider: str = chat.get("provider") or llm.get("provider") or "deepseek"
         self.api_key: str = (
             chat.get("api_key")
             or deepseek.get("api_key")
@@ -65,12 +65,14 @@ class ChatConfig:
         return self.fallback_enabled
 
     @property
-    def is_mock(self) -> bool:
-        return self.provider == "mock" or not self.api_key
+    def is_configured(self) -> bool:
+        if self.provider == "mock":
+            return False
+        return bool(self.api_key)
 
     def validate(self) -> list[str]:
-        if self.is_mock:
-            return []
+        if self.provider == "mock":
+            return ["chat.provider 不能为 mock，请设为 deepseek 并配置 api_key"]
         missing = []
         if not self.api_key:
             missing.append("MEDSAFE_CHAT__API_KEY or DEEPSEEK_API_KEY")

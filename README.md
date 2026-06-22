@@ -30,7 +30,7 @@
 | 内存 | 8 GB+（文本）；16 GB+（影像分割） | 串行加载 PyTorch 模型 |
 | 磁盘 | ~10 GB 空闲 | 分割模型权重（可选） |
 
-**默认 Mock 模式**无需任何 API Key，文本会诊、规则审查、CPOE 药库审查、智能问答（规则降级）均可离线运行。
+**规则引擎与 CPOE 药库审查**可在无 API Key 时离线运行；所有 LLM/VLM/报告合成能力必须配置真实 API Key，未配置时接口返回 503，**禁止使用 mock 或假数据**。
 
 ---
 
@@ -159,7 +159,7 @@ curl -X POST http://localhost:8000/api/v1/cpoe/medication-review \
 适合演示多智能体会诊、CPOE 审查、规则审查、智能问答；**不含分割模型权重与影像数据**。
 
 ```bash
-cp .env.example .env    # 可选，默认 mock
+cp .env.example .env    # 填入真实 API Key（禁止 mock）
 docker compose up -d --build
 
 # 前端 UI:  http://localhost:3000
@@ -167,6 +167,37 @@ docker compose up -d --build
 ```
 
 将医院 CSV 挂载到容器内并设置 `MEDSAFE_DRUG_CATALOG__FORMULARY_PATH` 即可替换演示药库。Docker 内 `/imaging` 无本地模型与数据时分割不可用。
+
+---
+
+## 用药安全小模型（推荐）
+
+Med7 负责英文病历中的药名/剂量/频次 NER；Bio_ClinicalBERT DDI 在规则库未命中时对药对做 SMILES 级相互作用预测（补充拦截层，不替代确定性规则）。
+
+```bash
+source .venv/bin/activate
+python scripts/download_models.py --safety-models
+pip install models/med7/en_core_med7_lg-1.1.0-py3-none-any.whl
+```
+
+| 模型 | 目录 | 用途 |
+|------|------|------|
+| Med7 | `models/med7/` | Extract 阶段补充 `current_medications` |
+| Bio_ClinicalBERT DDI | `models/ddi_bert/` | Review 阶段规则未命中时的 DDI 概率拦截 |
+
+**SMILES 覆盖（PubChem 自动补全）**：DDI 模型需要 SMILES 输入。本地 `drug_smiles.json` 覆盖常用 demo 药；其余药名通过 PubChem 查询并写入 `data/knowledge/smiles_cache.db`（离线可复用）。
+
+```bash
+# 预热：从 formulary + 规则库 + drug_kg 批量拉取 SMILES（约 455 个通用名，需联网）
+python scripts/warm_smiles_cache.py
+
+# 仅查看待预热药名
+python scripts/warm_smiles_cache.py --dry-run
+```
+
+中文通用名会先映射到英文 INN（`data/knowledge/drug_inn_map.json`，由预热脚本自动生成）。PubChem 可在 `config.yaml` → `safety_models.pubchem` 关闭（`enabled: false` 时仅使用静态 JSON + 本地缓存）。
+
+配置见 `config.yaml` → `safety_models`（`high_threshold` / `medium_threshold` 可调）。`/health` 返回 `safety_models.med7` 与 `safety_models.ddi_bert` 加载状态（含 SMILES 缓存条目数）。
 
 ---
 
@@ -231,13 +262,13 @@ cp .env.example .env
 
 | 变量 | 说明 | 默认 |
 |------|------|------|
-| `MEDSAFE_LLM__PROVIDER` | 会诊 Extract / Agent | `mock` |
-| `MEDSAFE_LLM__API_KEY` | 上述 LLM Key | 空 |
-| `MEDSAFE_CHAT__PROVIDER` | 智能问答 ReAct | `mock` |
+| `MEDSAFE_LLM__PROVIDER` | 会诊 Extract / Agent | `deepseek` |
+| `MEDSAFE_LLM__API_KEY` | 上述 LLM Key（必填） | 空 |
+| `MEDSAFE_CHAT__PROVIDER` | 智能问答 ReAct | `deepseek` |
 | `MEDSAFE_CHAT__API_KEY` | 问答 LLM Key（可填 DeepSeek） | 空 |
-| `MEDSAFE_VISION_LLM__PROVIDER` | 影像 VLM（Qwen3-VL） | `mock` |
-| `MEDSAFE_VISION_LLM__API_KEY` | 通义 DashScope Key | 空 |
-| `MEDSAFE_DEEPSEEK__API_KEY` | 报告综合合成 | 空 |
+| `MEDSAFE_VISION_LLM__PROVIDER` | 影像 VLM（Qwen3-VL） | `qwen` |
+| `MEDSAFE_VISION_LLM__API_KEY` | 通义 DashScope Key（影像 VLM 必填） | 空 |
+| `MEDSAFE_DEEPSEEK__API_KEY` | 报告综合合成（必填） | 空 |
 | `MEDSAFE_AGENTS__RULE_STRICT` | 高风险规则不可被 LLM 覆盖 | `true` |
 | `MEDSAFE_DRUG_CATALOG__FORMULARY_PATH` | 院目录 CSV 路径 | `data/hospital/formulary_demo.csv` |
 | `MEDSAFE_DRUG_CATALOG__AUTO_IMPORT_ON_STARTUP` | 启动时自动导入空库 | `true` |

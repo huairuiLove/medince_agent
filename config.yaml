@@ -1,108 +1,106 @@
-# =============================================================================
-# MedSafe Configuration — Multi-Agent LLM API Architecture
-# =============================================================================
-
-# ── LLM API ────────────────────────────────────────────────────────────
 llm:
-  provider: "mock"                   # mock | openai | deepseek | qwen
-  api_key: ""                        # or set MEDSAFE_LLM_API_KEY env var
-  base_url: "https://api.openai.com/v1"
-  model: "gpt-4o-mini"
+  provider: deepseek
+  api_key: ''
+  base_url: https://api.deepseek.com/v1
+  model: deepseek-chat
   timeout: 60
   temperature: 0.0
-
-# ── Multi-Agent ─────────────────────────────────────────────────────────
 agents:
-  rule_strict: true                  # high-risk rules cannot be overridden by LLM
+  rule_strict: true
   parallel_workers: 5
   enabled:
-    - clinical_pharmacist
-    - internal_medicine
-    - allergy_specialist
-    - pharmacy_inventory
-    - specialist
-
-# ── Data ────────────────────────────────────────────────────────────────
+  - clinical_pharmacist
+  - internal_medicine
+  - allergy_specialist
+  - pharmacy_inventory
+  - specialist
 data:
-  raw_dir: "data/raw/mimiciii"
-  processed_dir: "data/processed"
-  knowledge_dir: "data/knowledge"
-  cases_dir: "data/cases"
-  demo_dir: "data/demo_cases"
-  knowledge_base: "data/knowledge/minimal_drug_safety_rules.json"
-  formulary: "data/knowledge/pharmacy_formulary.json"
-
-# ── API Server ──────────────────────────────────────────────────────────
+  raw_dir: data/raw/mimiciii
+  processed_dir: data/processed
+  knowledge_dir: data/knowledge
+  cases_dir: data/cases
+  demo_dir: data/demo_cases
+  knowledge_base: data/knowledge/expanded_drug_safety_rules.json
+  formulary: data/knowledge/pharmacy_formulary.json
 server:
-  host: "0.0.0.0"
+  host: 0.0.0.0
   port: 8000
   workers: 1
   reload: false
   timeout_keep_alive: 30
   cors_origins:
-    - "*"
-
-# ── Logging ─────────────────────────────────────────────────────────────
+  - '*'
 logging:
-  level: "INFO"
-  format: "console"
-  log_dir: "logs"
-  log_file: "medsafe.log"
+  level: INFO
+  format: console
+  log_dir: logs
+  log_file: medsafe.log
   max_bytes: 10485760
   backup_count: 5
-
-# ── Paths ───────────────────────────────────────────────────────────────
 paths:
-  logs_dir: "logs"
-  models_dir: "models"
-  reports_dir: "data/reports"
-
-# ── Vision LLM (Qwen3-VL cloud) ─────────────────────────────────────────
+  logs_dir: logs
+  models_dir: models
+  reports_dir: data/reports
 vision_llm:
-  provider: "mock"                   # mock | qwen
-  api_key: ""                        # or MEDSAFE_VISION_LLM__API_KEY
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  model: "qwen-vl-max-latest"        # Qwen3-VL 系列
+  provider: qwen
+  api_key: ''
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: qwen-vl-max-latest
   timeout: 120
-
-# ── DeepSeek multi-agent synthesis ──────────────────────────────────────
 deepseek_llm:
-  api_key: ""                        # or MEDSAFE_DEEPSEEK__API_KEY
-  base_url: "https://api.deepseek.com/v1"
-  model: "deepseek-chat"             # DeepSeek V3/R1 — 配置 v4 pro 时替换
+  api_key: ''
+  base_url: https://api.deepseek.com/v1
+  model: deepseek-chat
   timeout: 120
-
-# ── ReAct Chat (元安 Agent 整合) ─────────────────────────────────────────
 chat:
-  provider: "mock"
-  api_key: ""
-  base_url: "https://api.deepseek.com/v1"
-  model: "deepseek-chat"
+  provider: deepseek
+  api_key: ''
+  base_url: https://api.deepseek.com/v1
+  model: deepseek-chat
   timeout: 120
   max_retries: 2
   fallback_enabled: true
-  knowledge_graph: "data/knowledge/drug_kg.json"
-
-# ── Multi-round debate (ClinicalPilot + MDAgents) ───────────────────────
+  knowledge_graph: data/knowledge/drug_kg.json
 debate:
   enabled: true
   max_rounds: 3
   confidence_threshold: 0.75
   flag_for_human_on_no_consensus: true
-
-# ── Hospital drug catalog (PIS CSV) ─────────────────────────────────────
 drug_catalog:
-  db_path: "data/hospital/formulary.db"
-  formulary_path: "data/hospital/formulary_demo.csv"
+  db_path: data/hospital/formulary.db
+  formulary_path: data/hospital/formulary_demo.csv
   auto_import_on_startup: true
-
 clinical_knowledge:
-  version: "minimal_rules_v1"
-  ddi_source: "minimal_json"
-
-# ── Imaging segmentation ──────────────────────────────────────────────────
+  version: expanded_mined_v1
+  ddi_source: ddi_bert_mined
+  mined_rules_path: data/knowledge/mined_ddi_rules.json
+  expanded_rules_path: data/knowledge/expanded_drug_safety_rules.json
+  mining_exclusions: data/knowledge/ddi_mining_exclusions.json
+  mining_thresholds:
+    high: 0.7
+    medium: 0.65
+safety_models:
+  enabled: true
+  med7:
+    enabled: true
+    wheel_path: models/med7/en_core_med7_lg-1.1.0-py3-none-any.whl
+  ddi_bert:
+    enabled: true
+    model_dir: models/ddi_bert
+    smiles_path: data/knowledge/drug_smiles.json
+    high_threshold: 0.75
+    medium_threshold: 0.55
+  pubchem:
+    enabled: true
+    cache_path: data/knowledge/smiles_cache.db
+    inn_map_path: data/knowledge/drug_inn_map.json
+    timeout: 10
+    rate_limit_seconds: 0.25
 imaging:
   serial_only: true
   max_models_parallel: 1
-  device: "cpu"                      # 16GB Mac — CPU/MPS 串行
-  totalseg_home: "models/totalsegmentator"
+  device: cpu
+  totalseg_home: models/totalsegmentator
+  default_lesion_models:
+    mimic_cxr: cxr_lesion
+    brats2024: brats_tumor

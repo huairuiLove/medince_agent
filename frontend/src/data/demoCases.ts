@@ -77,6 +77,48 @@ export const DEMO_CASES: DemoCase[] = [
       { name: 'ibuprofen', indication: '头痛' },
     ],
   },
+  {
+    id: 'demo-06',
+    title: '过敏禁忌：青霉素 + 阿莫西林',
+    description: '应命中 alg_penicillin_amoxicillin 并阻断',
+    mode: 'context',
+    patient_context: {
+      gender: 'F',
+      age: 40,
+      current_medications: [],
+      allergies: ['penicillin'],
+      pregnancy_status: 'not_applicable',
+    },
+    candidate_drugs: [{ name: 'amoxicillin', dose: '500mg', indication: '感染' }],
+  },
+  {
+    id: 'demo-07',
+    title: '妊娠禁忌：已妊娠 + 氯沙坦',
+    description: '应命中 pop_pregnancy_losartan',
+    mode: 'context',
+    patient_context: {
+      gender: 'F',
+      age: 32,
+      current_medications: [],
+      allergies: [],
+      pregnancy_status: 'pregnant',
+    },
+    candidate_drugs: [{ name: 'losartan', dose: '50mg', indication: '高血压' }],
+  },
+  {
+    id: 'demo-08',
+    title: '重复成分：对乙酰氨基酚',
+    description: '应命中 dup_acetaminophen',
+    mode: 'context',
+    patient_context: {
+      gender: 'M',
+      age: 50,
+      current_medications: [{ name: 'tylenol', dose: '500mg' }],
+      allergies: [],
+      pregnancy_status: 'not_applicable',
+    },
+    candidate_drugs: [{ name: '对乙酰氨基酚', dose: '500mg' }],
+  },
 ]
 
 export const DEMO_TEXT = `病人基本信息：

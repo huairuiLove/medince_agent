@@ -18,6 +18,7 @@ onMounted(async () => {
 })
 
 const features = [
+  { title: '药品库', desc: 'ATC 分级浏览、语义检索、知识图谱安全信息' },
   { title: '规则审查', desc: '确定性 DDI、过敏、妊娠禁忌 — 安全硬底线' },
   { title: '结构化抽取', desc: '病历文本 → PatientContext JSON' },
   { title: '多智能体会诊', desc: '药师、内科、过敏、药房、专科联合审查与辩论' },
@@ -35,7 +36,8 @@ const features = [
           规则引擎硬底线 + 影像 2D 分割 + Qwen3-VL + DeepSeek 多智能体报告。
         </p>
         <div class="actions">
-          <RouterLink to="/imaging"><button class="btn-primary">影像会诊</button></RouterLink>
+          <RouterLink to="/drugs"><button class="btn-primary">药品库</button></RouterLink>
+          <RouterLink to="/imaging"><button class="btn-secondary">影像会诊</button></RouterLink>
           <RouterLink to="/consult"><button class="btn-secondary">文本会诊</button></RouterLink>
         </div>
       </div>

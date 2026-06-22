@@ -14,6 +14,7 @@ from src.debate.safety_panel import SafetyPanel
 from src.drug_catalog.catalog_service import get_drug_catalog_service
 from src.drug_catalog.terminology import CatalogAwareKnowledgeBase
 from src.llm.client import get_llm_client
+from src.llm.errors import LLMNotConfiguredError
 from src.review_engine import ReviewEngine
 from src.schemas import (
     AgentOpinion,
@@ -31,11 +32,29 @@ from src.schemas import (
 class MultiAgentOrchestrator:
     def __init__(self) -> None:
         cfg = get_config()
-        self.llm = get_llm_client()
+        self._llm = None
         self.rule_strict = cfg.get("agents", {}).get("rule_strict", True)
         catalog = get_drug_catalog_service()
         kb = CatalogAwareKnowledgeBase(catalog=catalog) if catalog.is_loaded() else None
         self.review_engine = ReviewEngine(kb=kb) if kb else ReviewEngine()
+        self.pharmacist = None
+        self.attending = None
+        self.allergy = None
+        self.pharmacy = None
+        self.specialist = None
+        self.chief = None
+        self.coordinator = None
+        self.debate_engine = None
+
+    @property
+    def llm(self):
+        if self._llm is None:
+            self._llm = get_llm_client()
+        return self._llm
+
+    def _ensure_agents(self) -> None:
+        if self.pharmacist is not None:
+            return
         self.pharmacist = ClinicalPharmacistAgent(self.llm)
         self.attending = InternalMedicineAgent(self.llm)
         self.allergy = AllergySpecialistAgent(self.llm)
@@ -45,11 +64,12 @@ class MultiAgentOrchestrator:
         self.coordinator = CoordinatorAgent(self.llm)
         self.debate_engine = DebateEngine(
             self.llm,
-            agents=[],  # populated per run
+            agents=[],
             safety_panel=SafetyPanel(self.review_engine),
         )
 
     def _active_agents(self, patient_context: PatientContext, candidate_drugs: list[CandidateDrug]) -> list:
+        self._ensure_agents()
         agents = [self.pharmacist, self.attending, self.allergy, self.pharmacy]
         if SpecialistAgent.should_activate(patient_context, candidate_drugs):
             agents.append(self.specialist)
@@ -62,6 +82,7 @@ class MultiAgentOrchestrator:
         unable_to_answer: bool = False,
         skip_clarify: bool = False,
     ) -> MultiReviewResponse:
+        self._ensure_agents()
         rule_output = self.review_engine.review(patient_context, candidate_drugs)
         agents = self._active_agents(patient_context, candidate_drugs)
 
@@ -119,6 +140,7 @@ class MultiAgentOrchestrator:
         )
 
     def list_agents(self) -> list[dict]:
+        self._ensure_agents()
         roster = [
             self.pharmacist,
             self.attending,

@@ -5,7 +5,7 @@ import { useMultiConsult } from '@/composables/useMultiConsult'
 import { DEMO_CASES, DEMO_TEXT } from '@/data/demoCases'
 import type { PatientContext, DrugItem } from '@/types'
 import AgentOpinionCard from '@/components/consult/AgentOpinionCard.vue'
-import RuleEvidencePanel from '@/components/consult/RuleEvidencePanel.vue'
+import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
 import ClarifyPanel from '@/components/consult/ClarifyPanel.vue'
 import DebatePanel from '@/components/consult/DebatePanel.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
@@ -149,7 +149,7 @@ const arb = computed(() => result.value?.arbitration)
           </p>
         </div>
 
-        <RuleEvidencePanel :evidence="result.rule_output.evidence" />
+        <RuleReviewSummary :rule-output="result.rule_output" />
 
         <DebatePanel :debate="result.debate" :safety-panel="result.safety_panel" />
 

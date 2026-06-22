@@ -9,9 +9,24 @@ from src.utils import load_json, normalize_text
 DEFAULT_KB_PATH = Path(__file__).resolve().parent.parent / "data" / "knowledge" / "minimal_drug_safety_rules.json"
 
 
+def get_default_kb_path() -> Path:
+    """Resolve knowledge base path from config, falling back to minimal rules."""
+    try:
+        from src.config import get_config, resolve_path
+
+        rel = get_config().get("data", {}).get("knowledge_base")
+        if rel:
+            path = resolve_path(rel)
+            if path.exists():
+                return path
+    except Exception:  # pragma: no cover
+        pass
+    return DEFAULT_KB_PATH
+
+
 class SafetyKnowledgeBase:
-    def __init__(self, kb_path: str | Path = DEFAULT_KB_PATH) -> None:
-        self.kb_path = Path(kb_path)
+    def __init__(self, kb_path: str | Path | None = None) -> None:
+        self.kb_path = Path(kb_path) if kb_path else get_default_kb_path()
         self.data = load_json(self.kb_path)
         self.alias_to_canonical = self._build_alias_map()
 
@@ -55,3 +70,19 @@ class SafetyKnowledgeBase:
 
     def get_allergy_rules(self) -> list[dict[str, Any]]:
         return list(self.data.get("allergy_rules", []))
+
+    def interaction_rules_for_pair(self, drug_a: str, drug_b: str) -> list[dict[str, Any]]:
+        """Lookup interaction rules by canonical pair (O(1) index)."""
+        if not hasattr(self, "_interaction_pair_index"):
+            index: dict[tuple[str, str], list[dict[str, Any]]] = {}
+            for rule in self.get_interaction_rules():
+                drugs = rule.get("drugs", [])
+                if len(drugs) < 2:
+                    continue
+                pair = tuple(sorted(self.resolve_drug(d) for d in drugs[:2]))
+                if not all(pair):
+                    continue
+                index.setdefault(pair, []).append(rule)
+            self._interaction_pair_index = index
+        key = tuple(sorted([self.resolve_drug(drug_a), self.resolve_drug(drug_b)]))
+        return list(self._interaction_pair_index.get(key, []))

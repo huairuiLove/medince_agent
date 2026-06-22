@@ -193,7 +193,13 @@ export interface DemoCase {
   candidate_drugs: DrugItem[]
 }
 
-export type ModelId = 'totalsegmentator' | 'vista3d' | 'sam_med3d' | 'sam2d'
+export type ModelId =
+  | 'totalsegmentator'
+  | 'vista3d'
+  | 'sam_med3d'
+  | 'sam2d'
+  | 'cxr_lesion'
+  | 'brats_tumor'
 
 export interface SegModelInfo {
   model_id: ModelId
@@ -201,7 +207,9 @@ export interface SegModelInfo {
   description: string
   modalities: string[]
   dim: string
+  task?: string
   organs: string[]
+  datasets?: string[]
   weights_present: boolean
 }
 
@@ -235,6 +243,37 @@ export interface SegmentResultItem {
   memory_mb: number
   duration_ms: number
   notes: string
+}
+
+export interface SegmentRunRecord {
+  run_id: string
+  patient_id: string
+  study_id: string
+  image_key: string
+  source_image: string
+  volume_path?: string | null
+  slice_axis: string
+  slice_index?: number | null
+  organ: string
+  model_ids: string[]
+  results: SegmentResultItem[]
+  memory_peak_mb: number
+  created_at: string
+}
+
+export interface VlmAnalysis {
+  clinical_analysis?: string
+  imaging_findings?: string
+  medication_recommendation?: string
+  recommended_drugs?: DrugItem[]
+  allergies?: string[]
+  diagnoses?: string[]
+  symptoms?: string[]
+  chief_complaint?: string
+  anesthesia_surgery?: string
+  reasoning?: string
+  risk_level?: string
+  [key: string]: unknown
 }
 
 export interface ReportParagraph {

@@ -2,13 +2,27 @@
 import type { RuleEvidence } from '@/types'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 
-defineProps<{ evidence: RuleEvidence[] }>()
+defineProps<{
+  evidence: RuleEvidence[]
+  clarificationTargets?: string[]
+}>()
+
+const FIELD_LABELS: Record<string, string> = {
+  allergies: '过敏史',
+  current_medications: '当前用药',
+  pregnancy_status: '妊娠状态',
+  age: '年龄',
+}
 </script>
 
 <template>
-  <section class="card evidence-panel">
-    <h3>规则证据 (Layer 1)</h3>
-    <p v-if="!evidence.length" class="empty">未命中硬规则</p>
+  <section class="evidence-panel">
+    <h4>规则证据</h4>
+    <p v-if="!evidence.length && clarificationTargets?.length" class="clarify-only">
+      未命中确定性硬规则，但信息不足需先澄清：
+      {{ clarificationTargets.map(f => FIELD_LABELS[f] ?? f).join('、') }}
+    </p>
+    <p v-else-if="!evidence.length" class="empty">规则库未命中（当前仅覆盖 12 条 DDI/过敏/妊娠/重复用药规则）</p>
     <div v-for="ev in evidence" :key="ev.rule_id" class="ev-item">
       <div class="ev-head">
         <code>{{ ev.rule_id }}</code>
@@ -23,8 +37,9 @@ defineProps<{ evidence: RuleEvidence[] }>()
 </template>
 
 <style scoped>
-h3 { margin-bottom: 1rem; font-size: 1.05rem; }
-.empty { color: var(--text-muted); font-size: 0.9rem; }
+h4 { margin-bottom: 0.75rem; font-size: 0.95rem; color: var(--text-muted); }
+.empty, .clarify-only { color: var(--text-muted); font-size: 0.9rem; }
+.clarify-only { color: var(--warning); }
 .ev-item {
   border-left: 3px solid var(--primary);
   padding: 0.75rem 0 0.75rem 1rem;

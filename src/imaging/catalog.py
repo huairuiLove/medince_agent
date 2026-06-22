@@ -1,4 +1,4 @@
-"""Catalog of visual imaging studies from mimic (CT JPG) and brats2024 (MRI slices)."""
+"""Catalog of visual imaging studies from mimic (CT), mimic_cxr (XR), and brats2024 (MRI)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,6 +12,7 @@ from src.utils import ensure_dir
 class ImagingCatalog:
     def __init__(self) -> None:
         self.mimic_dir = resolve_path("data/mimic")
+        self.mimic_cxr_dir = resolve_path("data/mimic_cxr")
         self.brats_dir = resolve_path("data/brats2024")
         self.cache_dir = resolve_path("data/imaging_cache/catalog")
         ensure_dir(self.cache_dir)
@@ -19,6 +20,7 @@ class ImagingCatalog:
     def list_studies(self) -> list[ImagingStudyItem]:
         studies: list[ImagingStudyItem] = []
         studies.extend(self._scan_mimic())
+        studies.extend(self._scan_mimic_cxr())
         studies.extend(self._scan_brats())
         return studies
 
@@ -42,6 +44,35 @@ class ImagingCatalog:
                         modality="CT",
                         source="mimic",
                         title=f"MIMIC CT {patient_dir.name}/{study_dir.name}",
+                        image_paths=images,
+                        slice_count=len(images),
+                    )
+                )
+        return items
+
+    def _scan_mimic_cxr(self) -> list[ImagingStudyItem]:
+        items: list[ImagingStudyItem] = []
+        if not self.mimic_cxr_dir.exists():
+            return items
+        for patient_dir in sorted(self.mimic_cxr_dir.iterdir()):
+            if not patient_dir.is_dir() or patient_dir.name.startswith("."):
+                continue
+            for study_dir in sorted(patient_dir.iterdir()):
+                if not study_dir.is_dir():
+                    continue
+                images = sorted(
+                    str(p) for p in study_dir.iterdir()
+                    if p.suffix.lower() in {".jpg", ".jpeg", ".png"}
+                )
+                if not images:
+                    continue
+                items.append(
+                    ImagingStudyItem(
+                        study_id=f"mimic_cxr_{patient_dir.name}_{study_dir.name}",
+                        patient_id=patient_dir.name,
+                        modality="XR",
+                        source="mimic_cxr",
+                        title=f"MIMIC CXR {patient_dir.name}/{study_dir.name}",
                         image_paths=images,
                         slice_count=len(images),
                     )

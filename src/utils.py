@@ -83,6 +83,34 @@ def make_case_id(prefix: str = "case") -> str:
     return f"{prefix}_{uuid4().hex[:12]}"
 
 
+CONFIDENCE_FROM_RISK = {
+    "none": 0.95,
+    "low": 0.85,
+    "medium": 0.65,
+    "high": 0.9,
+    "unknown": 0.4,
+}
+
+
+def parse_confidence(value: Any, default: float = 0.5) -> float:
+    """Parse LLM confidence — accepts 0-1 numbers or risk-level strings like 'high'."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        return max(0.0, min(1.0, float(value)))
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in CONFIDENCE_FROM_RISK:
+            return CONFIDENCE_FROM_RISK[text]
+        try:
+            return max(0.0, min(1.0, float(text)))
+        except ValueError:
+            return default
+    return default
+
+
 def normalize_text(text: str) -> str:
     cleaned = str(text or "").strip().lower()
     cleaned = cleaned.replace("_", " ").replace("-", " ")

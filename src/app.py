@@ -6,6 +6,7 @@ import os
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -16,7 +17,8 @@ from src.agents.extract_agent import ExtractAgent
 from src.case_store import CaseStore
 from src.clarify_engine import ClarifyEngine
 from src.config import load_config
-from src.llm.client import get_llm_client
+from src.llm.client import get_llm_client, is_llm_configured
+from src.llm.errors import LLMNotConfiguredError
 from src.logging_config import get_logger, setup_logging
 from src.orchestrator import MultiAgentOrchestrator
 from src.drug_catalog.catalog_service import bootstrap_catalog_from_config, get_drug_catalog_service
@@ -38,6 +40,7 @@ from src.schemas import (
     ExtractResponse,
     ExtractionOutput,
     GenerateReportRequest,
+    ListSegmentRunsResponse,
     MultiConsultRequest,
     MultiConsultResponse,
     MultiReviewRequest,
@@ -50,12 +53,16 @@ from src.schemas import (
     SaveScreenshotRequest,
     SegmentRequest,
     SegmentResponse,
+    VlmAnalyzeRequest,
+    VlmAnalyzeResponse,
 )
 from src.imaging.catalog import ImagingCatalog
 from src.imaging.memory_monitor import rss_mb
 from src.imaging.segment_service import SegmentService
+from src.imaging.segment_store import SegmentStore, make_image_key
 from src.imaging.volume_io import decode_base64_image, export_volume_slice, get_volume_meta, is_nifti
-from src.reports.report_generator import ReportGenerator
+from src.llm.vision_client import get_qwen_vlm_client, is_vision_llm_configured
+from src.reports.report_generator import ReportGenerator, dedupe_paths
 from src.reports.report_qa import ReportQAService
 from src.reports.report_store import ReportStore
 from src.config import resolve_path
@@ -63,6 +70,8 @@ from src.react.chat_service import chat_event_stream, init_chat_services, shutdo
 from src.react.schemas import ChatRequest, SystemState
 from src.react.state_machine import state_machine
 from src.react.tool_registry import tool_registry
+from src.safety_models.ddi_classifier import get_ddi_classifier
+from src.safety_models.med7_extractor import get_med7_extractor
 
 VERSION = "3.0.0"
 
@@ -90,8 +99,17 @@ async def lifespan(app: FastAPI):
         log_dir=log_cfg.get("log_dir"),
         log_file=log_cfg.get("log_file", "medsafe.log"),
     )
-    llm = get_llm_client()
-    logger.info("MedSafe API ready", extra={"version": VERSION, "llm": type(llm).__name__})
+    try:
+        if is_llm_configured():
+            llm = get_llm_client()
+            logger.info("MedSafe API ready", extra={"version": VERSION, "llm": type(llm).__name__})
+        else:
+            logger.warning(
+                "MedSafe API ready — LLM not configured (rule/CPOE/imaging-segment only)",
+                extra={"version": VERSION},
+            )
+    except LLMNotConfiguredError as exc:
+        logger.warning("MedSafe API ready — LLM unavailable", extra={"error": str(exc)})
     await init_chat_services()
     try:
         sync_result = bootstrap_catalog_from_config()
@@ -142,9 +160,10 @@ CPOE_REVIEW = CpoeReviewFacade(catalog=DRUG_CATALOG)
 REVIEW_ENGINE = CPOE_REVIEW.review_engine
 CLARIFY_ENGINE = ClarifyEngine()
 ORCHESTRATOR = MultiAgentOrchestrator()
-EXTRACT_AGENT = ExtractAgent(get_llm_client())
+_extract_agent: ExtractAgent | None = None
 IMAGING_CATALOG = ImagingCatalog()
 SEGMENT_SERVICE = SegmentService()
+SEGMENT_STORE = SegmentStore()
 REPORT_GENERATOR = ReportGenerator()
 REPORT_STORE = ReportStore()
 REPORT_QA = ReportQAService()
@@ -153,7 +172,7 @@ _SERVER_START = time.time()
 _REQUEST_COUNTS: dict[str, int] = {
     "extract": 0, "review": 0, "clarify": 0, "consult": 0,
     "multi_review": 0, "multi_consult": 0, "case_get": 0,
-    "imaging_segment": 0, "report_generate": 0, "report_ask": 0, "chat_stream": 0,
+    "imaging_segment": 0, "imaging_vlm": 0, "report_generate": 0, "report_ask": 0, "chat_stream": 0,
     "cpoe_review": 0, "formulary_sync": 0,
 }
 
@@ -194,24 +213,40 @@ def build_patient_context_from_extraction(text: str, extraction: ExtractionOutpu
     )
 
 
+def get_extract_agent() -> ExtractAgent:
+    global _extract_agent
+    if _extract_agent is None:
+        _extract_agent = ExtractAgent(get_llm_client())
+    return _extract_agent
+
+
 def run_extract(text: str) -> tuple[str, ExtractionOutput | None]:
-    return EXTRACT_AGENT.extract(text)
+    return get_extract_agent().extract(text)
+
+
+@app.exception_handler(LLMNotConfiguredError)
+async def llm_not_configured_handler(_request: Request, exc: LLMNotConfiguredError):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
 # ── Health ─────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Health"])
 def health() -> dict:
-    llm = get_llm_client()
     catalog_stats = DRUG_CATALOG.stats()
     return {
         "status": "ok",
         "version": VERSION,
         "uptime_seconds": round(time.time() - _SERVER_START, 1),
-        "llm_provider": type(llm).__name__,
+        "llm_configured": is_llm_configured(),
+        "vision_llm_configured": is_vision_llm_configured(),
         "drug_catalog": {
             "loaded": DRUG_CATALOG.is_loaded(),
             "total_drugs": catalog_stats.get("total_drugs", 0),
+        },
+        "safety_models": {
+            "med7": get_med7_extractor().status(),
+            "ddi_bert": get_ddi_classifier().status(),
         },
     }
 
@@ -640,22 +675,146 @@ def run_segmentation(req: SegmentRequest, request: Request) -> SegmentResponse:
     if req.bbox and len(req.bbox) >= 4:
         kwargs["bbox"] = tuple(req.bbox[:4])
 
+    image_key = make_image_key(req.image_path, req.volume_path, req.slice_axis, req.slice_index)
     peak_before = rss_mb()
     results = SEGMENT_SERVICE.segment_serial(visual, req.model_ids, **kwargs)
     peak_after = rss_mb()
+    memory_peak = max(peak_before, peak_after)
+
+    result_payload = [{
+        "model_id": r.model_id,
+        "source_image": r.source_image,
+        "overlay_path": r.overlay_path,
+        "labels": r.labels,
+        "stats": r.stats,
+        "memory_mb": r.memory_mb,
+        "duration_ms": r.duration_ms,
+        "notes": r.notes,
+    } for r in results]
+
+    run_id: str | None = None
+    if req.persist and req.patient_id and req.study_id:
+        record = SEGMENT_STORE.save_run(
+            patient_id=req.patient_id,
+            study_id=req.study_id,
+            image_key=image_key,
+            source_image=str(visual),
+            volume_path=req.volume_path,
+            slice_axis=req.slice_axis,
+            slice_index=req.slice_index,
+            organ=req.organ,
+            model_ids=req.model_ids,
+            results=result_payload,
+            memory_peak_mb=memory_peak,
+        )
+        run_id = record.run_id
+        result_payload = [r.model_dump() for r in record.results]
 
     return SegmentResponse(
-        results=[{
-            "model_id": r.model_id,
-            "source_image": r.source_image,
-            "overlay_path": r.overlay_path,
-            "labels": r.labels,
-            "stats": r.stats,
-            "memory_mb": r.memory_mb,
-            "duration_ms": r.duration_ms,
-            "notes": r.notes,
-        } for r in results],
-        memory_peak_mb=max(peak_before, peak_after),
+        results=result_payload,
+        memory_peak_mb=memory_peak,
+        run_id=run_id,
+        image_key=image_key,
+    )
+
+
+@app.get("/api/v1/imaging/segments", response_model=ListSegmentRunsResponse, tags=["Imaging"])
+def list_segment_runs(
+    patient_id: str,
+    study_id: str,
+    image_path: str = "",
+    volume_path: str | None = None,
+    slice_axis: str = "axial",
+    slice_index: int | None = None,
+):
+    image_key = make_image_key(image_path or volume_path or "", volume_path, slice_axis, slice_index)
+    runs = SEGMENT_STORE.list_runs(patient_id, study_id, image_key=image_key)
+    return ListSegmentRunsResponse(
+        patient_id=patient_id,
+        study_id=study_id,
+        image_key=image_key,
+        count=len(runs),
+        runs=runs,
+    )
+
+
+def _resolve_existing_visual_paths(paths: list[str]) -> list[str]:
+    root = resolve_path(".")
+    resolved: list[str] = []
+    for raw in paths:
+        if not raw:
+            continue
+        target = Path(raw) if Path(raw).is_absolute() else (root / raw).resolve()
+        if target.exists():
+            resolved.append(str(target))
+    return dedupe_paths(resolved)
+
+
+@app.get("/api/v1/imaging/vlm/config", tags=["Imaging"])
+def imaging_vlm_config():
+    if not is_vision_llm_configured():
+        return {
+            "configured": False,
+            "model": "",
+            "hint": "未配置 Qwen VLM API Key。请在 config.yaml 设置 vision_llm.provider=qwen 与 api_key。",
+        }
+    client = get_qwen_vlm_client()
+    return {
+        "configured": True,
+        "model": client.model_name,
+        "hint": "已启用云端 Qwen VLM。",
+    }
+
+
+@app.post("/api/v1/imaging/vlm/analyze", response_model=VlmAnalyzeResponse, tags=["Imaging"])
+def analyze_with_vlm(req: VlmAnalyzeRequest, request: Request) -> VlmAnalyzeResponse:
+    _REQUEST_COUNTS["imaging_vlm"] += 1
+    root = resolve_path(".")
+    source_paths = _resolve_existing_visual_paths(req.image_paths)
+    overlay_paths = _resolve_existing_visual_paths(req.overlay_paths)
+
+    if overlay_paths:
+        all_visual = overlay_paths
+        if req.include_source_image:
+            all_visual = dedupe_paths(source_paths + overlay_paths)
+    else:
+        all_visual = source_paths
+
+    if not all_visual:
+        raise HTTPException(status_code=400, detail="No valid image or overlay paths provided.")
+
+    client = get_qwen_vlm_client()
+    summary = req.clinical_text
+    if req.segmentation_summary:
+        summary = f"{summary}\n\n分割摘要：{req.segmentation_summary}".strip()
+
+    t0 = time.perf_counter()
+    analysis = client.analyze_images(
+        images=all_visual[:12],
+        patient_summary=summary,
+        modality=req.primary_modality,
+        task="clinical_and_medication",
+    )
+    duration_ms = (time.perf_counter() - t0) * 1000
+
+    rel_paths = []
+    for p in all_visual[:12]:
+        try:
+            rel_paths.append(str(Path(p).resolve().relative_to(root.resolve())))
+        except ValueError:
+            rel_paths.append(p)
+
+    source_used = [p for p in all_visual if p in source_paths]
+    overlay_used = [p for p in all_visual if p in overlay_paths]
+
+    return VlmAnalyzeResponse(
+        analysis=analysis,
+        images_used=rel_paths,
+        model=client.model_name,
+        configured=True,
+        overlay_count=len(overlay_used),
+        source_count=len(source_used),
+        duration_ms=round(duration_ms, 1),
     )
 
 
@@ -684,12 +843,6 @@ def list_patient_reports(patient_id: str):
 @app.get("/api/v1/imaging/report/{patient_id}/{report_id}", tags=["Imaging"])
 def get_clinical_report(patient_id: str, report_id: str) -> ClinicalReport:
     return REPORT_STORE.get_report(patient_id, report_id)
-
-
-@app.post("/api/v1/imaging/report/ask", response_model=ReportAskResponse, tags=["Imaging"])
-def ask_report(req: ReportAskRequest, request: Request) -> ReportAskResponse:
-    _REQUEST_COUNTS["report_ask"] += 1
-    return REPORT_QA.ask(req)
 
 
 @app.post("/api/v1/imaging/report/ask", response_model=ReportAskResponse, tags=["Imaging"])

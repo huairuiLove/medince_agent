@@ -1,4 +1,4 @@
-"""Vision LLM clients — Qwen3-VL (cloud) and DeepSeek multi-agent synthesis."""
+"""Vision LLM clients — Qwen3-VL (cloud) and DeepSeek multi-agent synthesis. No mock."""
 from __future__ import annotations
 
 import base64
@@ -11,6 +11,7 @@ from typing import Any
 import httpx
 
 from src.config import get_config
+from src.llm.errors import LLMNotConfiguredError
 from src.utils import extract_json_payload
 
 
@@ -90,31 +91,6 @@ class OpenAIVisionClient(VisionLLMClient):
         return parsed if isinstance(parsed, dict) else {"clinical_analysis": raw, "reasoning": raw}
 
 
-class MockVisionClient(VisionLLMClient):
-    model_name = "mock-qwen-vl"
-
-    def analyze_images(
-        self,
-        images: list[str],
-        patient_summary: str,
-        modality: str,
-        task: str = "clinical_and_medication",
-    ) -> dict[str, Any]:
-        return {
-            "clinical_analysis": f"基于{modality}影像与病历，患者存在需进一步评估的临床发现（mock）。{patient_summary[:200]}",
-            "imaging_findings": f"已分析 {len(images)} 张视觉图（含截图/overlay）。未见 mock 明确急症征象。",
-            "medication_recommendation": "建议按指南进行保守用药，待实验室结果回报后调整。",
-            "recommended_drugs": [{"name": "对乙酰氨基酚", "dose": "500mg", "route": "PO", "indication": "镇痛"}],
-            "allergies": [],
-            "diagnoses": ["待确认"],
-            "symptoms": [],
-            "chief_complaint": patient_summary[:80] if patient_summary else "",
-            "anesthesia_surgery": "当前未进入明确手术麻醉流程。",
-            "reasoning": "Mock VLM：串行分割结果已与视觉图一并审阅。",
-            "risk_level": "medium",
-        }
-
-
 class DeepSeekSynthesisClient:
     def __init__(self, api_key: str, base_url: str, model: str, timeout: float = 120.0) -> None:
         self.api_key = api_key
@@ -150,9 +126,6 @@ class DeepSeekSynthesisClient:
             },
             ensure_ascii=False,
         )
-        if not self.api_key:
-            return self._mock_synthesis(vlm_analysis, agent_opinions, arbitration, chain_hint)
-
         payload = {
             "model": self.model,
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -166,41 +139,21 @@ class DeepSeekSynthesisClient:
         parsed = extract_json_payload(raw)
         return parsed if isinstance(parsed, dict) else {"risk_summary": raw, "chain_of_thought": raw}
 
-    @staticmethod
-    def _mock_synthesis(vlm: dict, opinions: list[dict], arbitration: dict, chain_hint: str) -> dict[str, Any]:
-        return {
-            "clinical_analysis": vlm.get("clinical_analysis", ""),
-            "imaging_findings": vlm.get("imaging_findings", ""),
-            "medication_recommendation": vlm.get("medication_recommendation", ""),
-            "pharmacy_assessment": next((o.get("summary", "") for o in opinions if o.get("agent_id") == "clinical_pharmacist"), ""),
-            "allergy_analysis": next((o.get("summary", "") for o in opinions if o.get("agent_id") == "allergy_specialist"), ""),
-            "anesthesia_surgery": vlm.get("anesthesia_surgery", ""),
-            "risk_summary": arbitration.get("final_recommendation", ""),
-            "chain_of_thought": chain_hint or "Mock DeepSeek：规则 evidence 优先 → 视觉发现 → 各专家意见 → 共识结论。",
-        }
-
-
-class MockDeepSeekClient(DeepSeekSynthesisClient):
-    model_name = "mock-deepseek"
-
-    def __init__(self) -> None:
-        super().__init__(api_key="", base_url="", model="mock-deepseek")
-
-    def synthesize_report(self, **kwargs: Any) -> dict[str, Any]:
-        return self._mock_synthesis(
-            kwargs.get("vlm_analysis", {}),
-            kwargs.get("agent_opinions", []),
-            kwargs.get("arbitration", {}),
-            kwargs.get("chain_hint", ""),
-        )
-
 
 def get_qwen_vlm_client() -> VisionLLMClient:
     cfg = get_config().get("vision_llm", {})
     api_key = cfg.get("api_key") or os.getenv("MEDSAFE_VISION_LLM__API_KEY", "")
-    provider = cfg.get("provider", "mock").lower()
-    if provider == "mock" or not api_key:
-        return MockVisionClient()
+    provider = str(cfg.get("provider", "")).lower()
+    if provider == "mock":
+        raise LLMNotConfiguredError(
+            "Qwen VLM",
+            hint="config.yaml vision_llm.provider 不能为 mock。请设为 qwen 并配置 api_key。",
+        )
+    if not api_key:
+        raise LLMNotConfiguredError(
+            "Qwen VLM",
+            hint="设置 MEDSAFE_VISION_LLM__API_KEY 或 config.yaml vision_llm.api_key。",
+        )
     return OpenAIVisionClient(
         api_key=api_key,
         base_url=cfg.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
@@ -213,10 +166,21 @@ def get_deepseek_client() -> DeepSeekSynthesisClient:
     cfg = get_config().get("deepseek_llm", {})
     api_key = cfg.get("api_key") or os.getenv("MEDSAFE_DEEPSEEK__API_KEY", "")
     if not api_key:
-        return MockDeepSeekClient()
+        raise LLMNotConfiguredError(
+            "DeepSeek report synthesis",
+            hint="设置 MEDSAFE_DEEPSEEK__API_KEY 或 config.yaml deepseek_llm.api_key。",
+        )
     return DeepSeekSynthesisClient(
         api_key=api_key,
         base_url=cfg.get("base_url", "https://api.deepseek.com/v1"),
         model=cfg.get("model", "deepseek-chat"),
         timeout=float(cfg.get("timeout", 120)),
     )
+
+
+def is_vision_llm_configured() -> bool:
+    try:
+        get_qwen_vlm_client()
+        return True
+    except LLMNotConfiguredError:
+        return False

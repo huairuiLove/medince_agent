@@ -6,10 +6,30 @@ from src.schemas import (
     CandidateDrug,
     ClarifyOutput,
     ClarifyQuestion,
+    ClarifyStatus,
     ConservativeAdvice,
     PatientContext,
     ReviewOutput,
 )
+
+
+_STATUS_ALIASES: dict[str, ClarifyStatus] = {
+    "need_user_input": "need_user_input",
+    "need_clarification": "need_user_input",
+    "need_more_info": "need_user_input",
+    "conservative_fallback": "conservative_fallback",
+    "conservative": "conservative_fallback",
+    "fallback": "conservative_fallback",
+    "complete": "complete",
+    "done": "complete",
+}
+
+
+def _normalize_clarify_status(value: object, default: ClarifyStatus = "need_user_input") -> ClarifyStatus:
+    if not isinstance(value, str):
+        return default
+    key = value.strip().lower()
+    return _STATUS_ALIASES.get(key, default)
 
 
 class CoordinatorAgent:
@@ -43,26 +63,34 @@ class CoordinatorAgent:
             )
 
         conservative = None
-        if data.get("conservative_advice"):
-            ca = data["conservative_advice"]
+        ca = data.get("conservative_advice")
+        if isinstance(ca, str) and ca.strip():
+            conservative = ConservativeAdvice(summary=ca.strip())
+        elif isinstance(ca, dict):
             conservative = ConservativeAdvice(
-                summary=ca.get("summary", ""),
-                actions=list(ca.get("actions", [])),
-                disclaimer=ca.get("disclaimer", ""),
+                summary=str(ca.get("summary", "")),
+                actions=[str(a) for a in ca.get("actions", []) if a],
+                disclaimer=str(ca.get("disclaimer", "")),
             )
 
-        questions = [
-            ClarifyQuestion(
-                field=q.get("field", ""),
-                question=q.get("question", ""),
-                reason=q.get("reason", ""),
-                priority=q.get("priority", "medium"),
-            )
-            for q in data.get("questions", [])
-        ]
+        questions: list[ClarifyQuestion] = []
+        for q in data.get("questions", []):
+            if isinstance(q, str) and q.strip():
+                questions.append(
+                    ClarifyQuestion(field="", question=q.strip(), reason="", priority="medium")
+                )
+            elif isinstance(q, dict):
+                questions.append(
+                    ClarifyQuestion(
+                        field=str(q.get("field", "")),
+                        question=str(q.get("question", "")),
+                        reason=str(q.get("reason", "")),
+                        priority=q.get("priority", "medium"),
+                    )
+                )
 
         return ClarifyOutput(
-            status=data.get("status", "need_user_input"),
+            status=_normalize_clarify_status(data.get("status")),
             questions=questions,
             priority_missing_fields=list(data.get("priority_missing_fields", [])),
             conservative_advice=conservative,

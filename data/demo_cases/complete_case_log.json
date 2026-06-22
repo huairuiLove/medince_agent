@@ -1,7 +1,7 @@
 {
-  "case_id": "case_a111fb225013",
-  "created_at": "2026-06-21T16:22:18+00:00",
-  "updated_at": "2026-06-21T16:22:18+00:00",
+  "case_id": "case_231414c22667",
+  "created_at": "2026-06-22T02:57:52+00:00",
+  "updated_at": "2026-06-22T02:57:52+00:00",
   "status": "complete",
   "raw_input_text": "",
   "patient_context": {
@@ -75,15 +75,40 @@
   ],
   "extract_output": null,
   "review_output": {
-    "risk_level": "unknown",
+    "risk_level": "medium",
     "block_decision": true,
-    "risk_reasons": [],
-    "alternative_suggestions": [],
+    "risk_reasons": [
+      "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。"
+    ],
+    "alternative_suggestions": [
+      "优先查阅药品说明书或药学咨询。"
+    ],
     "need_clarification": true,
     "clarification_targets": [
-      "pregnancy_status"
+      "pregnancy_status",
+      "current_medications"
     ],
-    "evidence": [],
+    "evidence": [
+      {
+        "rule_id": "ddi_model_ibuprofen_propranolol",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "summary": "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。",
+        "mechanism": "Bio_ClinicalBERT SMILES 药对分类",
+        "implicated_drugs": [
+          "ibuprofen",
+          "propranolol"
+        ],
+        "recommendation": "建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+        "alternatives": [
+          "优先查阅药品说明书或药学咨询。"
+        ],
+        "clarification_fields": [
+          "current_medications"
+        ],
+        "source": "ddi_bert_model"
+      }
+    ],
     "final_recommendation": "当前信息不足，建议先补充关键字段后再继续用药审查；在未补全前应采用保守策略。"
   },
   "agent_opinions": [
@@ -327,48 +352,6 @@
         "debate_round": 3
       },
       {
-        "agent_id": "clinical_pharmacist",
-        "agent_name": "临床药师",
-        "role": "药物相互作用、剂量、重复用药审查",
-        "risk_level": "high",
-        "block_decision": true,
-        "reasons": [
-          "华法林与 NSAIDs 联用出血风险显著升高。"
-        ],
-        "alternatives": [
-          "对乙酰氨基酚"
-        ],
-        "need_clarification": false,
-        "clarification_targets": [],
-        "confidence": 0.95,
-        "evidence_cited": [
-          "ddi_warfarin_ibuprofen_bleeding"
-        ],
-        "summary": "临床药师审查完成。",
-        "debate_round": 3
-      },
-      {
-        "agent_id": "internal_medicine",
-        "agent_name": "内科主治",
-        "role": "适应证与疾病-药物匹配审查",
-        "risk_level": "high",
-        "block_decision": true,
-        "reasons": [
-          "ACEI 禁用于妊娠患者。"
-        ],
-        "alternatives": [
-          "调整降压方案"
-        ],
-        "need_clarification": true,
-        "clarification_targets": [
-          "pregnancy_status"
-        ],
-        "confidence": 0.93,
-        "evidence_cited": [],
-        "summary": "内科主治审查完成。",
-        "debate_round": 3
-      },
-      {
         "agent_id": "pharmacy_inventory",
         "agent_name": "药房库管",
         "role": "库存、院内可开品种与替代方案",
@@ -384,6 +367,30 @@
         "evidence_cited": [],
         "summary": "药房库管确认可调配。",
         "debate_round": 3
+      },
+      {
+        "agent_id": "specialist",
+        "agent_name": "专科医生",
+        "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+        "risk_level": "unknown",
+        "block_decision": true,
+        "reasons": [
+          "育龄女性使用 ACEI 前必须确认妊娠状态。"
+        ],
+        "alternatives": [
+          "甲基多巴",
+          "拉贝洛尔（若确认妊娠）"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status"
+        ],
+        "confidence": 0.9,
+        "evidence_cited": [
+          "contraindication_pregnancy_acei"
+        ],
+        "summary": "专科建议先确认妊娠状态。",
+        "debate_round": 3
       }
     ],
     "conflict_detected": true,
@@ -391,23 +398,44 @@
     "final_recommendation": "华法林与 NSAIDs 联用出血风险显著升高。",
     "need_clarification": true,
     "clarification_targets": [
-      "pregnancy_status"
+      "pregnancy_status",
+      "current_medications"
     ],
-    "rule_evidence": []
+    "rule_evidence": [
+      {
+        "rule_id": "ddi_model_ibuprofen_propranolol",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "summary": "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。",
+        "mechanism": "Bio_ClinicalBERT SMILES 药对分类",
+        "implicated_drugs": [
+          "ibuprofen",
+          "propranolol"
+        ],
+        "recommendation": "建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+        "alternatives": [
+          "优先查阅药品说明书或药学咨询。"
+        ],
+        "clarification_fields": [
+          "current_medications"
+        ],
+        "source": "ddi_bert_model"
+      }
+    ]
   },
   "clarify_output": null,
   "final_recommendation": "关键信息无法补充，建议暂缓用药并人工复核。",
   "events": [
     {
       "stage": "agent_review",
-      "timestamp": "2026-06-21T16:22:18+00:00",
+      "timestamp": "2026-06-22T02:57:52+00:00",
       "payload": {
         "mode": "multi_agent"
       }
     },
     {
       "stage": "arbitration",
-      "timestamp": "2026-06-21T16:22:18+00:00",
+      "timestamp": "2026-06-22T02:57:52+00:00",
       "payload": {
         "consensus_risk_level": "unknown",
         "consensus_block_decision": true,
@@ -542,48 +570,6 @@
             "debate_round": 3
           },
           {
-            "agent_id": "clinical_pharmacist",
-            "agent_name": "临床药师",
-            "role": "药物相互作用、剂量、重复用药审查",
-            "risk_level": "high",
-            "block_decision": true,
-            "reasons": [
-              "华法林与 NSAIDs 联用出血风险显著升高。"
-            ],
-            "alternatives": [
-              "对乙酰氨基酚"
-            ],
-            "need_clarification": false,
-            "clarification_targets": [],
-            "confidence": 0.95,
-            "evidence_cited": [
-              "ddi_warfarin_ibuprofen_bleeding"
-            ],
-            "summary": "临床药师审查完成。",
-            "debate_round": 3
-          },
-          {
-            "agent_id": "internal_medicine",
-            "agent_name": "内科主治",
-            "role": "适应证与疾病-药物匹配审查",
-            "risk_level": "high",
-            "block_decision": true,
-            "reasons": [
-              "ACEI 禁用于妊娠患者。"
-            ],
-            "alternatives": [
-              "调整降压方案"
-            ],
-            "need_clarification": true,
-            "clarification_targets": [
-              "pregnancy_status"
-            ],
-            "confidence": 0.93,
-            "evidence_cited": [],
-            "summary": "内科主治审查完成。",
-            "debate_round": 3
-          },
-          {
             "agent_id": "pharmacy_inventory",
             "agent_name": "药房库管",
             "role": "库存、院内可开品种与替代方案",
@@ -599,6 +585,30 @@
             "evidence_cited": [],
             "summary": "药房库管确认可调配。",
             "debate_round": 3
+          },
+          {
+            "agent_id": "specialist",
+            "agent_name": "专科医生",
+            "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+            "risk_level": "unknown",
+            "block_decision": true,
+            "reasons": [
+              "育龄女性使用 ACEI 前必须确认妊娠状态。"
+            ],
+            "alternatives": [
+              "甲基多巴",
+              "拉贝洛尔（若确认妊娠）"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status"
+            ],
+            "confidence": 0.9,
+            "evidence_cited": [
+              "contraindication_pregnancy_acei"
+            ],
+            "summary": "专科建议先确认妊娠状态。",
+            "debate_round": 3
           }
         ],
         "conflict_detected": true,
@@ -606,14 +616,35 @@
         "final_recommendation": "华法林与 NSAIDs 联用出血风险显著升高。",
         "need_clarification": true,
         "clarification_targets": [
-          "pregnancy_status"
+          "pregnancy_status",
+          "current_medications"
         ],
-        "rule_evidence": []
+        "rule_evidence": [
+          {
+            "rule_id": "ddi_model_ibuprofen_propranolol",
+            "category": "drug_interaction",
+            "risk_level": "medium",
+            "summary": "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。",
+            "mechanism": "Bio_ClinicalBERT SMILES 药对分类",
+            "implicated_drugs": [
+              "ibuprofen",
+              "propranolol"
+            ],
+            "recommendation": "建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+            "alternatives": [
+              "优先查阅药品说明书或药学咨询。"
+            ],
+            "clarification_fields": [
+              "current_medications"
+            ],
+            "source": "ddi_bert_model"
+          }
+        ]
       }
     },
     {
       "stage": "final",
-      "timestamp": "2026-06-21T16:22:18+00:00",
+      "timestamp": "2026-06-22T02:57:52+00:00",
       "payload": {
         "final_recommendation": "关键信息无法补充，建议暂缓用药并人工复核。"
       }

@@ -11,9 +11,11 @@ import type {
   ReviewOutput,
   SegModelInfo,
   SegmentResultItem,
+  SegmentRunRecord,
   DrugItem,
   VolumeAxis,
   VolumeMeta,
+  VlmAnalysis,
 } from '@/types'
 
 const BASE = import.meta.env.VITE_API_BASE ?? ''
@@ -98,11 +100,59 @@ export const medsafeApi = {
     volume_path?: string
     slice_axis?: VolumeAxis
     slice_index?: number
+    patient_id?: string
+    study_id?: string
+    persist?: boolean
   }) =>
-    request<{ results: SegmentResultItem[]; memory_peak_mb: number }>(
+    request<{ results: SegmentResultItem[]; memory_peak_mb: number; run_id?: string; image_key?: string }>(
       '/api/v1/imaging/segment',
       { method: 'POST', body: JSON.stringify(body) },
     ),
+
+  listSegmentRuns: (params: {
+    patient_id: string
+    study_id: string
+    image_path?: string
+    volume_path?: string
+    slice_axis?: VolumeAxis
+    slice_index?: number
+  }) => {
+    const q = new URLSearchParams({
+      patient_id: params.patient_id,
+      study_id: params.study_id,
+    })
+    if (params.image_path) q.set('image_path', params.image_path)
+    if (params.volume_path) q.set('volume_path', params.volume_path)
+    if (params.slice_axis) q.set('slice_axis', params.slice_axis)
+    if (params.slice_index != null) q.set('slice_index', String(params.slice_index))
+    return request<{ count: number; image_key: string; runs: SegmentRunRecord[] }>(
+      `/api/v1/imaging/segments?${q}`,
+    )
+  },
+
+  analyzeWithVlm: (body: {
+    clinical_text: string
+    primary_modality: string
+    image_paths?: string[]
+    overlay_paths: string[]
+    segmentation_summary?: string
+    include_source_image?: boolean
+  }) =>
+    request<{
+      analysis: VlmAnalysis
+      images_used: string[]
+      model: string
+      configured: boolean
+      overlay_count: number
+      source_count: number
+      duration_ms: number
+    }>(
+      '/api/v1/imaging/vlm/analyze',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  getVlmConfig: () =>
+    request<{ model: string; configured: boolean; hint: string }>('/api/v1/imaging/vlm/config'),
 
   saveScreenshot: (body: {
     patient_id: string
@@ -126,6 +176,9 @@ export const medsafeApi = {
     screenshot_paths: string[]
     models_used: string[]
     segmentation_summary?: string
+    include_source_image?: boolean
+    run_medication_review?: boolean
+    candidate_drugs?: DrugItem[]
   }) =>
     request<ClinicalReport>('/api/v1/imaging/report/generate', {
       method: 'POST',

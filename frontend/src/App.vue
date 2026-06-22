@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import MainLayout from '@/components/layout/MainLayout.vue'
+
+const route = useRoute()
+const isPublic = computed(() => Boolean(route.meta.public))
 </script>
 
 <template>
-  <MainLayout>
+  <MainLayout v-if="!isPublic">
     <RouterView />
   </MainLayout>
+  <RouterView v-else />
 </template>

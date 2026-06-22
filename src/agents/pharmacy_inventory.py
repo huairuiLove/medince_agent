@@ -13,8 +13,8 @@ class PharmacyInventoryAgent(LLMAgent):
     role = "库存、院内可开品种与替代方案"
     system_prompt = PHARMACY_SYSTEM_PROMPT
 
-    def __init__(self, llm: LLMClient) -> None:
-        super().__init__(llm)
+    def __init__(self, llm: LLMClient, system_prompt: str | None = None) -> None:
+        super().__init__(llm, system_prompt=system_prompt)
         self.catalog = get_drug_catalog_service()
 
     def review(

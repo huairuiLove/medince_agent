@@ -116,8 +116,8 @@ async def run_react_loop(
         # 第一次 LLM 调用（非流式）—— 决定是否需要工具
         # ================================================================
         try:
-            if config.is_mock:
-                yield ErrorEvent(message="Mock 模式：未配置 LLM API Key")
+            if not config.is_configured:
+                yield ErrorEvent(message="Chat LLM 未配置 API Key，无法调用 ReAct 推理。")
                 yield {"type": "done"}
                 return
 

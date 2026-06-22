@@ -25,10 +25,15 @@ totalsegmentator>=2.3.0
 monai>=1.4.0
 pytorch-ignite>=0.5.0
 einops>=0.7.0
+torchxrayvision>=1.2.0
 
 # Chat / Graph RAG (integrated from yuan-agent)
 mcp>=1.9.0
 networkx>=3.2.0
+
+# Safety models (Med7 + Bio_ClinicalBERT DDI)
+spacy>=3.7.0
+transformers>=4.30.0
 
 # Dev
 pytest>=8.0

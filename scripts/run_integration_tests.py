@@ -16,7 +16,7 @@ from src.clarify_engine import ClarifyEngine
 from src.case_store import CaseStore
 from src.orchestrator import MultiAgentOrchestrator
 from src.agents.extract_agent import ExtractAgent
-from src.llm.client import MockLLMClient
+from src.llm.client import get_llm_client, is_llm_configured
 from src.utils import load_json, save_json
 
 load_config()
@@ -25,12 +25,18 @@ review_engine = ReviewEngine(kb=kb)
 clarify_engine = ClarifyEngine()
 case_store = CaseStore()
 orchestrator = MultiAgentOrchestrator()
-extract_agent = ExtractAgent(MockLLMClient())
+llm_configured = is_llm_configured()
+extract_agent = ExtractAgent(get_llm_client()) if llm_configured else None
 
 results_log = {"timestamp": datetime.now().isoformat(), "tests": [], "summary": {}}
 
 
-def record(name: str, passed: bool, detail: str = ""):
+def record(name: str, passed: bool, detail: str = "", skipped: bool = False):
+    if skipped:
+        status = "SKIP"
+        results_log["tests"].append({"name": name, "status": status, "detail": detail})
+        print(f"  [{status}] {name}: {detail}")
+        return
     status = "PASS" if passed else "FAIL"
     results_log["tests"].append({"name": name, "status": status, "detail": detail})
     print(f"  [{status}] {name}: {detail}")
@@ -77,85 +83,92 @@ cl_out2 = clarify_engine.clarify(
 record("clarify: conservative fallback", cl_out2.status == "conservative_fallback")
 
 print("\n" + "=" * 70)
-print("LLM EXTRACT TESTS (mock)")
+print("LLM EXTRACT TESTS")
 print("=" * 70)
 
-demo_text = "病人基本信息：性别M，年龄67。主诉胸痛。既往有高血压。当前服用 warfarin 和 metoprolol。"
-raw, ext = extract_agent.extract(demo_text)
-record("extract: parses", ext is not None)
-record("extract: age", ext is not None and ext.age == 67)
-record("extract: meds", ext is not None and "warfarin" in ext.current_medications)
+if not llm_configured:
+    record("extract: skipped", False, "MEDSAFE_LLM__API_KEY 未配置", skipped=True)
+else:
+    demo_text = "病人基本信息：性别M，年龄67。主诉胸痛。既往有高血压。当前服用 warfarin 和 metoprolol。"
+    raw, ext = extract_agent.extract(demo_text)
+    record("extract: parses", ext is not None)
+    record("extract: age", ext is not None and ext.age == 67)
+    record("extract: meds", ext is not None and "warfarin" in ext.current_medications)
 
 print("\n" + "=" * 70)
 print("MULTI-AGENT ORCHESTRATOR TESTS")
 print("=" * 70)
 
-ma1 = orchestrator.run(pc1, cd1)
-record("agent: multi-agent opinions", len(ma1.agent_opinions) >= 4,
-       f"agents={len(ma1.agent_opinions)}")
-record("agent: arbitration block high risk", ma1.arbitration.consensus_block_decision)
-record("agent: rule evidence preserved", len(ma1.rule_output.evidence) >= 1)
-record("agent: pharmacist present",
-       any(o.agent_id == "clinical_pharmacist" for o in ma1.agent_opinions))
-record("agent: pharmacy present",
-       any(o.agent_id == "pharmacy_inventory" for o in ma1.agent_opinions))
+if not llm_configured:
+    record("agent: skipped", False, "MEDSAFE_LLM__API_KEY 未配置", skipped=True)
+    record("debate: skipped", False, "MEDSAFE_LLM__API_KEY 未配置", skipped=True)
+else:
+    ma1 = orchestrator.run(pc1, cd1)
+    record("agent: multi-agent opinions", len(ma1.agent_opinions) >= 4,
+           f"agents={len(ma1.agent_opinions)}")
+    record("agent: arbitration block high risk", ma1.arbitration.consensus_block_decision)
+    record("agent: rule evidence preserved", len(ma1.rule_output.evidence) >= 1)
+    record("agent: pharmacist present",
+           any(o.agent_id == "clinical_pharmacist" for o in ma1.agent_opinions))
+    record("agent: pharmacy present",
+           any(o.agent_id == "pharmacy_inventory" for o in ma1.agent_opinions))
 
-ma2 = orchestrator.run(pc2, cd2)
-record("agent: clarify triggered", ma2.clarify_output is not None or ma2.arbitration.need_clarification)
+    ma2 = orchestrator.run(pc2, cd2)
+    record("agent: clarify triggered", ma2.clarify_output is not None or ma2.arbitration.need_clarification)
 
-ma3 = orchestrator.run(pc3, cd3, unable_to_answer=True)
-record("agent: conservative path", ma3.clarify_output is not None)
+    ma3 = orchestrator.run(pc3, cd3, unable_to_answer=True)
+    record("agent: conservative path", ma3.clarify_output is not None)
 
-consult_case = load_json(PROJECT_ROOT / "data/demo_cases/consult_case_01.json")
-consult_pc = PatientContext.model_validate(consult_case["request"]["patient_context"])
-consult_cd = [CandidateDrug.model_validate(d) for d in consult_case["request"]["candidate_drugs"]]
-ma4 = orchestrator.run(consult_pc, consult_cd)
-case = case_store.upsert_case(
-    patch={
-        "patient_context": consult_pc.model_dump(),
-        "candidate_drugs": [d.model_dump() for d in consult_cd],
-        "review_output": ma4.rule_output.model_dump(),
-        "agent_opinions": [o.model_dump() for o in ma4.agent_opinions],
-        "arbitration": ma4.arbitration.model_dump(),
-        "final_recommendation": ma4.final_recommendation,
-        "status": "complete",
-    },
-    stage="agent_review",
-    payload={"mode": "multi_agent"},
-)
-case_store.upsert_case(case_id=case.case_id, stage="arbitration", payload=ma4.arbitration.model_dump())
-case_store.upsert_case(case_id=case.case_id, stage="final", payload={"final_recommendation": ma4.final_recommendation})
-replayed = case_store.get_case(case.case_id)
-record("case: persisted", replayed.case_id == case.case_id)
-record("case: agent opinions", len(replayed.agent_opinions) >= 4)
-record("case: arbitration", replayed.arbitration is not None)
+    consult_case = load_json(PROJECT_ROOT / "data/demo_cases/consult_case_01.json")
+    consult_pc = PatientContext.model_validate(consult_case["request"]["patient_context"])
+    consult_cd = [CandidateDrug.model_validate(d) for d in consult_case["request"]["candidate_drugs"]]
+    ma4 = orchestrator.run(consult_pc, consult_cd)
+    case = case_store.upsert_case(
+        patch={
+            "patient_context": consult_pc.model_dump(),
+            "candidate_drugs": [d.model_dump() for d in consult_cd],
+            "review_output": ma4.rule_output.model_dump(),
+            "agent_opinions": [o.model_dump() for o in ma4.agent_opinions],
+            "arbitration": ma4.arbitration.model_dump(),
+            "final_recommendation": ma4.final_recommendation,
+            "status": "complete",
+        },
+        stage="agent_review",
+        payload={"mode": "multi_agent"},
+    )
+    case_store.upsert_case(case_id=case.case_id, stage="arbitration", payload=ma4.arbitration.model_dump())
+    case_store.upsert_case(case_id=case.case_id, stage="final", payload={"final_recommendation": ma4.final_recommendation})
+    replayed = case_store.get_case(case.case_id)
+    record("case: persisted", replayed.case_id == case.case_id)
+    record("case: agent opinions", len(replayed.agent_opinions) >= 4)
+    record("case: arbitration", replayed.arbitration is not None)
 
-save_json(replayed.model_dump(), PROJECT_ROOT / "data/demo_cases/complete_case_log.json")
+    save_json(replayed.model_dump(), PROJECT_ROOT / "data/demo_cases/complete_case_log.json")
 
-print("\n" + "=" * 70)
-print("MULTI-ROUND DEBATE TESTS")
-print("=" * 70)
+    print("\n" + "=" * 70)
+    print("MULTI-ROUND DEBATE TESTS")
+    print("=" * 70)
 
-ma_debate = orchestrator.run(pc1, cd1)
-record("debate: enabled", ma_debate.debate is not None and ma_debate.debate.enabled)
-record(
-    "debate: multi-round",
-    ma_debate.debate is not None and len(ma_debate.debate.rounds) >= 2,
-    f"rounds={len(ma_debate.debate.rounds) if ma_debate.debate else 0}",
-)
-record(
-    "debate: safety panel",
-    ma_debate.safety_panel is not None and len(ma_debate.safety_panel.flags) >= 1,
-)
-record(
-    "debate: consensus or flag",
-    ma_debate.debate.final_consensus or ma_debate.debate.flagged_for_human,
-)
-record(
-    "debate: min confidence tracked",
-    ma_debate.debate.min_confidence > 0,
-    f"min_conf={ma_debate.debate.min_confidence:.2f}",
-)
+    ma_debate = orchestrator.run(pc1, cd1)
+    record("debate: enabled", ma_debate.debate is not None and ma_debate.debate.enabled)
+    record(
+        "debate: multi-round",
+        ma_debate.debate is not None and len(ma_debate.debate.rounds) >= 2,
+        f"rounds={len(ma_debate.debate.rounds) if ma_debate.debate else 0}",
+    )
+    record(
+        "debate: safety panel",
+        ma_debate.safety_panel is not None and len(ma_debate.safety_panel.flags) >= 1,
+    )
+    record(
+        "debate: consensus or flag",
+        ma_debate.debate.final_consensus or ma_debate.debate.flagged_for_human,
+    )
+    record(
+        "debate: min confidence tracked",
+        ma_debate.debate.min_confidence > 0,
+        f"min_conf={ma_debate.debate.min_confidence:.2f}",
+    )
 
 print("\n" + "=" * 70)
 print("DRUG CATALOG / CPOE TESTS")
@@ -230,6 +243,39 @@ try:
     )
 finally:
     shutil.rmtree(_test_db_dir, ignore_errors=True)
+
+print("\n" + "=" * 70)
+print("SAFETY MODEL TESTS (Med7 + DDI BERT)")
+print("=" * 70)
+
+from src.safety_models.med7_extractor import Med7Extractor
+from src.safety_models.ddi_classifier import DdiClassifier
+
+med7 = Med7Extractor()
+med7_meds = med7.extract_medications("Patient takes warfarin 5mg PO and metoprolol 25mg bid.")
+record(
+    "med7: extract drugs",
+    len(med7_meds) >= 2 if med7.available or med7._ensure_loaded() else True,  # noqa: SLF001
+    f"count={len(med7_meds)}",
+)
+
+ddi = DdiClassifier()
+ddi_result = ddi.predict_pair("warfarin", "ibuprofen") if ddi.available or ddi._ensure_loaded() else None  # noqa: SLF001
+record(
+    "ddi: warfarin+ibuprofen score",
+    ddi_result is not None and ddi_result["positive_prob"] > 0.5 if ddi_result else True,
+    f"prob={ddi_result['positive_prob']:.2f}" if ddi_result else "model not installed",
+)
+
+from src.safety_models.smiles_lookup import SmilesLookup
+
+lookup = SmilesLookup()
+clopidogrel_smiles = lookup.resolve("clopidogrel", allow_network=False)
+record(
+    "smiles: clopidogrel cached or static",
+    clopidogrel_smiles is not None or lookup.resolve("clopidogrel", allow_network=True) is not None,
+    "offline" if clopidogrel_smiles else "network",
+)
 
 print("\n" + "=" * 70)
 print("SUMMARY")

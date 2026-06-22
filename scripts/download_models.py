@@ -137,6 +137,76 @@ def download_totalsegmentator(force: bool = False, include_mr: bool = True):
     print(f"TotalSegmentator weights root: {TS_WEIGHTS}")
 
 
+def download_ddi_bert(force: bool = False):
+    """Download Bio_ClinicalBERT DDI classifier to models/ddi_bert/."""
+    _, snapshot_download = ensure_hf()
+    target = MODELS / "ddi_bert"
+    ckpt = target / "pytorch_model.bin"
+    if not force and _exists(ckpt, min_mb=100):
+        print(f"DDI BERT already present -> {ckpt}")
+        return
+    target.mkdir(parents=True, exist_ok=True)
+    print("Downloading ltmai/Bio_ClinicalBERT_DDI_finetuned ...")
+    snapshot_download(repo_id="ltmai/Bio_ClinicalBERT_DDI_finetuned", local_dir=str(target))
+    print(f"  -> {target}")
+
+
+def download_med7(force: bool = False):
+    """Download Med7 spaCy wheel to models/med7/."""
+    hf_hub_download, _ = ensure_hf()
+    target = MODELS / "med7"
+    target.mkdir(parents=True, exist_ok=True)
+    wheel_name = "en_core_med7_lg-1.1.0-py3-none-any.whl"
+    dest = target / wheel_name
+    if not force and _exists(dest, min_mb=100):
+        print(f"Med7 wheel already present -> {dest}")
+        return
+    print(f"Downloading kormilitzin/en_core_med7_lg/{wheel_name} ...")
+    path = hf_hub_download(
+        repo_id="kormilitzin/en_core_med7_lg",
+        filename=wheel_name,
+        local_dir=str(target),
+    )
+    print(f"  -> {path}")
+    print("Install with: pip install models/med7/en_core_med7_lg-1.1.0-py3-none-any.whl")
+
+
+def download_brats_tumor(force: bool = False):
+    """Download MONAI brats_mri_segmentation bundle (BraTS glioma ET/TC/WT)."""
+    _, snapshot_download = ensure_hf()
+    target = MODELS / "brats_tumor"
+    ckpt = target / "models" / "model.pt"
+    if not force and _exists(ckpt, min_mb=10):
+        print(f"BraTS tumor bundle already present -> {ckpt}")
+        return
+    target.mkdir(parents=True, exist_ok=True)
+    print("Downloading MONAI/brats_mri_segmentation @ main ...")
+    snapshot_download(repo_id="MONAI/brats_mri_segmentation", local_dir=str(target))
+    print(f"  -> {target}")
+
+
+def download_cxr_lesion(force: bool = False):
+    """Install torchxrayvision — weights auto-download on first inference."""
+    print("Installing torchxrayvision for CXR lesion localization ...")
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "--trusted-host", "pypi.org",
+         "--trusted-host", "files.pythonhosted.org", "torchxrayvision>=1.2.0"],
+    )
+    target = MODELS / "cxr_lesion"
+    target.mkdir(parents=True, exist_ok=True)
+    marker = target / "README.txt"
+    if force or not marker.exists():
+        marker.write_text(
+            "CXR lesion model uses torchxrayvision densenet121-res224-all.\n"
+            "Weights download automatically on first segment run.\n"
+            "Supported lesions: opacity, consolidation, pneumonia, effusion, pneumothorax, ...\n",
+            encoding="utf-8",
+        )
+    print(f"  -> {target} (runtime weights via torchxrayvision)")
+    download_ddi_bert(force=force)
+    download_med7(force=force)
+
+
 def verify_all() -> bool:
     checks = {
         "vista3d": MODELS / "vista3d" / "models" / "model.pt",
@@ -144,6 +214,10 @@ def verify_all() -> bool:
         "sam2d": MODELS / "SAM2D" / "medsam_vit_b.pth",
         "totalseg_297": TS_WEIGHTS / "Dataset297_TotalSegmentator_total_3mm_1559subj",
         "totalseg_298": TS_WEIGHTS / "Dataset298_TotalSegmentator_total_6mm_1559subj",
+        "brats_tumor": MODELS / "brats_tumor" / "models" / "model.pt",
+        "cxr_lesion": MODELS / "cxr_lesion" / "README.txt",
+        "ddi_bert": MODELS / "ddi_bert" / "pytorch_model.bin",
+        "med7": MODELS / "med7" / "en_core_med7_lg-1.1.0-py3-none-any.whl",
     }
     sam2d_alt = MODELS / "SAM2D" / "sam2d_from_med3d.pth"
     ok = True
@@ -165,16 +239,25 @@ def verify_all() -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Download MedSafe segmentation models to models/")
+    parser = argparse.ArgumentParser(description="Download MedSafe models to models/")
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--force", action="store_true", help="Re-download even if present")
     parser.add_argument("--vista3d", action="store_true")
     parser.add_argument("--sam-med3d", action="store_true")
     parser.add_argument("--sam2d", action="store_true")
     parser.add_argument("--totalsegmentator", action="store_true")
+    parser.add_argument("--brats-tumor", action="store_true", help="MONAI BraTS glioma lesion segmentation")
+    parser.add_argument("--cxr-lesion", action="store_true", help="torchxrayvision CXR pathology lesion model")
+    parser.add_argument("--safety-models", action="store_true", help="Med7 + Bio_ClinicalBERT DDI")
+    parser.add_argument("--ddi-bert", action="store_true")
+    parser.add_argument("--med7", action="store_true")
     parser.add_argument("--no-mr", action="store_true", help="Skip TotalSegmentator MRI weights")
     args = parser.parse_args()
-    run_all = args.all or not any([args.vista3d, args.sam_med3d, args.sam2d, args.totalsegmentator])
+    run_all = args.all or not any([
+        args.vista3d, args.sam_med3d, args.sam2d, args.totalsegmentator,
+        args.brats_tumor, args.cxr_lesion,
+        args.safety_models, args.ddi_bert, args.med7,
+    ])
 
     if run_all or args.vista3d:
         download_vista3d(force=args.force)
@@ -184,6 +267,14 @@ def main():
         download_sam2d(force=args.force)
     if run_all or args.totalsegmentator:
         download_totalsegmentator(force=args.force, include_mr=not args.no_mr)
+    if run_all or args.brats_tumor:
+        download_brats_tumor(force=args.force)
+    if run_all or args.cxr_lesion:
+        download_cxr_lesion(force=args.force)
+    if run_all or args.safety_models or args.ddi_bert:
+        download_ddi_bert(force=args.force)
+    if run_all or args.safety_models or args.med7:
+        download_med7(force=args.force)
 
     verify_all()
     print("\nDone.")
