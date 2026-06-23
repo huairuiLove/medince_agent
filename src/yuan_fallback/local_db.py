@@ -18,8 +18,24 @@ logger = logging.getLogger("local-db")
 # 默认数据库路径
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "local_fallback.db"
 
-# KG 种子数据路径
-KG_JSON_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "knowledge" / "drug_kg.json"
+# KG 种子数据路径（与 chat.knowledge_graph 一致）
+def _default_kg_json_path() -> Path:
+    from src.config import get_config, resolve_path
+
+    cfg = get_config()
+    rel = (
+        cfg.get("chat", {}).get("knowledge_graph")
+        or cfg.get("clinical_knowledge", {}).get("drug_kg_v2_path")
+        or "datasets/knowledge/drug_kg_v2.json"
+    )
+    primary = resolve_path(rel)
+    if primary.exists():
+        return primary
+    legacy = resolve_path("datasets/knowledge/drug_kg.json")
+    return legacy if legacy.exists() else primary
+
+
+KG_JSON_PATH = _default_kg_json_path()
 
 
 # ============================================================

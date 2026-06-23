@@ -1,19 +1,20 @@
-# Data processing scripts
+# Deprecated location
 
-Dataset files live under `datasets/` at the project root.  
-This folder holds **ETL / fetch / build** scripts only.
+ETL / fetch / build scripts live under **`scripts/`** at the project root.
+
+Dataset files live under **`datasets/`**. Runtime artifacts (SQLite, cache) stay under **`data/`**.
 
 ## Common commands
 
 ```bash
 # Download demo imaging + clinical samples
-python data/scripts/fetch_demo_datasets.py --chest-ct --kits-cases 8 --monai-samples --nlmcxr-map 50
+python scripts/fetch_demo_datasets.py --chest-ct --kits-cases 8 --monai-samples --nlmcxr-map 50
 
 # Rebuild CXR manifest after adding images
-python data/scripts/build_mimic_cxr_manifest.py
+python scripts/build_mimic_cxr_manifest.py
 
 # Validate imaging + MIMIC layout
-python data/scripts/validate_mimic_data.py
+python scripts/validate_mimic_data.py
 ```
 
-Legacy entry points under `scripts/` forward here for backward compatibility.
+The duplicate copies that previously lived in `data/scripts/` were removed in Stage 10.

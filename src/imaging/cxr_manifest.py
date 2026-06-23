@@ -1,4 +1,4 @@
-"""Build and load metadata for chest X-rays under data/mimic_cxr/ and official MIMIC-CXR-JPG in data/mimic/."""
+"""Build and load metadata for chest X-rays under datasets/mimic_cxr/ and official MIMIC-CXR-JPG in datasets/mimic/."""
 from __future__ import annotations
 
 import json
@@ -180,7 +180,7 @@ def register_study(
 
 
 def scan_mimic_cxr_jpg_root(root: Path, studies: dict[str, dict]) -> set[str]:
-    """Index official PhysioNet MIMIC-CXR-JPG layout under data/mimic/."""
+    """Index official PhysioNet MIMIC-CXR-JPG layout under datasets/mimic/."""
     indexed: set[str] = set()
     if not root.is_dir():
         return indexed
@@ -214,7 +214,7 @@ def scan_cxr_drop_root(
     *,
     skip_patients: set[str] | None = None,
 ) -> None:
-    """Index NLMCXR / supplemental PNGs under data/mimic_cxr/."""
+    """Index NLMCXR / supplemental PNGs under datasets/mimic_cxr/."""
     if not root.is_dir():
         return
     skip = skip_patients or set()

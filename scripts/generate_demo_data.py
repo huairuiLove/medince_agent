@@ -9,15 +9,15 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 MIMIC_CANDIDATE_DIRS = (
-    PROJECT_ROOT / "data" / "mimic-iii-clinical-database-1.4",
-    PROJECT_ROOT / "data" / "raw" / "mimiciii",
-    PROJECT_ROOT / "data" / "external" / "mimiciii-demo",
+    PROJECT_ROOT / "datasets" / "mimic-iii-clinical-database-1.4",
+    PROJECT_ROOT / "datasets" / "raw" / "mimiciii",
+    PROJECT_ROOT / "datasets" / "external" / "mimiciii-demo",
 )
 
 
 def generate_review_cases():
     """Generate 3 review demo cases."""
-    demo_dir = PROJECT_ROOT / "data" / "case_templates"
+    demo_dir = PROJECT_ROOT / "datasets" / "case_templates"
     demo_dir.mkdir(parents=True, exist_ok=True)
 
     # Case 1: High risk - warfarin + ibuprofen interaction
@@ -151,7 +151,7 @@ def generate_review_cases():
 
 def generate_clarify_cases():
     """Generate clarify demo cases."""
-    demo_dir = PROJECT_ROOT / "data" / "case_templates"
+    demo_dir = PROJECT_ROOT / "datasets" / "case_templates"
     demo_dir.mkdir(parents=True, exist_ok=True)
 
     # Clarify case 1: need_user_input - missing allergy and pregnancy
@@ -261,7 +261,7 @@ def generate_clarify_cases():
 
 def generate_consult_case():
     """Generate full consult demo case."""
-    demo_dir = PROJECT_ROOT / "data" / "case_templates"
+    demo_dir = PROJECT_ROOT / "datasets" / "case_templates"
     demo_dir.mkdir(parents=True, exist_ok=True)
 
     consult1 = {
@@ -330,7 +330,7 @@ def generate_mimic_patient_contexts(*, max_samples: int = 2000, skip_notes: bool
             "datasets/mimic-iii-clinical-database-1.4/ or datasets/raw/mimiciii/."
         )
 
-    processed_dir = PROJECT_ROOT / "data" / "processed"
+    processed_dir = PROJECT_ROOT / "datasets" / "processed"
     processed_dir.mkdir(parents=True, exist_ok=True)
     output_path = processed_dir / "mimiciii_patient_contexts.json"
 

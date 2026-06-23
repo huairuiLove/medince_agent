@@ -1,4 +1,4 @@
-"""Load clinical case templates from data/case_templates/ (single source of truth)."""
+"""Load clinical case templates from datasets/case_templates/ (single source of truth)."""
 from __future__ import annotations
 
 from pathlib import Path

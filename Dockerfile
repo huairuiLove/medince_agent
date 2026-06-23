@@ -29,7 +29,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY pyproject.toml config.yaml .env.example ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
-COPY data/scripts/ ./data/scripts/
 COPY datasets/knowledge/ ./datasets/knowledge/
 COPY datasets/case_templates/ ./datasets/case_templates/
 COPY datasets/hospital/ ./datasets/hospital/

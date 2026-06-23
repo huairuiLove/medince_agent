@@ -18,4 +18,4 @@ Runtime artifacts (SQLite DBs, imaging cache) stay under `data/`.
 | `processed/` | MIMIC-III derived JSON |
 | `external/` | Downloaded archives (NLMCXR, MIMIC demo) |
 
-Fetch scripts: `data/scripts/fetch_demo_datasets.py`
+Fetch scripts: `scripts/fetch_demo_datasets.py`

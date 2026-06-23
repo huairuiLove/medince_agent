@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { medsafeApi } from '@/api/medsafe'
 import type { PatientContext, DrugItem, CaseTemplate, ReviewOutput } from '@/types'
+import { drugsWithoutIndication, drugDetailParts, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
 import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
 
 const loading = ref(false)
@@ -17,11 +18,13 @@ const emptyPatient = (): PatientContext => ({
   allergies: [],
   current_medications: [],
   missing_fields: [],
+  diagnoses: [],
 })
 
 const patient = ref<PatientContext>(emptyPatient())
 const drugs = ref<DrugItem[]>([])
 const newDrugName = ref('')
+const newDiagnosis = ref('')
 
 onMounted(async () => {
   try {
@@ -43,11 +46,29 @@ function removeDrug(i: number) {
   drugs.value.splice(i, 1)
 }
 
+function addDiagnosis() {
+  const name = newDiagnosis.value.trim()
+  if (!name) return
+  if (!patient.value.diagnoses) patient.value.diagnoses = []
+  if (!patient.value.diagnoses.some((d) => d.name === name)) {
+    patient.value.diagnoses.push({ name })
+  }
+  newDiagnosis.value = ''
+}
+
+function removeDiagnosis(i: number) {
+  patient.value.diagnoses?.splice(i, 1)
+}
+
 function loadTemplate(templateId: string) {
   const tpl = templates.value.find((t) => t.id === templateId)
   if (!tpl?.patient_context) return
-  patient.value = { ...tpl.patient_context }
-  drugs.value = tpl.candidate_drugs.map((d) => ({ ...d }))
+  patient.value = {
+    ...tpl.patient_context,
+    diagnoses: [...(tpl.patient_context.diagnoses ?? [])],
+  }
+  mergeDrugIndicationsIntoDiagnoses(patient.value, tpl.candidate_drugs)
+  drugs.value = drugsWithoutIndication(tpl.candidate_drugs)
 }
 
 function onTemplateSelect() {
@@ -97,10 +118,26 @@ async function runReview() {
       </div>
 
       <div class="field">
+        <label class="label">病症 / 诊断</label>
+        <ul v-if="patient.diagnoses?.length" class="tag-list">
+          <li v-for="(dx, i) in patient.diagnoses" :key="i">
+            <span>{{ dx.name }}<small v-if="dx.icd9_code"> · {{ dx.icd9_code }}</small></span>
+            <button type="button" class="btn-ghost" @click="removeDiagnosis(i)">×</button>
+          </li>
+        </ul>
+        <p v-else class="empty-hint">尚未添加病症或诊断</p>
+        <div class="add-drug">
+          <input v-model="newDiagnosis" class="input" placeholder="如：社区获得性肺炎" @keyup.enter="addDiagnosis" />
+          <button type="button" class="btn-secondary" @click="addDiagnosis">添加</button>
+        </div>
+      </div>
+
+      <div class="field">
         <label class="label">候选用药</label>
         <ul v-if="drugs.length" class="drug-list">
           <li v-for="(d, i) in drugs" :key="i">
             <strong>{{ d.name }}</strong>
+            <span v-for="(part, j) in drugDetailParts(d)" :key="j" class="drug-meta">{{ part }}</span>
             <button type="button" class="btn-ghost" @click="removeDrug(i)">×</button>
           </li>
         </ul>
@@ -131,6 +168,11 @@ h1 { margin-bottom: 0.25rem; }
 .form-grid .full { grid-column: 1 / -1; }
 .drug-list { list-style: none; margin: 0.35rem 0; }
 .drug-list li { display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem 0; }
+.drug-meta { color: var(--text-muted); font-size: 0.85rem; }
+.tag-list { list-style: none; margin: 0.35rem 0; }
+.tag-list li { display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem 0; }
+.tag-list small { color: var(--text-muted); font-weight: normal; }
+.empty-hint { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem; }
 .add-drug { display: flex; gap: 0.5rem; margin-top: 0.35rem; }
 .err { color: var(--danger); }
 .empty { color: var(--text-muted); margin-top: 1rem; }

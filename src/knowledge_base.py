@@ -6,7 +6,9 @@ from typing import Any
 from src.utils import load_json, normalize_text
 
 
-DEFAULT_KB_PATH = Path(__file__).resolve().parent.parent / "data" / "knowledge" / "minimal_drug_safety_rules.json"
+DEFAULT_KB_PATH = (
+    Path(__file__).resolve().parent.parent / "datasets" / "knowledge" / "minimal_drug_safety_rules.json"
+)
 
 
 def get_default_kb_path() -> Path:
@@ -72,8 +74,17 @@ class SafetyKnowledgeBase:
     def get_scenario_rules(self) -> list[dict[str, Any]]:
         return list(self.data.get("scenario_rules", []))
 
-    def interaction_rules_for_pair(self, drug_a: str, drug_b: str) -> list[dict[str, Any]]:
-        """Lookup interaction rules by canonical pair (O(1) index)."""
+    def interaction_rules_for_pair(
+        self,
+        drug_a: str,
+        drug_b: str,
+        department: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Lookup interaction rules by canonical pair (O(1) index).
+
+        When department is provided, rules are sorted by department relevance
+        (same-dept first) but never filtered out.
+        """
         if not hasattr(self, "_interaction_pair_index"):
             index: dict[tuple[str, str], list[dict[str, Any]]] = {}
             for rule in self.get_interaction_rules():
@@ -86,4 +97,45 @@ class SafetyKnowledgeBase:
                 index.setdefault(pair, []).append(rule)
             self._interaction_pair_index = index
         key = tuple(sorted([self.resolve_drug(drug_a), self.resolve_drug(drug_b)]))
-        return list(self._interaction_pair_index.get(key, []))
+        rules = list(self._interaction_pair_index.get(key, []))
+        if not department or not rules:
+            return rules
+
+        dept_id = department.strip().lower()
+
+        def _sort_key(rule: dict[str, Any]) -> tuple[int, int]:
+            rule_dept = str(rule.get("department") or "").strip().lower()
+            if rule_dept == dept_id:
+                return (0, 0)
+            if not rule_dept:
+                return (1, 0)
+            return (2, 0)
+
+        return sorted(rules, key=_sort_key)
+
+    def rule_lookup(self) -> dict[str, dict[str, Any]]:
+        """Build rule_id → rule dict for prioritizer annotations."""
+        if not hasattr(self, "_rule_lookup_cache"):
+            lookup: dict[str, dict[str, Any]] = {}
+            for rule in self.get_interaction_rules():
+                rid = rule.get("rule_id")
+                if rid:
+                    lookup[str(rid)] = rule
+            for rule in self.get_population_rules():
+                rid = rule.get("rule_id")
+                if rid:
+                    lookup[str(rid)] = rule
+            for rule in self.get_allergy_rules():
+                rid = rule.get("rule_id")
+                if rid:
+                    lookup[str(rid)] = rule
+            for rule in self.get_scenario_rules():
+                rid = rule.get("rule_id")
+                if rid:
+                    lookup[str(rid)] = rule
+            for rule in self.get_duplicate_rules():
+                rid = rule.get("rule_id")
+                if rid:
+                    lookup[str(rid)] = rule
+            self._rule_lookup_cache = lookup
+        return self._rule_lookup_cache

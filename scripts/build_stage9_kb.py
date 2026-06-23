@@ -17,11 +17,11 @@ from src.knowledge_mining.kb_merger import merge_all_sources
 from src.knowledge_mining.stage9_curated_rules import get_curated_rules
 from src.utils import load_json, normalize_text, save_json
 
-DEFAULT_EXPANDED = PROJECT_ROOT / "data" / "knowledge" / "expanded_drug_safety_rules.json"
-DEFAULT_TWOSIDES = PROJECT_ROOT / "data" / "knowledge" / "twosides_ddi_signals.json"
-DEFAULT_KG = PROJECT_ROOT / "data" / "knowledge" / "drug_kg.json"
-DEFAULT_OUTPUT_KB = PROJECT_ROOT / "data" / "knowledge" / "hospital_production_v4.json"
-DEFAULT_OUTPUT_KG = PROJECT_ROOT / "data" / "knowledge" / "drug_kg_v2.json"
+DEFAULT_EXPANDED = PROJECT_ROOT / "datasets" / "knowledge" / "expanded_drug_safety_rules.json"
+DEFAULT_TWOSIDES = PROJECT_ROOT / "datasets" / "knowledge" / "twosides_ddi_signals.json"
+DEFAULT_KG = PROJECT_ROOT / "datasets" / "knowledge" / "drug_kg.json"
+DEFAULT_OUTPUT_KB = PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json"
+DEFAULT_OUTPUT_KG = PROJECT_ROOT / "datasets" / "knowledge" / "drug_kg_v2.json"
 
 RISK_TO_SEVERITY = {
     "high": "severe",
@@ -183,7 +183,7 @@ def main() -> None:
     parser.add_argument(
         "--import-twosides",
         action="store_true",
-        help="Run TWOSIDES importer (requires data/external/twosides.csv or TWOSIDES.csv.gz)",
+        help="Run TWOSIDES importer (requires datasets/external/twosides.csv or TWOSIDES.csv.gz)",
     )
     parser.add_argument("--twosides-csv", default="", help="Explicit TWOSIDES CSV path for --import-twosides")
     args = parser.parse_args()
@@ -202,14 +202,14 @@ def main() -> None:
         csv_path = resolve_twosides_csv(Path(args.twosides_csv) if args.twosides_csv else None)
         twosides_payload = import_twosides(
             csv_path,
-            PROJECT_ROOT / "data" / "knowledge" / "drug_inn_map.json",
+            PROJECT_ROOT / "datasets" / "knowledge" / "drug_inn_map.json",
             expanded_path,
         )
         save_json(twosides_payload, twosides_path)
     elif not twosides_path.exists():
         raise FileNotFoundError(
             f"TWOSIDES signals not found at {twosides_path}. "
-            "Run with --import-twosides after placing twosides.csv under data/external/."
+            "Run with --import-twosides after placing twosides.csv under datasets/external/."
         )
     else:
         twosides_payload = load_json(twosides_path)

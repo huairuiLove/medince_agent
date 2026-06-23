@@ -76,6 +76,7 @@ class PatientContext(BaseModel):
     lactation_status: str = Field(default="unknown")
     weight_kg: Optional[float] = None
     egfr: Optional[float] = Field(default=None, description="eGFR mL/min/1.73m²")
+    department: str = Field(default="", description="用户/患者所属科室 dept_id")
     missing_fields: List[str] = Field(default_factory=list)
 
 
@@ -545,6 +546,7 @@ class CpoeMedicationReviewRequest(BaseModel):
     orders: List[CpoeMedicationOrder] = Field(default_factory=list)
     existing_medications: List[DrugItem] = Field(default_factory=list)
     review_mode: str = Field(default="pre_save")
+    department: str = Field(default="", description="审查科室上下文，缺省时由服务端从登录用户推断")
 
 
 class CpoeReviewAlert(BaseModel):
@@ -573,6 +575,27 @@ class CpoeMedicationReviewResponse(BaseModel):
     review_output: Optional[ReviewOutput] = None
     knowledge_version: str = Field(default="")
     formulary_drug_count: int = 0
+    department: str = Field(default="")
+    department_focus_categories: List[str] = Field(default_factory=list)
+
+
+class DepartmentContextResponse(BaseModel):
+    dept_id: str
+    name_cn: str = ""
+    name_en: str = ""
+    description: str = ""
+    review_config: Dict[str, Any] = Field(default_factory=dict)
+    core_formulary: List[str] = Field(default_factory=list)
+    nav_routes: List[str] = Field(default_factory=list)
+
+
+class DepartmentStatsResponse(BaseModel):
+    dept_id: str
+    reviews_today: int = 0
+    alerts_today: int = 0
+    overrides_today: int = 0
+    pending_queue: int = 0
+    top_alerts: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class FormularySyncRequest(BaseModel):

@@ -43,10 +43,10 @@ def download_file(url: str, dest: Path) -> None:
 
 
 def fetch_cxr_samples(force: bool = False) -> int:
-    """Count local CXR under data/mimic_cxr/ (use fetch_demo_datasets.py --nlmcxr-archives to populate)."""
+    """Count local CXR under datasets/mimic_cxr/ (use fetch_demo_datasets.py --nlmcxr-archives to populate)."""
     base = ROOT / "datasets" / "mimic_cxr"
     if not base.is_dir():
-        print("  no data/mimic_cxr/ — run: python scripts/fetch_demo_datasets.py --nlmcxr-archives --nlmcxr-map 30")
+        print("  no datasets/mimic_cxr/ — run: python scripts/fetch_demo_datasets.py --nlmcxr-archives --nlmcxr-map 30")
         return 0
     paths = [
         p for p in base.rglob("*")
@@ -117,7 +117,7 @@ def fetch_brats_sample(force: bool = False) -> int:
     if any(case_dir.glob("*t1c*.nii.gz")) or any(case_dir.glob("*t1n*.nii.gz")):
         return 1
 
-    print("  BraTS: place 4 modalities manually under data/brats2024/{case_id}/")
+    print("  BraTS: place 4 modalities manually under datasets/brats2024/{case_id}/")
     print("  Expected: *t1c*.nii.gz *t1n*.nii.gz *t2w*.nii.gz *t2f*.nii.gz")
     return 0
 

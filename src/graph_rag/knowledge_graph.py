@@ -26,8 +26,24 @@ from src.graph_rag.schema import (
 
 logger = logging.getLogger("knowledge-graph")
 
-# 默认种子数据路径
-DEFAULT_KG_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "knowledge" / "drug_kg.json"
+# 默认种子数据路径（优先 config.yaml chat.knowledge_graph / clinical_knowledge.drug_kg_v2_path）
+def default_kg_path() -> Path:
+    from src.config import get_config, resolve_path
+
+    cfg = get_config()
+    rel = (
+        cfg.get("chat", {}).get("knowledge_graph")
+        or cfg.get("clinical_knowledge", {}).get("drug_kg_v2_path")
+        or "datasets/knowledge/drug_kg_v2.json"
+    )
+    primary = resolve_path(rel)
+    if primary.exists():
+        return primary
+    legacy = resolve_path("datasets/knowledge/drug_kg.json")
+    return legacy if legacy.exists() else primary
+
+
+DEFAULT_KG_PATH = default_kg_path()
 
 
 class KnowledgeGraph:
@@ -46,7 +62,7 @@ class KnowledgeGraph:
     def load_from_json(self, path: str | Path | None = None) -> int:
         """从 JSON 文件加载图谱数据，返回加载的节点数"""
         if path is None:
-            path = DEFAULT_KG_PATH
+            path = default_kg_path()
 
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build studies_manifest.json for data/mimic_cxr/ (NLMCXR reports + image index)."""
+"""Build studies_manifest.json for datasets/mimic_cxr/ (NLMCXR reports + image index)."""
 from __future__ import annotations
 
 import argparse

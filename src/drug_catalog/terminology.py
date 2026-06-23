@@ -13,11 +13,7 @@ class CatalogAwareKnowledgeBase(SafetyKnowledgeBase):
         catalog: DrugCatalogService | None = None,
         kb_path: str | None = None,
     ) -> None:
-        from pathlib import Path
-
-        from src.knowledge_base import DEFAULT_KB_PATH
-
-        super().__init__(Path(kb_path) if kb_path else DEFAULT_KB_PATH)
+        super().__init__(kb_path)
         self.catalog = catalog
 
     def resolve_drug(self, name: str, hospital_drug_id: str | None = None) -> str:

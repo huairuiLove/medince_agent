@@ -121,7 +121,7 @@ safety_models:
     medium_threshold: 0.55
   pubchem:
     enabled: true
-    cache_path: data/knowledge/smiles_cache.db
+    cache_path: data/smiles_cache.db
     inn_map_path: datasets/knowledge/drug_inn_map.json
     timeout: 10
     rate_limit_seconds: 0.25

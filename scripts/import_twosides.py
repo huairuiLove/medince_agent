@@ -16,15 +16,15 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.utils import load_json, normalize_text, save_json
 
 DEFAULT_CSV_CANDIDATES = (
+    PROJECT_ROOT / "datasets" / "external" / "TWOSIDES.csv",
+    PROJECT_ROOT / "datasets" / "external" / "twosides.csv",
+    PROJECT_ROOT / "datasets" / "external" / "TWOSIDES.csv.gz",
     PROJECT_ROOT / "data" / "TWOSIDES.csv",
     PROJECT_ROOT / "data" / "twosides.csv",
-    PROJECT_ROOT / "data" / "external" / "twosides.csv",
-    PROJECT_ROOT / "data" / "external" / "TWOSIDES.csv",
-    PROJECT_ROOT / "data" / "external" / "TWOSIDES.csv.gz",
 )
-DEFAULT_INN_MAP = PROJECT_ROOT / "data" / "knowledge" / "drug_inn_map.json"
-DEFAULT_RULE_BASE = PROJECT_ROOT / "data" / "knowledge" / "expanded_drug_safety_rules.json"
-DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "knowledge" / "twosides_ddi_signals.json"
+DEFAULT_INN_MAP = PROJECT_ROOT / "datasets" / "knowledge" / "drug_inn_map.json"
+DEFAULT_RULE_BASE = PROJECT_ROOT / "datasets" / "knowledge" / "expanded_drug_safety_rules.json"
+DEFAULT_OUTPUT = PROJECT_ROOT / "datasets" / "knowledge" / "twosides_ddi_signals.json"
 
 PRR_MIN = 2.0
 A_MIN = 3
@@ -40,7 +40,7 @@ def resolve_twosides_csv(explicit: Path | None = None) -> Path:
             return candidate
     searched = ", ".join(str(p) for p in DEFAULT_CSV_CANDIDATES)
     raise FileNotFoundError(
-        f"TWOSIDES CSV not found. Place TWOSIDES.csv under data/ or data/external/, or pass --csv. Tried: {searched}"
+        f"TWOSIDES CSV not found. Place TWOSIDES.csv under datasets/external/ or pass --csv. Tried: {searched}"
     )
 
 

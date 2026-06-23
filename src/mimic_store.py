@@ -1,4 +1,4 @@
-"""Load and query MIMIC-III derived patient contexts from data/processed/."""
+"""Load and query MIMIC-III derived patient contexts from datasets/processed/."""
 from __future__ import annotations
 
 from pathlib import Path

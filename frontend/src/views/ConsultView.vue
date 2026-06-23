@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { medsafeApi } from '@/api/medsafe'
 import { useMultiConsult } from '@/composables/useMultiConsult'
 import type { PatientContext, DrugItem, CaseTemplate } from '@/types'
+import { drugsWithoutIndication, drugDetailParts, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
 import AgentOpinionCard from '@/components/consult/AgentOpinionCard.vue'
 import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
 import ClarifyPanel from '@/components/consult/ClarifyPanel.vue'
@@ -25,6 +26,7 @@ const emptyPatient = (): PatientContext => ({
   allergies: [],
   current_medications: [],
   missing_fields: [],
+  diagnoses: [],
 })
 
 const patient = ref<PatientContext>(emptyPatient())
@@ -35,6 +37,7 @@ const templatesError = ref('')
 const selectedTemplateId = ref('')
 
 const newDrugName = ref('')
+const newDiagnosis = ref('')
 
 onMounted(async () => {
   try {
@@ -56,6 +59,20 @@ function removeDrug(i: number) {
   drugs.value.splice(i, 1)
 }
 
+function addDiagnosis() {
+  const name = newDiagnosis.value.trim()
+  if (!name) return
+  if (!patient.value.diagnoses) patient.value.diagnoses = []
+  if (!patient.value.diagnoses.some((d) => d.name === name)) {
+    patient.value.diagnoses.push({ name })
+  }
+  newDiagnosis.value = ''
+}
+
+function removeDiagnosis(i: number) {
+  patient.value.diagnoses?.splice(i, 1)
+}
+
 function loadTemplate(templateId: string) {
   const tpl = templates.value.find((t) => t.id === templateId)
   if (!tpl) return
@@ -64,9 +81,12 @@ function loadTemplate(templateId: string) {
     clinicalText.value = tpl.text ?? ''
   } else {
     inputMode.value = 'form'
-    patient.value = tpl.patient_context ? { ...tpl.patient_context } : emptyPatient()
+    patient.value = tpl.patient_context
+      ? { ...tpl.patient_context, diagnoses: [...(tpl.patient_context.diagnoses ?? [])] }
+      : emptyPatient()
   }
-  drugs.value = tpl.candidate_drugs.map((d) => ({ ...d }))
+  mergeDrugIndicationsIntoDiagnoses(patient.value, tpl.candidate_drugs)
+  drugs.value = drugsWithoutIndication(tpl.candidate_drugs)
 }
 
 function onTemplateSelect() {
@@ -78,6 +98,7 @@ function clearForm() {
   patient.value = emptyPatient()
   drugs.value = []
   selectedTemplateId.value = ''
+  newDiagnosis.value = ''
   reset()
 }
 
@@ -203,13 +224,27 @@ const arb = computed(() => result.value?.arbitration)
           <div class="full"><label class="label">当前用药 (逗号分隔)</label><input :value="(patient.current_medications ?? []).map(m=>m.name).join(', ')" class="input" @input="patient.current_medications = ($event.target as HTMLInputElement).value.split(',').map(s=>({name:s.trim()})).filter(m=>m.name)" /></div>
         </div>
 
+        <div v-if="inputMode === 'form'" class="field">
+          <label class="label">病症 / 诊断</label>
+          <ul v-if="patient.diagnoses?.length" class="tag-list">
+            <li v-for="(dx, i) in patient.diagnoses" :key="i">
+              <span>{{ dx.name }}<small v-if="dx.icd9_code"> · {{ dx.icd9_code }}</small></span>
+              <button type="button" class="btn-ghost" @click="removeDiagnosis(i)">×</button>
+            </li>
+          </ul>
+          <p v-else class="empty-hint">尚未添加病症或诊断</p>
+          <div class="add-drug">
+            <input v-model="newDiagnosis" class="input" placeholder="如：社区获得性肺炎" @keyup.enter="addDiagnosis" />
+            <button type="button" class="btn-secondary" @click="addDiagnosis">添加</button>
+          </div>
+        </div>
+
         <div class="field">
           <label class="label">候选用药</label>
           <ul v-if="drugs.length" class="drug-list">
             <li v-for="(d, i) in drugs" :key="i">
               <strong>{{ d.name }}</strong>
-              <span v-if="d.dose">{{ d.dose }}</span>
-              <span v-if="d.indication">{{ d.indication }}</span>
+              <span v-for="(part, j) in drugDetailParts(d)" :key="j" class="drug-meta">{{ part }}</span>
               <button type="button" class="btn-ghost" @click="removeDrug(i)">×</button>
             </li>
           </ul>
@@ -295,6 +330,14 @@ const arb = computed(() => result.value?.arbitration)
   padding: 0.4rem 0; border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
 }
+.drug-meta { color: var(--text-muted); font-size: 0.85rem; }
+.tag-list { list-style: none; margin-bottom: 0.5rem; }
+.tag-list li {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0; border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.tag-list small { color: var(--text-muted); font-weight: normal; }
 .empty-hint { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
 .add-drug { display: flex; gap: 0.5rem; }
 .opts { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.88rem; margin-bottom: 1rem; }

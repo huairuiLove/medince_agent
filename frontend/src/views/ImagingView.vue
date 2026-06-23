@@ -480,7 +480,7 @@ const sortedParagraphs = computed(() =>
         <ul class="study-list">
           <li v-if="!filteredStudies.length" class="empty-hint">
             暂无该类型影像。运行：
-            <code>python data/scripts/fetch_demo_datasets.py --chest-ct --kits-cases 8 --monai-samples --nlmcxr-map 50</code>
+            <code>python scripts/fetch_demo_datasets.py --chest-ct --kits-cases 8 --monai-samples --nlmcxr-map 50</code>
           </li>
           <li
             v-for="s in filteredStudies"

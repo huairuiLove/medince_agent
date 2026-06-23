@@ -1,4 +1,4 @@
-# MedSafe Agent Registry — add agents here or via data/agents/registry.yaml
+# MedSafe Agent Registry — add agents here or via datasets/agents/registry.yaml
 agents:
   clinical_pharmacist:
     module: src.agents.clinical_pharmacist

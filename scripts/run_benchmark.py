@@ -28,15 +28,15 @@ from src.schemas import (
 )
 from src.utils import load_json, save_json
 
-DEFAULT_KB = PROJECT_ROOT / "data" / "knowledge" / "hospital_production_v4.json"
+DEFAULT_KB = PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json"
 CASES_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "cases"
 REPORTS_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "reports"
 
 KB_ALIASES: dict[str, Path] = {
-    "expanded_mined_v1": PROJECT_ROOT / "data" / "knowledge" / "expanded_drug_safety_rules.json",
-    "internal_medicine_full": PROJECT_ROOT / "data" / "knowledge" / "hospital_production_v4.json",
-    "hospital_production_v4": PROJECT_ROOT / "data" / "knowledge" / "hospital_production_v4.json",
-    "minimal": PROJECT_ROOT / "data" / "knowledge" / "minimal_drug_safety_rules.json",
+    "expanded_mined_v1": PROJECT_ROOT / "datasets" / "knowledge" / "expanded_drug_safety_rules.json",
+    "internal_medicine_full": PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json",
+    "hospital_production_v4": PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json",
+    "minimal": PROJECT_ROOT / "datasets" / "knowledge" / "minimal_drug_safety_rules.json",
 }
 
 ALL_DEPARTMENTS = [

@@ -4,6 +4,7 @@ import uuid
 from typing import Literal
 
 from src.config import get_config
+from src.department.context import DepartmentContext, get_department_context
 from src.drug_catalog.catalog_service import DrugCatalogService, get_drug_catalog_service
 from src.drug_catalog.models import HospitalDrug
 from src.drug_catalog.terminology import CatalogAwareKnowledgeBase
@@ -60,7 +61,12 @@ class CpoeReviewFacade:
         )
         return record, candidate
 
-    def _build_patient_context(self, patient: CpoePatientSnapshot, existing: list[DrugItem]) -> PatientContext:
+    def _build_patient_context(
+        self,
+        patient: CpoePatientSnapshot,
+        existing: list[DrugItem],
+        department: str = "",
+    ) -> PatientContext:
         return PatientContext(
             subject_id=int(patient.patient_id) if patient.patient_id.isdigit() else None,
             gender=patient.gender,
@@ -71,7 +77,13 @@ class CpoeReviewFacade:
             current_medications=existing,
             pregnancy_status=patient.pregnancy_status,
             lactation_status=patient.lactation_status,
+            department=department,
         )
+
+    def _resolve_department(self, request: CpoeMedicationReviewRequest) -> tuple[str, DepartmentContext | None]:
+        dept_id = (request.department or "").strip()
+        ctx = get_department_context(dept_id) if dept_id else None
+        return dept_id, ctx
 
     def _catalog_alerts(
         self,
@@ -197,7 +209,8 @@ class CpoeReviewFacade:
                 )
             )
 
-        patient_context = self._build_patient_context(request.patient, existing_meds)
+        dept_id, dept_ctx = self._resolve_department(request)
+        patient_context = self._build_patient_context(request.patient, existing_meds, department=dept_id)
 
         candidate_drugs: list[CandidateDrug] = []
         order_records: dict[str, HospitalDrug | None] = {}
@@ -212,7 +225,13 @@ class CpoeReviewFacade:
             if record is None:
                 unresolved.append(order.hospital_drug_id or order.display_name)
 
-        review_output = self.review_engine.review(patient_context, candidate_drugs)
+        priority_categories = dept_ctx.priority_categories if dept_ctx else None
+        review_output = self.review_engine.review(
+            patient_context,
+            candidate_drugs,
+            department=dept_id or None,
+            priority_categories=priority_categories,
+        )
 
         clinical_alerts: list[CpoeReviewAlert] = []
         primary_order_id = self._pick_primary_order_id(request.orders)
@@ -252,4 +271,6 @@ class CpoeReviewFacade:
             review_output=review_output,
             knowledge_version=f"{self.knowledge_version}+{sync_version or 'no_formulary_sync'}",
             formulary_drug_count=catalog_stats.get("total_drugs", 0),
+            department=dept_id,
+            department_focus_categories=list(priority_categories or []),
         )

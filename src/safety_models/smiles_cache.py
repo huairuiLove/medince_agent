@@ -4,12 +4,16 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.config import resolve_path
+from src.config import get_config, resolve_path
 from src.utils import normalize_text
 
-DEFAULT_CACHE_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "data" / "knowledge" / "smiles_cache.db"
-)
+def _default_cache_path() -> Path:
+    cfg = get_config()
+    rel = cfg.get("safety_models", {}).get("pubchem", {}).get("cache_path", "data/smiles_cache.db")
+    return resolve_path(rel)
+
+
+DEFAULT_CACHE_PATH = _default_cache_path()
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS smiles_cache (

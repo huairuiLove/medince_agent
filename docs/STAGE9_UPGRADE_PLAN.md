@@ -46,7 +46,7 @@
 
 ### 0.3 科室覆盖评估
 
-当前 22 个科室已在 `departments/catalog.json` 中定义，但**真正有规则支撑的科室**仅 2 个：
+当前 22 个科室已在 `datasets/departments/catalog.json` 中定义，但**真正有规则支撑的科室**仅 2 个：
 
 | 科室 | 可用规则 | 可用 KG 边 | 评估 |
 |------|----------|-----------|------|
@@ -65,6 +65,21 @@
 | ICU/急诊 | 无 | 无 | ❌ 完全空白（血管活性药/镇静/解毒剂） |
 
 **结论：22 个科室中，2 个部分可用，20 个基本空白。**
+
+### 0.4 静态数据目录布局（`datasets/` vs `data/`）
+
+Stage 10 已将**可版本管理的静态/参考数据**从 `data/` 迁至项目根目录下的 `datasets/`；`data/` 仅保留**运行时产物**（SQLite、imaging cache、本地 fallback DB 等）。下文路径均以 `datasets/` 为准；历史 `STAGE*.md` 报告中的旧路径可在下一阶段报告中统一说明。
+
+| 目录 | 用途 |
+|------|------|
+| `datasets/knowledge/` | 规则库、KG、INN/SMILES 映射、TWOSIDES 信号等 |
+| `datasets/benchmark/` | Stage 9 benchmark cases 与评估报告 |
+| `datasets/case_templates/`、`datasets/cases/`、`datasets/processed/` | 病例模板、Case Log、MIMIC 衍生 JSON |
+| `datasets/mimic/`、`datasets/mimic_cxr/`、`datasets/external/` | 影像样本与下载归档 |
+| `datasets/departments/`、`datasets/agents/`、`datasets/hospital/` | 科室目录、Agent 注册、药典 CSV 源 |
+| `data/auth/`、`data/pharmacy/`、`data/hospital/*.db`、`data/imaging_cache/` | 运行时 DB 与缓存（不提交大文件） |
+
+ETL / 下载 / 构建脚本统一放在 **`scripts/`**（已移除重复的 `data/scripts/` 副本）。
 
 ---
 
@@ -112,9 +127,9 @@
    - 未匹配的 DrugBank 药物 → 新增到 INN map（扩充中文映射）
 
 3. 输出文件：
-   - `data/knowledge/drugbank_ddi_rules.json`（interaction_rules 格式）
-   - `data/knowledge/drug_kg_v2.json`（nodes + edges 格式）
-   - `data/knowledge/drugbank_inn_map_additions.json`（新增 INN 映射）
+   - `datasets/knowledge/drugbank_ddi_rules.json`（interaction_rules 格式）
+   - `datasets/knowledge/drug_kg_v2.json`（nodes + edges 格式）
+   - `datasets/knowledge/drugbank_inn_map_additions.json`（新增 INN 映射）
 
 ### 1.2 TWOSIDES 数据接入
 
@@ -158,7 +173,7 @@
     → risk_level 降一级（major→medium, moderate→low）
 ```
 
-**输出文件**：`data/knowledge/twosides_ddi_signals.json`
+**输出文件**：`datasets/knowledge/twosides_ddi_signals.json`
 
 ### 1.3 Population Rules 扩充（从 3 条到 80+ 条）
 
@@ -677,7 +692,7 @@ if response.requires_pharmacist_review:
 
 - `src/auth/models.py`：新增 `"pharmacist"` 角色（与 `"doctor"`, `"admin"` 并列）
 - `src/auth/db.py`：新增 `pharmacist_review_stats` 表
-- `data/departments/catalog.json`：`pharmacy` 部门的 `nav_routes` 增加 `"/pharmacy"`, `"/pharmacy/audit"`
+- `datasets/departments/catalog.json`：`pharmacy` 部门的 `nav_routes` 增加 `"/pharmacy"`, `"/pharmacy/audit"`
 - 新增种子用户：`chief_pharm`（主管药师，admin 权限）
 
 ### 3.5 前端三视图
@@ -850,7 +865,7 @@ Phase 4: Benchmark 验证（1 周） ← 依赖 Phase 1
 | `src/knowledge_mining/kb_merger.py` | **小改动** | +多源合并方法 |
 | `src/auth/models.py` | **小改动** | +pharmacist 角色 |
 | `config.yaml` | **小改动** | 更新 KB 路径 + fhir/pharmacy 配置 |
-| `data/knowledge/*.json` | **新增** | v4.0 知识库文件 |
+| `datasets/knowledge/*.json` | **新增** | v4.0 知识库文件 |
 | `frontend/src/router/index.ts` | **小改动** | +3 路由 |
 | `frontend/src/api/medsafe.ts` | **小改动** | +pharmacy API |
 | `frontend/src/types/index.ts` | **小改动** | +pharmacy 类型 |

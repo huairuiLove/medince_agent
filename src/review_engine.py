@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Iterable
 
+from src.department.priority import DepartmentRulePrioritizer
 from src.knowledge_base import SafetyKnowledgeBase
 from src.schemas import CandidateDrug, PatientContext, ReviewOutput, RuleEvidence
 from src.utils import dedupe_preserve_order, normalize_text
@@ -89,6 +90,7 @@ class ReviewEngine:
         self,
         current_registry: list[dict[str, str]],
         candidate_registry: list[dict[str, str]],
+        department: str | None = None,
     ) -> list[RuleEvidence]:
         evidence: list[RuleEvidence] = []
         pair_cache: set[tuple[str, str, str]] = set()
@@ -104,6 +106,7 @@ class ReviewEngine:
                 matched_rules = self.kb.interaction_rules_for_pair(
                     candidate["canonical"],
                     other["canonical"],
+                    department=department,
                 )
                 for rule in matched_rules:
                     cache_key = (rule["rule_id"], pair[0], pair[1])
@@ -435,12 +438,14 @@ class ReviewEngine:
         self,
         patient_context: PatientContext,
         candidate_drugs: list[CandidateDrug],
+        department: str | None = None,
     ) -> list[RuleEvidence]:
         candidate_drugs = self._to_candidate_drugs(patient_context, candidate_drugs)
         current_registry, candidate_registry = self._build_drug_registry(patient_context, candidate_drugs)
+        dept = department or patient_context.department or None
 
         evidence = []
-        evidence.extend(self._collect_interaction_evidence(current_registry, candidate_registry))
+        evidence.extend(self._collect_interaction_evidence(current_registry, candidate_registry, department=dept))
         evidence.extend(self._collect_model_ddi_evidence(current_registry, candidate_registry, evidence))
         evidence.extend(self._collect_duplicate_evidence(current_registry, candidate_registry))
         evidence.extend(self._collect_population_evidence(patient_context, candidate_registry))
@@ -448,15 +453,33 @@ class ReviewEngine:
         evidence.extend(self._collect_scenario_evidence(patient_context, current_registry, candidate_registry))
         return evidence
 
+    def _apply_department_priority(
+        self,
+        evidence: list[RuleEvidence],
+        department: str | None,
+        priority_categories: list[str] | None = None,
+    ) -> list[RuleEvidence]:
+        if not evidence:
+            return evidence
+        prioritizer = DepartmentRulePrioritizer(
+            department=department,
+            priority_categories=priority_categories,
+        )
+        rule_lookup = self.kb.rule_lookup() if hasattr(self.kb, "rule_lookup") else {}
+        return prioritizer.apply(evidence, rule_lookup)
+
     def review(
         self,
         patient_context: PatientContext,
         candidate_drugs: list[CandidateDrug],
         retrieved_evidence: list[RuleEvidence] | None = None,
+        department: str | None = None,
+        priority_categories: list[str] | None = None,
     ) -> ReviewOutput:
         candidate_drugs = self._to_candidate_drugs(patient_context, candidate_drugs)
         current_registry, candidate_registry = self._build_drug_registry(patient_context, candidate_drugs)
-        computed_evidence = self.retrieve_evidence(patient_context, candidate_drugs)
+        dept = department or patient_context.department or None
+        computed_evidence = self.retrieve_evidence(patient_context, candidate_drugs, department=dept)
 
         merged_evidence: list[RuleEvidence] = []
         seen_keys: set[tuple[str, str]] = set()
@@ -467,6 +490,12 @@ class ReviewEngine:
                 continue
             seen_keys.add(key)
             merged_evidence.append(evidence_item)
+
+        merged_evidence = self._apply_department_priority(
+            merged_evidence,
+            dept,
+            priority_categories=priority_categories,
+        )
 
         clarification_targets = self._infer_clarification_targets(patient_context, candidate_registry)
         clarification_targets.extend(

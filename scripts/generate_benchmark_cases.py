@@ -18,8 +18,8 @@ from src.review_engine import ReviewEngine
 from src.schemas import CandidateDrug, PatientContext
 from src.utils import save_json
 
-DEFAULT_KB = PROJECT_ROOT / "data" / "knowledge" / "hospital_production_v4.json"
-CASES_DIR = PROJECT_ROOT / "data" / "benchmark" / "cases"
+DEFAULT_KB = PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json"
+CASES_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "cases"
 
 DEPARTMENT_COUNTS: dict[str, int] = {
     "cardiology": 15,

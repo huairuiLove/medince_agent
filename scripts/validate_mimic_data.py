@@ -78,7 +78,7 @@ def validate(*, strict: bool = False) -> int:
         issues.append(f"processed contexts missing: run `python -m src.cli build-mimic`")
         print("  FAIL not built yet")
 
-    print("\nChest X-ray (data/mimic_cxr/):")
+    print("\nChest X-ray (datasets/mimic_cxr/):")
     cxr_issues, cxr_ok = _validate_cxr()
     issues.extend(cxr_issues)
     if cxr_ok:
@@ -107,8 +107,8 @@ def _validate_cxr() -> tuple[list[str], list[str]]:
     official = sum(1 for s in cxr if s.collection == "MIMIC-CXR-JPG")
     nlmcxr = sum(1 for s in cxr if s.collection == "NLMCXR")
     ok_lines.append(f"  CXR studies: {len(cxr)} ({png_count} images)")
-    ok_lines.append(f"  MIMIC-CXR-JPG (data/mimic/): {official} studies")
-    ok_lines.append(f"  NLMCXR (data/mimic_cxr/): {nlmcxr} studies")
+    ok_lines.append(f"  MIMIC-CXR-JPG (datasets/mimic/): {official} studies")
+    ok_lines.append(f"  NLMCXR (datasets/mimic_cxr/): {nlmcxr} studies")
     ok_lines.append(f"  with radiology reports: {with_reports}")
     manifest = manifest_path()
     if cxr and not manifest.is_file():
@@ -116,7 +116,7 @@ def _validate_cxr() -> tuple[list[str], list[str]]:
     elif manifest.is_file():
         ok_lines.append(f"  manifest: {manifest.relative_to(ROOT)}")
     if not cxr:
-        issues.append("no CXR studies under data/mimic_cxr/")
+        issues.append("no CXR studies under datasets/mimic_cxr/")
     return issues, ok_lines
 
 

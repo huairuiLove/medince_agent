@@ -3,7 +3,7 @@
 
 Sources:
   - MIMIC-III Demo (PhysioNet open access, ~13 MB)
-  - Open-I NLMCXR chest X-rays (subset → data/mimic_cxr/)
+  - Open-I NLMCXR chest X-rays (subset → datasets/mimic_cxr/)
   - KiTS19 imaging via HuggingFace (neheller/KiTS-Challenge-Imaging)
   - MONAI BraTS sample + Open-I CXR (via fetch_imaging_samples)
 
@@ -154,7 +154,7 @@ def fetch_openi_cxr_subset(max_images: int, *, force: bool = False) -> int:
 
 
 def fetch_nlmcxr_archives(cache_dir: Path, *, force: bool = False) -> tuple[int, int]:
-    """Download NLMCXR PNG + reports archives to data/external/."""
+    """Download NLMCXR PNG + reports archives to datasets/external/."""
     print("=== NLMCXR full archives (Open-I) ===")
     png_dest = cache_dir / "NLMCXR_png.tgz"
     rep_dest = cache_dir / "NLMCXR_reports.tgz"
@@ -233,7 +233,7 @@ def main() -> None:
         type=int,
         default=0,
         metavar="N",
-        help="Map first N PNGs from extracted NLMCXR archive into data/mimic_cxr/",
+        help="Map first N PNGs from extracted NLMCXR archive into datasets/mimic_cxr/",
     )
     parser.add_argument("--kits-cases", type=int, default=0, metavar="N", help="KiTS19 CT cases from HF")
     parser.add_argument("--chest-ct", action="store_true", help="MONAI COPD chest/lung CT samples")
@@ -304,12 +304,12 @@ def main() -> None:
     for key, value in summary.items():
         print(f"  {key}: {value}")
     print("\nMedSafe scan paths:")
-    print("  data/mimic_cxr/     -> GET /api/v1/imaging/studies?source=mimic_cxr")
-    print("  data/chest_ct/      -> source=chest_ct (lung/chest CT NIfTI)")
-    print("  data/kits19/        -> source=kits19 (renal CT NIfTI)")
-    print("  data/brats2024/     -> source=brats2024 (brain MRI)")
-    print("  data/mimic/         -> MIMIC-CXR-JPG layout (scanned as mimic_cxr, not CT)")
-    print("  data/external/mimiciii-demo/ -> clinical tables for Extract / ICU demo")
+    print("  datasets/mimic_cxr/     -> GET /api/v1/imaging/studies?source=mimic_cxr")
+    print("  datasets/chest_ct/      -> source=chest_ct (lung/chest CT NIfTI)")
+    print("  datasets/kits19/        -> source=kits19 (renal CT NIfTI)")
+    print("  datasets/brats2024/     -> source=brats2024 (brain MRI)")
+    print("  datasets/mimic/         -> MIMIC-CXR-JPG layout (scanned as mimic_cxr, not CT)")
+    print("  datasets/external/mimiciii-demo/ -> clinical tables for Extract / ICU demo")
 
 
 if __name__ == "__main__":

@@ -144,13 +144,16 @@ def list_knowledge_documents() -> str:
 # 从文件加载种子知识库
 # ============================================================
 
-def load_seed_knowledge(data_dir: str | None = None) -> int:
-    """从 data/ 目录加载种子知识（如果存在）"""
-    if data_dir is None:
-        data_dir = str(Path(__file__).resolve().parent.parent.parent.parent / "data")
+def load_seed_knowledge(knowledge_dir: str | None = None) -> int:
+    """从 datasets/knowledge/ 加载种子知识（如果存在）"""
+    if knowledge_dir is None:
+        from src.config import datasets_path
+
+        data_path = datasets_path("knowledge")
+    else:
+        data_path = Path(knowledge_dir)
 
     total = 0
-    data_path = Path(data_dir)
 
     # 尝试加载 JSON 知识文件
     for pattern in ["*.json", "*.txt", "*.md"]:

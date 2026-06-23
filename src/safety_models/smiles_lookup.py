@@ -3,19 +3,15 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from src.config import get_config, resolve_path
+from src.config import datasets_path, get_config, resolve_path
 from src.safety_models.pubchem_client import PubChemClient
 from src.safety_models.smiles_cache import SmilesCache
 from src.utils import load_json, normalize_text
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SMILES_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "data" / "knowledge" / "drug_smiles.json"
-)
-DEFAULT_INN_MAP_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "data" / "knowledge" / "drug_inn_map.json"
-)
+DEFAULT_SMILES_PATH = datasets_path("knowledge/drug_smiles.json")
+DEFAULT_INN_MAP_PATH = datasets_path("knowledge/drug_inn_map.json")
 
 
 class SmilesLookup:

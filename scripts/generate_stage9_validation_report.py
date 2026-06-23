@@ -14,9 +14,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.utils import load_json
 
-REPORTS_DIR = PROJECT_ROOT / "data" / "benchmark" / "reports"
-KB_PATH = PROJECT_ROOT / "data" / "knowledge" / "hospital_production_v4.json"
-KG_PATH = PROJECT_ROOT / "data" / "knowledge" / "drug_kg_v2.json"
+REPORTS_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "reports"
+KB_PATH = PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json"
+KG_PATH = PROJECT_ROOT / "datasets" / "knowledge" / "drug_kg_v2.json"
 OUTPUT = PROJECT_ROOT / "docs" / "STAGE9_VALIDATION_REPORT.md"
 
 TARGETS = {
@@ -153,8 +153,8 @@ def generate_report(*, output: Path = OUTPUT) -> str:
         "## 6. 复现命令",
         "",
         "```bash",
-        "python scripts/import_twosides.py --csv data/TWOSIDES.csv",
-        "python scripts/build_stage9_kb.py --import-twosides --twosides-csv data/TWOSIDES.csv",
+        "python scripts/import_twosides.py --csv datasets/external/TWOSIDES.csv",
+        "python scripts/build_stage9_kb.py --import-twosides --twosides-csv datasets/external/TWOSIDES.csv",
         "python scripts/generate_benchmark_cases.py",
         "python scripts/run_benchmark.py --mode rule-only --dept all",
         "python scripts/run_benchmark.py --mode cpoe --dept all",
