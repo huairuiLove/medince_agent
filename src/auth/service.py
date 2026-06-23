@@ -28,6 +28,7 @@ from src.auth.models import (
 from src.auth.password import hash_password, verify_password
 from src.auth.tokens import create_access_token, decode_access_token
 from src.config import get_config
+from src.department.context import get_department_context
 
 
 class AuthService:
@@ -44,6 +45,7 @@ class AuthService:
             init_schema(self._conn)
             self._seed_if_empty()
             self._seed_chief_pharm_if_missing()
+            self._migrate_department_agent_prefs_v1()
         return self._conn
 
     def _secret(self) -> str:
@@ -95,7 +97,7 @@ class AuthService:
                     """,
                     (uid, username, hash_password(password), display, role, dept_id, now),
                 )
-                self._init_default_agent_prefs(uid)
+                self._init_default_agent_prefs(uid, dept_id)
             self.conn.commit()
 
     def _seed_chief_pharm_if_missing(self) -> None:
@@ -117,20 +119,43 @@ class AuthService:
             """,
             (uid, "chief_pharm", hash_password("chief123"), "主管药师陈", now),
         )
-        self._init_default_agent_prefs(uid)
+        self._init_default_agent_prefs(uid, "pharmacy")
         self.conn.commit()
 
     @staticmethod
     def is_pharmacy_role(role: str) -> bool:
         return role in {"admin", "pharmacist"}
 
-    def _init_default_agent_prefs(self, user_id: str) -> None:
+    def _department_auto_enable_agent_ids(self, dept_id: str) -> set[str]:
+        """Department specialist agents that should default to enabled for this dept."""
+        dept_id = (dept_id or "").strip()
+        if not dept_id:
+            return set()
+
+        auto: set[str] = set()
+        ctx = get_department_context(dept_id)
+        if ctx:
+            conditional = ctx.review_config.get("conditional_agents") or {}
+            for agent_id, cfg in conditional.items():
+                if cfg is True or (isinstance(cfg, dict) and cfg.get("always")):
+                    auto.add(str(agent_id))
+
+        dept_lower = dept_id.lower()
+        for spec in self._registry.list_department_agent_specs():
+            dept_ids = [str(d).lower() for d in spec.activate_when.get("departments", [])]
+            if dept_lower in dept_ids:
+                auto.add(spec.agent_id)
+        return auto
+
+    def _init_default_agent_prefs(self, user_id: str, dept_id: str = "") -> None:
+        auto_ids = self._department_auto_enable_agent_ids(dept_id)
         for spec in self._registry.list_specs():
             if not spec.debate:
                 continue
+            enabled = spec.default_enabled or spec.agent_id in auto_ids
             self.conn.execute(
                 "INSERT OR IGNORE INTO doctor_agent_prefs (user_id, agent_id, enabled) VALUES (?, ?, ?)",
-                (user_id, spec.agent_id, 1 if spec.default_enabled else 0),
+                (user_id, spec.agent_id, 1 if enabled else 0),
             )
             for skill in self._registry.list_skills(spec.agent_id):
                 default_on = skill.skill_id in spec.default_skills or skill.skill_id == "base"
@@ -141,6 +166,27 @@ class AuthService:
                     """,
                     (user_id, spec.agent_id, skill.skill_id, 1 if default_on else 0),
                 )
+
+    def _migrate_department_agent_prefs_v1(self) -> None:
+        """One-time: enable department specialist agents for existing users by dept."""
+        row = self.conn.execute(
+            "SELECT value FROM auth_meta WHERE key = 'dept_agent_prefs_v1'",
+        ).fetchone()
+        if row:
+            return
+        for user in self.conn.execute("SELECT user_id, dept_id FROM users").fetchall():
+            for agent_id in self._department_auto_enable_agent_ids(user["dept_id"]):
+                self.conn.execute(
+                    """
+                    UPDATE doctor_agent_prefs SET enabled = 1
+                    WHERE user_id = ? AND agent_id = ?
+                    """,
+                    (user["user_id"], agent_id),
+                )
+        self.conn.execute(
+            "INSERT INTO auth_meta (key, value) VALUES ('dept_agent_prefs_v1', 'done')",
+        )
+        self.conn.commit()
 
     def login(self, username: str, password: str) -> TokenResponse | None:
         row = self.conn.execute(
@@ -165,7 +211,7 @@ class AuthService:
                 """,
                 (uid, username.strip(), hash_password(password), display_name or username, dept_id, now),
             )
-            self._init_default_agent_prefs(uid)
+            self._init_default_agent_prefs(uid, dept_id)
             self.conn.commit()
         except sqlite3.IntegrityError:
             return None

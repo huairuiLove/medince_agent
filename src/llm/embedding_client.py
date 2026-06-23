@@ -17,6 +17,97 @@ InputKind = Literal["query", "passage"]
 
 _LOCAL_TOKENIZER = None
 _LOCAL_MODEL = None
+_RESOLVED_API_MODEL: dict[str, str] = {}
+
+
+def _fetch_api_models(cfg: dict[str, Any]) -> list[str]:
+    url = f"{cfg['base_url']}/models"
+    headers = {"Authorization": f"Bearer {cfg['api_key']}"}
+    with httpx.Client(timeout=min(cfg["timeout"], 10.0)) as client:
+        response = client.get(url, headers=headers)
+        response.raise_for_status()
+        payload = response.json()
+    return [str(item.get("id", "")).strip() for item in payload.get("data", []) if item.get("id")]
+
+
+def _pick_embedding_model(configured: str, model_ids: list[str]) -> str:
+    if not model_ids:
+        raise LLMNotConfiguredError(
+            "Embedding",
+            hint="LM Studio 未返回可用模型。请在 LM Studio 中加载 embedding 模型并启动 Local Server。",
+        )
+    configured = configured.strip()
+    if configured in model_ids:
+        return configured
+
+    needle = configured.lower()
+    embed_models = [m for m in model_ids if "embed" in m.lower()]
+    candidates = embed_models or model_ids
+
+    for model_id in candidates:
+        hay = model_id.lower()
+        if needle and (needle in hay or hay in needle):
+            return model_id
+
+    for token in ("nomic", "bge", "e5", "minilm"):
+        if token in needle:
+            for model_id in candidates:
+                if token in model_id.lower():
+                    return model_id
+
+    return candidates[0]
+
+
+def _resolve_api_model(cfg: dict[str, Any], *, refresh: bool = False) -> str:
+    cache_key = f"{cfg['base_url']}|{cfg['model']}"
+    if not refresh and cache_key in _RESOLVED_API_MODEL:
+        return _RESOLVED_API_MODEL[cache_key]
+
+    if cfg["provider"] == "lmstudio":
+        try:
+            model_ids = _fetch_api_models(cfg)
+            resolved = _pick_embedding_model(str(cfg["model"]), model_ids)
+        except httpx.HTTPError as exc:
+            raise LLMNotConfiguredError(
+                "Embedding",
+                hint=(
+                    f"无法连接 LM Studio ({cfg['base_url']}): {exc}. "
+                    "请确认 Local Server 已启动并加载 embedding 模型。"
+                ),
+            ) from exc
+        if resolved != cfg["model"]:
+            logger.info(
+                "Resolved LM Studio embedding model %r -> %r",
+                cfg["model"],
+                resolved,
+            )
+        _RESOLVED_API_MODEL[cache_key] = resolved
+        return resolved
+
+    return str(cfg["model"])
+
+
+def _embedding_api_error_hint(cfg: dict[str, Any], exc: httpx.HTTPStatusError) -> str:
+    body = ""
+    try:
+        body = str(exc.response.json().get("error", ""))
+    except Exception:
+        body = exc.response.text[:200]
+
+    hint = (
+        f"Embedding API 返回 HTTP {exc.response.status_code}"
+        + (f": {body}" if body else "")
+        + f"。当前配置 model={cfg['model']!r}，base_url={cfg['base_url']!r}。"
+    )
+    if cfg["provider"] == "lmstudio":
+        try:
+            model_ids = _fetch_api_models(cfg)
+            embed_ids = [m for m in model_ids if "embed" in m.lower()] or model_ids
+            hint += f" LM Studio 可用 embedding 模型: {', '.join(embed_ids)}。"
+            hint += " 可将 MEDSAFE_EMBEDDING__MODEL 设为上述完整 id，或保留 nomic-embed-text 由系统自动匹配。"
+        except Exception:
+            hint += " 请在 LM Studio 中加载 embedding 模型并启动 Local Server。"
+    return hint
 
 
 def resolve_embedding_config() -> dict[str, Any]:
@@ -69,11 +160,16 @@ def embedding_status() -> dict[str, Any]:
         "base_url": cfg["base_url"] if cfg["backend"] == "api" else None,
         "model_dir": str(cfg["model_dir"]) if cfg["backend"] == "local" else None,
         "configured": False,
+        "resolved_model": None,
         "error": None,
     }
     try:
         status["configured"] = is_embedding_configured()
+        if status["configured"] and cfg["backend"] == "api" and cfg["provider"] == "lmstudio":
+            status["resolved_model"] = _resolve_api_model(cfg)
     except LLMNotConfiguredError as exc:
+        status["error"] = str(exc)
+    except Exception as exc:
         status["error"] = str(exc)
     return status
 
@@ -168,16 +264,30 @@ def _embed_api_sync(texts: list[str], cfg: dict[str, Any]) -> np.ndarray:
     if not texts:
         return np.zeros((0, 0), dtype=np.float32)
 
+    model = _resolve_api_model(cfg)
     url = f"{cfg['base_url']}/embeddings"
     headers = {
         "Authorization": f"Bearer {cfg['api_key']}",
         "Content-Type": "application/json",
     }
-    payload: dict[str, Any] = {"model": cfg["model"], "input": texts if len(texts) > 1 else texts[0]}
+    payload: dict[str, Any] = {"model": model, "input": texts if len(texts) > 1 else texts[0]}
 
     with httpx.Client(timeout=cfg["timeout"]) as client:
-        response = client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
+        try:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 400 and cfg["provider"] == "lmstudio":
+                _RESOLVED_API_MODEL.pop(f"{cfg['base_url']}|{cfg['model']}", None)
+                model = _resolve_api_model(cfg, refresh=True)
+                payload["model"] = model
+                response = client.post(url, headers=headers, json=payload)
+                try:
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as retry_exc:
+                    raise LLMNotConfiguredError("Embedding", hint=_embedding_api_error_hint(cfg, retry_exc)) from retry_exc
+            else:
+                raise LLMNotConfiguredError("Embedding", hint=_embedding_api_error_hint(cfg, exc)) from exc
         data = response.json()
 
     items = sorted(data["data"], key=lambda x: x["index"])
@@ -189,16 +299,30 @@ async def _embed_api_async(texts: list[str], cfg: dict[str, Any]) -> np.ndarray:
     if not texts:
         return np.zeros((0, 0), dtype=np.float32)
 
+    model = _resolve_api_model(cfg)
     url = f"{cfg['base_url']}/embeddings"
     headers = {
         "Authorization": f"Bearer {cfg['api_key']}",
         "Content-Type": "application/json",
     }
-    payload: dict[str, Any] = {"model": cfg["model"], "input": texts if len(texts) > 1 else texts[0]}
+    payload: dict[str, Any] = {"model": model, "input": texts if len(texts) > 1 else texts[0]}
 
     async with httpx.AsyncClient(timeout=cfg["timeout"]) as client:
-        response = await client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
+        try:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 400 and cfg["provider"] == "lmstudio":
+                _RESOLVED_API_MODEL.pop(f"{cfg['base_url']}|{cfg['model']}", None)
+                model = _resolve_api_model(cfg, refresh=True)
+                payload["model"] = model
+                response = await client.post(url, headers=headers, json=payload)
+                try:
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as retry_exc:
+                    raise LLMNotConfiguredError("Embedding", hint=_embedding_api_error_hint(cfg, retry_exc)) from retry_exc
+            else:
+                raise LLMNotConfiguredError("Embedding", hint=_embedding_api_error_hint(cfg, exc)) from exc
         data = response.json()
 
     items = sorted(data["data"], key=lambda x: x["index"])

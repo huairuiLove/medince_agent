@@ -69,6 +69,7 @@ embedding:
   provider: lmstudio
   api_key: lm-studio
   base_url: http://localhost:1234/v1
+  # 短名即可；LM Studio 会自动解析为 text-embedding-nomic-embed-text-v1.5@...
   model: nomic-embed-text
   timeout: 60
   query_prefix: ''
