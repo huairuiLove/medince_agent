@@ -2,6 +2,7 @@ import type {
   AgentInfo,
   AlertDecisionAction,
   CaseLog,
+  CaseSummary,
   CaseTemplate,
   ClarifyOutput,
   ClinicalReport,

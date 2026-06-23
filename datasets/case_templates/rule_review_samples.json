@@ -39,22 +39,57 @@
           "current_medications": [
             {
               "name": "warfarin",
-              "dose": "5mg"
+              "dose": "5mg",
+              "ingredient": "warfarin",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "aspirin",
-              "dose": "81mg"
+              "dose": "81mg",
+              "ingredient": "aspirin",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "department": "cardiology"
+          "department": "cardiology",
+          "source_text": "67岁男性，房颤长期华法林及阿司匹林，因胸痛拟加布洛芬。",
+          "chief_complaint": "胸痛",
+          "diagnoses": [
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            },
+            {
+              "icd9_code": "410.71",
+              "name": "急性冠脉综合征"
+            }
+          ],
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "history_present_illness": "胸痛 2 天，INR 2.3。",
+          "symptoms_or_complaints": [
+            "胸痛"
+          ],
+          "past_medical_history": [
+            "房颤",
+            "冠心病"
+          ],
+          "admission_type": "EMERGENCY"
         },
         "candidate_drugs": [
           {
             "name": "ibuprofen",
             "dose": "400mg",
-            "indication": "止痛"
+            "indication": "止痛",
+            "ingredient": "ibuprofen",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -78,17 +113,37 @@
           "current_medications": [
             {
               "name": "warfarin",
-              "dose": "3mg"
+              "dose": "3mg",
+              "ingredient": "warfarin",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "department": "cardiology"
+          "department": "cardiology",
+          "source_text": "72岁男性，房颤华法林抗凝，拟加阿司匹林双抗。",
+          "chief_complaint": "房颤",
+          "diagnoses": [
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            }
+          ],
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "aspirin",
-            "dose": "100mg"
+            "dose": "100mg",
+            "ingredient": "aspirin",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -112,17 +167,41 @@
           "current_medications": [
             {
               "name": "simvastatin",
-              "dose": "20mg"
+              "dose": "20mg",
+              "ingredient": "simvastatin",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "department": "infectious_disease"
+          "department": "infectious_disease",
+          "source_text": "58岁男性，高脂血症口服辛伐他汀，因肺炎拟加克拉霉素。",
+          "diagnoses": [
+            {
+              "icd9_code": "272.4",
+              "name": "高脂血症"
+            },
+            {
+              "icd9_code": "486",
+              "name": "肺炎"
+            }
+          ],
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "chief_complaint": "发热咳嗽",
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "clarithromycin",
-            "dose": "500mg"
+            "dose": "500mg",
+            "ingredient": "clarithromycin",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -149,12 +228,27 @@
             "青霉素"
           ],
           "pregnancy_status": "not_applicable",
-          "department": "infectious_disease"
+          "department": "infectious_disease",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "40岁女性，青霉素过敏史明确，拟阿莫西林抗感染。",
+          "chief_complaint": "发热",
+          "diagnoses": [
+            {
+              "icd9_code": "486",
+              "name": "肺炎"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "amoxicillin",
-            "dose": "500mg"
+            "dose": "500mg",
+            "ingredient": "amoxicillin",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -181,12 +275,27 @@
             "布洛芬"
           ],
           "pregnancy_status": "not_applicable",
-          "department": "orthopedic"
+          "department": "orthopedic",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "45岁男性，阿司匹林/NSAIDs 过敏，拟布洛芬止痛。",
+          "chief_complaint": "关节痛",
+          "diagnoses": [
+            {
+              "icd9_code": "715.90",
+              "name": "骨关节炎"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "ibuprofen",
-            "dose": "200mg"
+            "dose": "200mg",
+            "ingredient": "ibuprofen",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -208,14 +317,31 @@
           "gender": "F",
           "age": 30,
           "current_medications": [],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "pregnant",
-          "department": "obstetrics_gynecology"
+          "department": "obstetrics_gynecology",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "30岁女性，已确认妊娠，误开赖诺普利。",
+          "chief_complaint": "妊娠期高血压",
+          "diagnoses": [
+            {
+              "icd9_code": "642.3",
+              "name": "妊娠期高血压"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "lisinopril",
-            "dose": "10mg"
+            "dose": "10mg",
+            "ingredient": "lisinopril",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -237,14 +363,32 @@
           "gender": "M",
           "age": 8,
           "current_medications": [],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "department": "pediatrics"
+          "department": "pediatrics",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "8岁男童，病毒性感染后拟阿司匹林（儿童禁忌）。",
+          "chief_complaint": "发热",
+          "diagnoses": [
+            {
+              "icd9_code": "780.60",
+              "name": "发热"
+            }
+          ],
+          "weight_kg": 28.0,
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "aspirin",
-            "dose": "100mg"
+            "dose": "100mg",
+            "ingredient": "aspirin",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -268,17 +412,37 @@
           "current_medications": [
             {
               "name": "tylenol",
-              "dose": "500mg"
+              "dose": "500mg",
+              "ingredient": "tylenol",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "department": "pharmacy"
+          "department": "pharmacy",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "55岁女性，已服泰诺，再加对乙酰氨基酚。",
+          "chief_complaint": "头痛",
+          "diagnoses": [
+            {
+              "icd9_code": "784.0",
+              "name": "头痛"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "对乙酰氨基酚",
-            "dose": "500mg"
+            "dose": "500mg",
+            "ingredient": "对乙酰氨基酚",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -307,12 +471,26 @@
           "missing_fields": [
             "allergies"
           ],
-          "department": "general_internal"
+          "department": "general_internal",
+          "lactation_status": "not_lactating",
+          "source_text": "34岁女性，社区肺炎，过敏史未记录，拟阿莫西林。",
+          "chief_complaint": "发热咳嗽",
+          "diagnoses": [
+            {
+              "icd9_code": "486",
+              "name": "社区获得性肺炎"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "amoxicillin",
-            "dose": "500mg"
+            "dose": "500mg",
+            "ingredient": "amoxicillin",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -336,14 +514,31 @@
           "gender": "F",
           "age": 28,
           "current_medications": [],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "unknown",
-          "department": "obstetrics_gynecology"
+          "department": "obstetrics_gynecology",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "28岁育龄女性，高血压，妊娠状态未明，拟 ACEI。",
+          "chief_complaint": "血压升高",
+          "diagnoses": [
+            {
+              "icd9_code": "401.9",
+              "name": "高血压"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "lisinopril",
-            "dose": "10mg"
+            "dose": "10mg",
+            "ingredient": "lisinopril",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -367,17 +562,37 @@
           "current_medications": [
             {
               "name": "华法林",
-              "dose": "2.5mg"
+              "dose": "2.5mg",
+              "ingredient": "华法林",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "department": "pharmacy"
+          "department": "pharmacy",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "70岁男性，中文医嘱：华法林基础上加布洛芬。",
+          "chief_complaint": "关节痛",
+          "diagnoses": [
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "布洛芬",
-            "dose": "0.3g"
+            "dose": "0.3g",
+            "ingredient": "布洛芬",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },
@@ -402,17 +617,37 @@
           "current_medications": [
             {
               "name": "metoprolol",
-              "dose": "25mg"
+              "dose": "25mg",
+              "ingredient": "metoprolol",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "department": "general_internal"
+          "department": "general_internal",
+          "missing_fields": [],
+          "lactation_status": "not_lactating",
+          "source_text": "60岁男性，美托洛尔基础上加氯吡格雷。",
+          "chief_complaint": "PCI 术后",
+          "diagnoses": [
+            {
+              "icd9_code": "414.01",
+              "name": "冠心病"
+            }
+          ],
+          "admission_type": "INPATIENT"
         },
         "candidate_drugs": [
           {
             "name": "clopidogrel",
-            "dose": "75mg"
+            "dose": "75mg",
+            "ingredient": "clopidogrel",
+            "route": "PO",
+            "frequency": "qd",
+            "source": "candidate"
           }
         ]
       },

@@ -1,854 +1,1863 @@
 {
-  "description": "各科室默认病例模板 — 每个科室至少 1 个",
+  "description": "各科室默认病例模板 — 完整临床上下文，可直接运行规则审查",
   "cases": [
     {
       "id": "dept_respiratory_01",
-      "title": "COPD 急性加重抗感染",
-      "description": "慢阻肺急性加重，长期吸入激素基础上加用大环内酯",
+      "title": "COPD 加重：大环内酯 + 他汀",
+      "description": "慢阻肺急性加重抗感染，克拉霉素与辛伐他汀存在 CYP3A4 肌病风险",
       "department": "respiratory",
       "category": "respiratory",
       "request": {
         "patient_context": {
-          "age": 68,
+          "subject_id": 60001,
+          "hadm_id": 70001,
+          "age": 65,
           "gender": "M",
           "department": "respiratory",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "65岁男性，COPD 急性加重入院，长期吸入激素及支气管扩张剂，拟加用大环内酯抗感染；既往高脂血症口服辛伐他汀。",
+          "chief_complaint": "咳嗽、咳痰、气促加重 3 天",
+          "history_present_illness": "黄脓痰增多，活动后气促明显，无发热；吸烟史 30 包年，FEV1 预计值 45%。",
+          "symptoms_or_complaints": [
+            "咳嗽",
+            "咳痰",
+            "气促",
+            "活动耐量下降"
+          ],
+          "past_medical_history": [
+            "COPD GOLD III",
+            "高脂血症",
+            "吸烟史"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "491.21",
+              "name": "COPD 急性加重"
+            },
+            {
+              "icd9_code": "272.4",
+              "name": "高脂血症"
+            }
+          ],
           "current_medications": [
             {
               "name": "salbutamol",
-              "dose": "2 puff prn"
+              "ingredient": "salbutamol",
+              "dose": "2 puff",
+              "route": "INH",
+              "frequency": "prn"
             },
             {
               "name": "budesonide",
-              "dose": "400mcg bid"
+              "ingredient": "budesonide",
+              "dose": "400 mcg",
+              "route": "INH",
+              "frequency": "bid"
+            },
+            {
+              "name": "clarithromycin",
+              "ingredient": "clarithromycin",
+              "dose": "500 mg",
+              "route": "PO",
+              "frequency": "bid"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "weight_kg": 68.0
         },
         "candidate_drugs": [
           {
-            "name": "azithromycin",
-            "dose": "500mg",
-            "indication": "COPD 急性加重"
+            "name": "simvastatin",
+            "ingredient": "simvastatin",
+            "dose": "20 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "高脂血症",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_neurology_01",
-      "title": "抗癫痫药物加用",
-      "description": "癫痫患者丙戊酸基础上加用拉莫三嗪",
+      "title": "癫痫合并房颤：华法林 + NSAIDs",
+      "description": "癫痫/房颤患者长期抗凝，因头痛拟加用布洛芬，需评估出血风险",
       "department": "neurology",
       "category": "neurology",
       "request": {
         "patient_context": {
-          "age": 28,
-          "gender": "F",
+          "subject_id": 60002,
+          "hadm_id": 70002,
+          "age": 55,
+          "gender": "M",
           "department": "neurology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "55岁男性，癫痫及非瓣膜性房颤病史，长期丙戊酸及华法林治疗；近期反复头痛，拟短期使用 NSAIDs。",
+          "chief_complaint": "反复头痛 1 周",
+          "history_present_illness": "头痛以双侧颞部胀痛为主，VAS 5/10，无呕吐及意识障碍；INR 近期 2.3。",
+          "symptoms_or_complaints": [
+            "头痛",
+            "偶发头晕"
+          ],
+          "past_medical_history": [
+            "癫痫",
+            "非瓣膜性房颤",
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "345.90",
+              "name": "癫痫"
+            },
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            }
+          ],
           "current_medications": [
             {
               "name": "valproate",
-              "dose": "500mg bid"
+              "ingredient": "valproate",
+              "dose": "500 mg",
+              "route": "PO",
+              "frequency": "bid"
+            },
+            {
+              "name": "warfarin",
+              "ingredient": "warfarin",
+              "dose": "3 mg",
+              "route": "PO",
+              "frequency": "qd"
+            },
+            {
+              "name": "levetiracetam",
+              "ingredient": "levetiracetam",
+              "dose": "500 mg",
+              "route": "PO",
+              "frequency": "bid"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
-            "name": "lamotrigine",
-            "dose": "25mg",
-            "indication": "癫痫"
+            "name": "ibuprofen",
+            "ingredient": "ibuprofen",
+            "dose": "400 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "头痛",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_neurosurgery_01",
-      "title": "围术期抗凝桥接",
-      "description": "颅脑肿瘤术前，华法林需桥接低分子肝素",
+      "title": "颅脑肿瘤术前抗凝桥接",
+      "description": "脑膜瘤术前，华法林需桥接低分子肝素，评估出血与血栓风险",
       "department": "neurosurgery",
       "category": "neurosurgery",
       "request": {
         "patient_context": {
+          "subject_id": 60003,
+          "hadm_id": 70003,
           "age": 55,
           "gender": "M",
           "department": "neurosurgery",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "ELECTIVE",
+          "source_text": "55岁男性，左侧颅脑占位拟行手术切除，长期服用华法林（机械瓣膜置换术后），术前需抗凝桥接。",
+          "chief_complaint": "发现颅内占位 2 月，拟手术",
+          "history_present_illness": "MRI 提示脑膜瘤，无急性神经功能缺损；末次 INR 2.8。",
+          "symptoms_or_complaints": [
+            "偶发头痛"
+          ],
+          "past_medical_history": [
+            "机械瓣膜置换",
+            "脑膜瘤",
+            "癫痫"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "225.2",
+              "name": "脑膜瘤"
+            },
+            {
+              "icd9_code": "V43.3",
+              "name": "机械心脏瓣膜"
+            }
+          ],
           "current_medications": [
             {
               "name": "warfarin",
-              "dose": "5mg"
+              "ingredient": "warfarin",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "levetiracetam",
-              "dose": "500mg bid"
+              "ingredient": "levetiracetam",
+              "dose": "500 mg",
+              "route": "PO",
+              "frequency": "bid"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "enoxaparin",
-            "dose": "40mg",
-            "indication": "术前抗凝桥接"
+            "ingredient": "enoxaparin",
+            "dose": "40 mg",
+            "route": "SC",
+            "frequency": "bid",
+            "indication": "术前抗凝桥接",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_radiology_01",
-      "title": "造影前二甲双胍暂停",
-      "description": "糖尿病拟行 CT 增强，需评估二甲双胍",
+      "title": "CT 增强前二甲双胍评估",
+      "description": "2 型糖尿病拟行碘造影 CT，需评估二甲双胍与造影剂联用风险",
       "department": "radiology",
       "category": "radiology",
       "request": {
         "patient_context": {
+          "subject_id": 60004,
+          "hadm_id": 70004,
           "age": 62,
           "gender": "F",
           "department": "radiology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "62岁女性，2 型糖尿病及高血压，长期二甲双胍控制血糖；因肺部阴影拟行 CT 增强扫描。",
+          "chief_complaint": "体检发现肺部阴影",
+          "history_present_illness": "HbA1c 7.2%，eGFR 58；无造影剂过敏史。",
+          "symptoms_or_complaints": [],
+          "past_medical_history": [
+            "2 型糖尿病",
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "250.00",
+              "name": "2 型糖尿病"
+            },
+            {
+              "icd9_code": "401.9",
+              "name": "高血压"
+            }
+          ],
           "current_medications": [
             {
               "name": "metformin",
-              "dose": "850mg bid"
+              "ingredient": "metformin",
+              "dose": "850 mg",
+              "route": "PO",
+              "frequency": "bid"
             },
             {
               "name": "lisinopril",
-              "dose": "10mg"
+              "ingredient": "lisinopril",
+              "dose": "10 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 58.0
         },
         "candidate_drugs": [
           {
             "name": "iohexol",
-            "dose": "350mgI/ml",
-            "indication": "CT 增强造影"
+            "ingredient": "iohexol",
+            "dose": "350 mgI/ml",
+            "route": "IV",
+            "frequency": "once",
+            "indication": "CT 增强造影",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_cardiology_01",
-      "title": "心衰多药联用审查",
-      "description": "心衰+房颤+CKD，新增胺碘酮",
+      "title": "心衰房颤 CKD：加用胺碘酮",
+      "description": "心衰+房颤+CKD3 期多药联用，新增胺碘酮需审查 QT/地高辛/抗凝相互作用",
       "department": "cardiology",
       "category": "cardiology",
       "request": {
         "patient_context": {
+          "subject_id": 60005,
+          "hadm_id": 70005,
           "age": 72,
           "gender": "M",
           "department": "cardiology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "72岁男性，慢性心衰、持续性房颤及 CKD3 期，长期地高辛、利尿剂、华法林及螺内酯治疗；房颤心室率控制不佳，拟加用胺碘酮。",
+          "chief_complaint": "气促、心悸加重",
+          "history_present_illness": "BNP 890 pg/ml，LVEF 35%，eGFR 42；无甲状腺功能异常史。",
+          "symptoms_or_complaints": [
+            "气促",
+            "心悸",
+            "下肢水肿"
+          ],
+          "past_medical_history": [
+            "慢性心衰",
+            "房颤",
+            "CKD3",
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "428.0",
+              "name": "充血性心力衰竭"
+            },
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            },
+            {
+              "icd9_code": "585.3",
+              "name": "慢性肾病 3 期"
+            }
+          ],
           "current_medications": [
             {
               "name": "digoxin",
-              "dose": "0.125mg"
+              "ingredient": "digoxin",
+              "dose": "0.125 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "furosemide",
-              "dose": "40mg"
+              "ingredient": "furosemide",
+              "dose": "40 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "warfarin",
-              "dose": "3mg"
+              "ingredient": "warfarin",
+              "dose": "3 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "spironolactone",
-              "dose": "20mg"
+              "ingredient": "spironolactone",
+              "dose": "20 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 42.0,
+          "weight_kg": 74.0
         },
         "candidate_drugs": [
           {
             "name": "amiodarone",
-            "dose": "200mg",
-            "indication": "房颤节律控制"
+            "ingredient": "amiodarone",
+            "dose": "200 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "房颤节律控制",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_gastroenterology_01",
-      "title": "PPI 与氯吡格雷",
-      "description": "消化性溃疡史，双抗基础上加 PPI",
+      "title": "双抗 + PPI：氯吡格雷 CYP2C19",
+      "description": "PCI 后双联抗血小板，加用奥美拉唑可能影响氯吡格雷代谢",
       "department": "gastroenterology",
       "category": "gastroenterology",
       "request": {
         "patient_context": {
+          "subject_id": 60006,
+          "hadm_id": 70006,
           "age": 58,
           "gender": "M",
           "department": "gastroenterology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "58岁男性，PCI 术后双联抗血小板，既往消化性溃疡史；为预防溃疡复发拟加用 PPI。",
+          "chief_complaint": "PCI 术后上腹不适",
+          "history_present_illness": "支架植入 2 周，偶有烧心；无黑便及呕血。",
+          "symptoms_or_complaints": [
+            "烧心",
+            "上腹不适"
+          ],
+          "past_medical_history": [
+            "冠心病 PCI",
+            "消化性溃疡史"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "414.01",
+              "name": "冠心病 PCI 后"
+            },
+            {
+              "icd9_code": "531.90",
+              "name": "消化性溃疡史"
+            }
+          ],
           "current_medications": [
             {
               "name": "aspirin",
-              "dose": "100mg"
+              "ingredient": "aspirin",
+              "dose": "100 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "clopidogrel",
-              "dose": "75mg"
+              "ingredient": "clopidogrel",
+              "dose": "75 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "omeprazole",
-            "dose": "20mg",
-            "indication": "溃疡预防"
+            "ingredient": "omeprazole",
+            "dose": "20 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "溃疡预防",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_oncology_01",
-      "title": "化疗 DDI 审查",
-      "description": "顺铂方案联用强 CYP3A4 抑制剂",
+      "title": "化疗 DDI：顺铂 + 酮康唑",
+      "description": "顺铂方案联用强 CYP3A4 抑制剂酮康唑，需评估毒性叠加",
       "department": "oncology",
       "category": "oncology",
       "request": {
         "patient_context": {
+          "subject_id": 60007,
+          "hadm_id": 70007,
           "age": 58,
           "gender": "M",
           "department": "oncology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "58岁男性，非小细胞肺癌接受含顺铂化疗，因真菌感染预防拟加用酮康唑。",
+          "chief_complaint": "肺癌化疗第 2 周期",
+          "history_present_illness": "化疗耐受尚可，中性粒细胞 2.1×10⁹/L；既往无肝肾功能衰竭。",
+          "symptoms_or_complaints": [
+            "乏力",
+            "轻度恶心"
+          ],
+          "past_medical_history": [
+            "非小细胞肺癌",
+            "化疗中"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "162.9",
+              "name": "非小细胞肺癌"
+            }
+          ],
           "current_medications": [
             {
               "name": "cisplatin",
-              "dose": "75mg/m2"
+              "ingredient": "cisplatin",
+              "dose": "75 mg/m²",
+              "route": "IV",
+              "frequency": "q3w"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 78.0
         },
         "candidate_drugs": [
           {
             "name": "ketoconazole",
-            "dose": "200mg",
-            "indication": "真菌预防"
+            "ingredient": "ketoconazole",
+            "dose": "200 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "真菌感染预防",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_emergency_01",
-      "title": "急诊阿片+苯二氮卓",
-      "description": "急性创伤镇痛，吗啡联用地西泮",
+      "title": "急诊阿片 + 苯二氮卓",
+      "description": "多发伤镇痛镇静，吗啡联用地西泮存在呼吸抑制风险",
       "department": "emergency",
       "category": "emergency",
       "request": {
         "patient_context": {
+          "subject_id": 60008,
+          "hadm_id": 70008,
           "age": 45,
           "gender": "M",
           "department": "emergency",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "EMERGENCY",
+          "source_text": "45岁男性，交通事故多发伤，肋骨骨折及软组织损伤，急诊需镇痛镇静处理。",
+          "chief_complaint": "车祸伤后剧烈疼痛",
+          "history_present_illness": "右侧肋骨骨折 3 根，SpO₂ 96%，意识清楚；无药物过敏史。",
+          "symptoms_or_complaints": [
+            "胸痛",
+            "活动痛加重",
+            "焦虑"
+          ],
+          "past_medical_history": [],
+          "diagnoses": [
+            {
+              "icd9_code": "807.05",
+              "name": "肋骨骨折"
+            },
+            {
+              "icd9_code": "959.9",
+              "name": "多发伤"
+            }
+          ],
           "current_medications": [],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "morphine",
-            "dose": "5mg IV",
-            "indication": "急性疼痛"
+            "ingredient": "morphine",
+            "dose": "5 mg",
+            "route": "IV",
+            "frequency": "stat",
+            "indication": "急性疼痛",
+            "source": "candidate"
+          },
+          {
+            "name": "diazepam",
+            "ingredient": "diazepam",
+            "dose": "5 mg",
+            "route": "IV",
+            "frequency": "stat",
+            "indication": "焦虑/镇静",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_pharmacy_01",
-      "title": "高警示药品审查",
-      "description": "临床药师会诊：华法林+NSAIDs 出血风险",
+      "title": "高警示：华法林 + NSAIDs",
+      "description": "临床药师会诊：房颤抗凝患者加用布洛芬的出血风险审查",
       "department": "pharmacy",
       "category": "pharmacy",
       "request": {
         "patient_context": {
+          "subject_id": 60009,
+          "hadm_id": 70009,
           "age": 67,
           "gender": "M",
           "department": "pharmacy",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "67岁男性，房颤长期华法林及小剂量阿司匹林，因膝关节骨关节炎疼痛骨科建议 NSAIDs。",
+          "chief_complaint": "膝关节痛要求止痛",
+          "history_present_illness": "INR 2.5，无活动性出血；膝 OA 影像学明确。",
+          "symptoms_or_complaints": [
+            "膝关节痛",
+            "活动受限"
+          ],
+          "past_medical_history": [
+            "房颤",
+            "骨关节炎"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            },
+            {
+              "icd9_code": "715.96",
+              "name": "膝骨关节炎"
+            }
+          ],
           "current_medications": [
             {
               "name": "warfarin",
-              "dose": "5mg"
+              "ingredient": "warfarin",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "aspirin",
-              "dose": "81mg"
+              "ingredient": "aspirin",
+              "dose": "81 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "ibuprofen",
-            "dose": "400mg",
-            "indication": "止痛"
+            "ingredient": "ibuprofen",
+            "dose": "400 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "骨关节炎疼痛",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_general_internal_01",
-      "title": "高血压联合用药",
-      "description": "普通内科住院，CCB 基础上加 ACEI",
+      "title": "高血压联合用药（阴性对照）",
+      "description": "标准 CCB+ACEI 联合降压，信息完整，预期无高风险命中",
       "department": "general_internal",
       "category": "general_internal",
       "request": {
         "patient_context": {
+          "subject_id": 60010,
+          "hadm_id": 70010,
           "age": 55,
           "gender": "M",
           "department": "general_internal",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "55岁男性，原发性高血压，氨氯地平控制欠佳，拟加用 ACEI 联合降压。",
+          "chief_complaint": "血压控制不佳",
+          "history_present_illness": "家庭血压 150/95 mmHg，无蛋白尿及血钾异常；eGFR 85。",
+          "symptoms_or_complaints": [],
+          "past_medical_history": [
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "401.9",
+              "name": "原发性高血压"
+            }
+          ],
           "current_medications": [
             {
               "name": "amlodipine",
-              "dose": "5mg"
+              "ingredient": "amlodipine",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 85.0
         },
         "candidate_drugs": [
           {
             "name": "lisinopril",
-            "dose": "10mg",
-            "indication": "高血压"
+            "ingredient": "lisinopril",
+            "dose": "10 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "高血压",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_nephrology_01",
-      "title": "CKD 高钾风险",
-      "description": "CKD4 期，ACEI+螺内酯联用",
+      "title": "CKD4：ACEI + 螺内酯",
+      "description": "CKD4 期蛋白尿，拟加用螺内酯，需评估高钾及肾功能风险",
       "department": "nephrology",
       "category": "nephrology",
       "request": {
         "patient_context": {
+          "subject_id": 60011,
+          "hadm_id": 70011,
           "age": 64,
           "gender": "F",
           "department": "nephrology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "64岁女性，CKD4 期糖尿病肾病，已用 ACEI 及袢利尿剂；尿蛋白 2.1 g/24h，拟加用螺内酯。",
+          "chief_complaint": "蛋白尿、水肿",
+          "history_present_illness": "血钾 4.6 mmol/L，eGFR 22；无急性心衰表现。",
+          "symptoms_or_complaints": [
+            "下肢水肿",
+            "泡沫尿"
+          ],
+          "past_medical_history": [
+            "糖尿病肾病",
+            "CKD4"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "585.4",
+              "name": "慢性肾病 4 期"
+            },
+            {
+              "icd9_code": "250.40",
+              "name": "糖尿病肾病"
+            }
+          ],
           "current_medications": [
             {
               "name": "lisinopril",
-              "dose": "10mg"
+              "ingredient": "lisinopril",
+              "dose": "10 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "furosemide",
-              "dose": "40mg"
+              "ingredient": "furosemide",
+              "dose": "40 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 22.0
         },
         "candidate_drugs": [
           {
             "name": "spironolactone",
-            "dose": "25mg",
-            "indication": "蛋白尿"
+            "ingredient": "spironolactone",
+            "dose": "25 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "蛋白尿/心衰",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_endocrinology_01",
-      "title": "糖尿病二甲双胍审查",
-      "description": "2 型糖尿病，eGFR 偏低评估二甲双胍",
+      "title": "低 eGFR 二甲双胍禁忌",
+      "description": "2 型糖尿病 eGFR<30，二甲双胍存在乳酸酸中毒风险",
       "department": "endocrinology",
       "category": "endocrinology",
       "request": {
         "patient_context": {
-          "age": 58,
+          "subject_id": 60012,
+          "hadm_id": 70012,
+          "age": 65,
           "gender": "F",
           "department": "endocrinology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "65岁女性，2 型糖尿病 10 年，磺脲类控制欠佳；eGFR 25，内分泌科拟加用二甲双胍。",
+          "chief_complaint": "血糖控制不佳",
+          "history_present_illness": "HbA1c 8.4%，无酮症；已接受糖尿病教育。",
+          "symptoms_or_complaints": [
+            "多饮",
+            "乏力"
+          ],
+          "past_medical_history": [
+            "2 型糖尿病",
+            "糖尿病肾病"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "250.00",
+              "name": "2 型糖尿病"
+            },
+            {
+              "icd9_code": "585.4",
+              "name": "CKD4"
+            }
+          ],
           "current_medications": [
             {
               "name": "glibenclamide",
-              "dose": "5mg"
+              "ingredient": "glibenclamide",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 25.0
         },
         "candidate_drugs": [
           {
             "name": "metformin",
-            "dose": "850mg bid",
-            "indication": "2 型糖尿病"
+            "ingredient": "metformin",
+            "dose": "850 mg",
+            "route": "PO",
+            "frequency": "bid",
+            "indication": "2 型糖尿病",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_hematology_01",
-      "title": "抗凝+抗血小板",
-      "description": "血液科患者华法林基础上加氯吡格雷",
+      "title": "华法林 + 氯吡格雷",
+      "description": "血液科患者抗凝基础上加用抗血小板，出血风险显著升高",
       "department": "hematology",
       "category": "hematology",
       "request": {
         "patient_context": {
+          "subject_id": 60013,
+          "hadm_id": 70013,
           "age": 60,
           "gender": "M",
           "department": "hematology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "60岁男性，原发免疫性血小板减少，合并房颤长期华法林；因 ACS 风险拟加用氯吡格雷。",
+          "chief_complaint": "血小板减少合并房颤",
+          "history_present_illness": "PLT 45×10⁹/L，INR 2.1；无活动性出血。",
+          "symptoms_or_complaints": [
+            "皮肤瘀斑"
+          ],
+          "past_medical_history": [
+            "ITP",
+            "房颤"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "287.31",
+              "name": "免疫性血小板减少症"
+            },
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            }
+          ],
           "current_medications": [
             {
               "name": "warfarin",
-              "dose": "5mg"
+              "ingredient": "warfarin",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "clopidogrel",
-            "dose": "75mg",
-            "indication": "血小板减少症相关"
+            "ingredient": "clopidogrel",
+            "dose": "75 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "抗血小板",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_geriatrics_01",
-      "title": "老年多重用药",
-      "description": "80 岁多病共存，新增苯二氮卓",
+      "title": "老年多重用药 + 苯二氮卓",
+      "description": "80 岁多病共存，新增劳拉西泮需评估 Beers 准则及跌倒风险",
       "department": "geriatrics",
       "category": "geriatrics",
       "request": {
         "patient_context": {
+          "subject_id": 60014,
+          "hadm_id": 70014,
           "age": 80,
           "gender": "F",
           "department": "geriatrics",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "INPATIENT",
+          "source_text": "80岁女性，高血压、阿尔茨海默病及失眠，长期多种心血管药物；家属要求加用苯二氮卓助眠。",
+          "chief_complaint": "失眠、夜间游走",
+          "history_present_illness": "MMSE 18 分，近 6 月跌倒 1 次；血压 138/78 mmHg。",
+          "symptoms_or_complaints": [
+            "失眠",
+            "夜间定向力下降"
+          ],
+          "past_medical_history": [
+            "高血压",
+            "阿尔茨海默病",
+            "跌倒史"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "401.9",
+              "name": "高血压"
+            },
+            {
+              "icd9_code": "331.0",
+              "name": "阿尔茨海默病"
+            },
+            {
+              "icd9_code": "780.52",
+              "name": "失眠"
+            }
+          ],
           "current_medications": [
             {
               "name": "metoprolol",
-              "dose": "25mg"
+              "ingredient": "metoprolol",
+              "dose": "25 mg",
+              "route": "PO",
+              "frequency": "bid"
             },
             {
               "name": "amlodipine",
-              "dose": "5mg"
+              "ingredient": "amlodipine",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "donepezil",
-              "dose": "5mg"
+              "ingredient": "donepezil",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "weight_kg": 52.0
         },
         "candidate_drugs": [
           {
             "name": "lorazepam",
-            "dose": "0.5mg",
-            "indication": "失眠"
+            "ingredient": "lorazepam",
+            "dose": "0.5 mg",
+            "route": "PO",
+            "frequency": "hs",
+            "indication": "失眠",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_rheumatology_01",
-      "title": "MTX 与 NSAIDs",
-      "description": "类风湿关节炎，MTX 基础上加布洛芬",
+      "title": "MTX + NSAIDs",
+      "description": "类风湿关节炎，甲氨蝶呤基础上加用布洛芬，需评估 GI/骨髓毒性",
       "department": "rheumatology",
       "category": "rheumatology",
       "request": {
         "patient_context": {
+          "subject_id": 60015,
+          "hadm_id": 70015,
           "age": 52,
           "gender": "F",
           "department": "rheumatology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "52岁女性，RA 活动期，每周甲氨蝶呤及叶酸；因膝关节肿痛拟短期 NSAIDs。",
+          "chief_complaint": "关节肿痛加重",
+          "history_present_illness": "DAS28 4.2，CRP 28 mg/L；肝肾功能正常。",
+          "symptoms_or_complaints": [
+            "关节肿痛",
+            "晨僵"
+          ],
+          "past_medical_history": [
+            "类风湿关节炎"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "714.0",
+              "name": "类风湿关节炎"
+            }
+          ],
           "current_medications": [
             {
               "name": "methotrexate",
-              "dose": "15mg weekly"
+              "ingredient": "methotrexate",
+              "dose": "15 mg",
+              "route": "PO",
+              "frequency": "weekly"
             },
             {
               "name": "folic acid",
-              "dose": "5mg"
+              "ingredient": "folic acid",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "weekly"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "ibuprofen",
-            "dose": "400mg",
-            "indication": "关节痛"
+            "ingredient": "ibuprofen",
+            "dose": "400 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "关节痛",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_infectious_disease_01",
-      "title": "抗感染过敏史缺失",
-      "description": "社区肺炎，阿莫西林候选，过敏史未知",
+      "title": "青霉素过敏 + 阿莫西林",
+      "description": "社区肺炎候选阿莫西林，明确青霉素过敏史，应触发过敏禁忌",
       "department": "infectious_disease",
       "category": "infectious_disease",
       "request": {
         "patient_context": {
+          "subject_id": 60016,
+          "hadm_id": 70016,
           "age": 34,
           "gender": "F",
           "department": "infectious_disease",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "URGENT",
+          "source_text": "34岁女性，社区获得性肺炎，既往青霉素过敏（皮疹）；拟经验性阿莫西林抗感染。",
+          "chief_complaint": "发热咳嗽 3 天",
+          "history_present_illness": "体温 38.5℃，咳黄痰；胸片右下肺浸润影。",
+          "symptoms_or_complaints": [
+            "发热",
+            "咳嗽",
+            "咳痰"
+          ],
+          "past_medical_history": [
+            "青霉素过敏"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "486",
+              "name": "社区获得性肺炎"
+            }
+          ],
           "current_medications": [],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "penicillin",
+            "青霉素"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "amoxicillin",
-            "dose": "500mg tid",
-            "indication": "社区获得性肺炎"
+            "ingredient": "amoxicillin",
+            "dose": "500 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "社区获得性肺炎",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_obstetrics_gynecology_01",
-      "title": "妊娠期高血压",
-      "description": "妊娠 32 周，新增甲基多巴",
+      "title": "妊娠期 ACEI 禁忌",
+      "description": "妊娠 32 周合并高血压，误开赖诺普利需触发妊娠禁忌",
       "department": "obstetrics_gynecology",
       "category": "obstetrics_gynecology",
       "request": {
         "patient_context": {
+          "subject_id": 60017,
+          "hadm_id": 70017,
           "age": 28,
           "gender": "F",
           "department": "obstetrics_gynecology",
-          "pregnancy_status": "pregnant",
+          "admission_type": "INPATIENT",
+          "source_text": "28岁女性，G1P0，妊娠 32 周，妊娠期高血压；门诊误开 ACEI，产科会诊用药安全。",
+          "chief_complaint": "妊娠 32 周，血压升高",
+          "history_present_illness": "BP 158/98 mmHg，尿蛋白阴性，无子痫症状；已补叶酸。",
+          "symptoms_or_complaints": [
+            "头痛",
+            "血压高"
+          ],
+          "past_medical_history": [
+            "妊娠期高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "642.3",
+              "name": "妊娠期高血压"
+            },
+            {
+              "icd9_code": "V22.2",
+              "name": "妊娠 32 周"
+            }
+          ],
           "current_medications": [
             {
               "name": "folic acid",
-              "dose": "5mg"
+              "ingredient": "folic acid",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "pregnant",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
-            "name": "methyldopa",
-            "dose": "250mg bid",
-            "indication": "妊娠期高血压"
+            "name": "lisinopril",
+            "ingredient": "lisinopril",
+            "dose": "10 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "高血压",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_pediatrics_01",
-      "title": "儿童抗生素选择",
-      "description": "8 岁儿童急性中耳炎",
+      "title": "儿童氟喹诺酮禁忌",
+      "description": "8 岁儿童急性中耳炎，候选左氧氟沙星需评估年龄禁忌",
       "department": "pediatrics",
       "category": "pediatrics",
       "request": {
         "patient_context": {
+          "subject_id": 60018,
+          "hadm_id": 70018,
           "age": 8,
           "gender": "M",
           "department": "pediatrics",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "URGENT",
+          "source_text": "8岁男童，急性中耳炎，阿莫西林过敏；急诊备选左氧氟沙星。",
+          "chief_complaint": "耳痛发热 2 天",
+          "history_present_illness": "鼓膜充血，体温 38.2℃；体重 28 kg。",
+          "symptoms_or_complaints": [
+            "耳痛",
+            "发热"
+          ],
+          "past_medical_history": [
+            "阿莫西林过敏"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "382.9",
+              "name": "急性中耳炎"
+            }
+          ],
           "current_medications": [],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "amoxicillin"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "weight_kg": 28.0
         },
         "candidate_drugs": [
           {
-            "name": "amoxicillin",
-            "dose": "25mg/kg bid",
-            "indication": "急性中耳炎"
+            "name": "levofloxacin",
+            "ingredient": "levofloxacin",
+            "dose": "10 mg/kg",
+            "route": "PO",
+            "frequency": "bid",
+            "indication": "急性中耳炎",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_orthopedic_01",
-      "title": "围术期 NSAIDs",
-      "description": "骨科术后，华法林基础上加布洛芬",
+      "title": "骨科术后 NSAIDs + 抗凝",
+      "description": "全膝置换术后华法林抗凝，拟加用布洛芬止痛",
       "department": "orthopedic",
       "category": "orthopedic",
       "request": {
         "patient_context": {
+          "subject_id": 60019,
+          "hadm_id": 70019,
           "age": 70,
           "gender": "M",
           "department": "orthopedic",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "POSTOP",
+          "source_text": "70岁男性，全膝置换术后第 3 天，房颤长期华法林；术后疼痛明显，拟 NSAIDs 止痛。",
+          "chief_complaint": "术后膝痛",
+          "history_present_illness": "INR 2.4，切口无渗血；VAS 7/10。",
+          "symptoms_or_complaints": [
+            "膝痛",
+            "活动痛"
+          ],
+          "past_medical_history": [
+            "房颤",
+            "膝 OA"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "715.96",
+              "name": "膝骨关节炎"
+            },
+            {
+              "icd9_code": "V43.65",
+              "name": "全膝置换术后"
+            }
+          ],
           "current_medications": [
             {
               "name": "warfarin",
-              "dose": "3mg"
+              "ingredient": "warfarin",
+              "dose": "3 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "ibuprofen",
-            "dose": "400mg",
-            "indication": "术后止痛"
+            "ingredient": "ibuprofen",
+            "dose": "400 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "术后止痛",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_urology_01",
-      "title": "α 阻滞剂+降压",
-      "description": "良性前列腺增生，坦索罗辛+多沙唑嗪",
+      "title": "双重 α 阻滞剂",
+      "description": "BPH 已用坦索罗辛，再加多沙唑嗪存在低血压叠加风险",
       "department": "urology",
       "category": "urology",
       "request": {
         "patient_context": {
+          "subject_id": 60020,
+          "hadm_id": 70020,
           "age": 65,
           "gender": "M",
           "department": "urology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "65岁男性，BPH 长期坦索罗辛，夜尿仍 3 次；泌尿科拟加用多沙唑嗪。",
+          "chief_complaint": "排尿困难、夜尿",
+          "history_present_illness": "IPSS 22 分，PSA 2.8 ng/ml；血压 128/76 mmHg。",
+          "symptoms_or_complaints": [
+            "排尿费力",
+            "夜尿"
+          ],
+          "past_medical_history": [
+            "良性前列腺增生"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "600.00",
+              "name": "良性前列腺增生"
+            }
+          ],
           "current_medications": [
             {
               "name": "tamsulosin",
-              "dose": "0.4mg"
+              "ingredient": "tamsulosin",
+              "dose": "0.4 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "doxazosin",
-            "dose": "2mg",
-            "indication": "BPH"
+            "ingredient": "doxazosin",
+            "dose": "2 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "BPH",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_icu_01",
-      "title": "ICU 镇静镇痛",
-      "description": "机械通气患者，丙泊酚+芬太尼",
+      "title": "ICU 镇静镇痛联用",
+      "description": "机械通气患者，丙泊酚+芬太尼联用需审查呼吸抑制及 DDI",
       "department": "icu",
       "category": "icu",
       "request": {
         "patient_context": {
+          "subject_id": 60021,
+          "hadm_id": 70021,
           "age": 48,
           "gender": "M",
           "department": "icu",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "ICU",
+          "source_text": "48岁男性，ARDS 机械通气，升压药维持血压；拟丙泊酚镇静联合芬太尼镇痛。",
+          "chief_complaint": "ARDS 机械通气",
+          "history_present_illness": "PaO₂/FiO₂ 120，RASS -2 目标；已用去甲肾及万古霉素。",
+          "symptoms_or_complaints": [
+            "低氧",
+            "镇静需求"
+          ],
+          "past_medical_history": [
+            "ARDS",
+            "肺炎"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "518.81",
+              "name": "ARDS"
+            },
+            {
+              "icd9_code": "486",
+              "name": "肺炎"
+            }
+          ],
           "current_medications": [
             {
               "name": "norepinephrine",
-              "dose": "0.1mcg/kg/min"
+              "ingredient": "norepinephrine",
+              "dose": "0.1 mcg/kg/min",
+              "route": "IV",
+              "frequency": "continuous"
             },
             {
               "name": "vancomycin",
-              "dose": "1g"
+              "ingredient": "vancomycin",
+              "dose": "1 g",
+              "route": "IV",
+              "frequency": "q12h"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "weight_kg": 75.0
         },
         "candidate_drugs": [
           {
             "name": "propofol",
-            "dose": "50mg/h",
-            "indication": "镇静"
+            "ingredient": "propofol",
+            "dose": "50 mg/h",
+            "route": "IV",
+            "frequency": "continuous",
+            "indication": "镇静",
+            "source": "candidate"
+          },
+          {
+            "name": "fentanyl",
+            "ingredient": "fentanyl",
+            "dose": "50 mcg/h",
+            "route": "IV",
+            "frequency": "continuous",
+            "indication": "镇痛",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_anesthesiology_01",
-      "title": "麻醉诱导用药",
-      "description": "全麻诱导，咪达唑仑+芬太尼",
+      "title": "全麻诱导：咪达唑仑 + 芬太尼",
+      "description": "全麻诱导联合用药，审查呼吸抑制及相互作用",
       "department": "anesthesiology",
       "category": "anesthesiology",
       "request": {
         "patient_context": {
+          "subject_id": 60022,
+          "hadm_id": 70022,
           "age": 50,
           "gender": "F",
           "department": "anesthesiology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "PREOP",
+          "source_text": "50岁女性，腹腔镜胆囊切除术，全麻诱导拟咪达唑仑+芬太尼；术前已给昂丹司琼。",
+          "chief_complaint": "胆囊结石拟手术",
+          "history_present_illness": "ASA II，气道评估 Mallampati II；无哮喘及药物过敏。",
+          "symptoms_or_complaints": [],
+          "past_medical_history": [
+            "胆囊结石"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "574.20",
+              "name": "胆囊结石"
+            },
+            {
+              "icd9_code": "V72.84",
+              "name": "术前评估"
+            }
+          ],
           "current_medications": [
             {
               "name": "ondansetron",
-              "dose": "4mg"
+              "ingredient": "ondansetron",
+              "dose": "4 mg",
+              "route": "IV",
+              "frequency": "stat"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "weight_kg": 62.0
         },
         "candidate_drugs": [
           {
             "name": "midazolam",
-            "dose": "2mg IV",
-            "indication": "麻醉诱导"
+            "ingredient": "midazolam",
+            "dose": "2 mg",
+            "route": "IV",
+            "frequency": "stat",
+            "indication": "麻醉诱导",
+            "source": "candidate"
+          },
+          {
+            "name": "fentanyl",
+            "ingredient": "fentanyl",
+            "dose": "100 mcg",
+            "route": "IV",
+            "frequency": "stat",
+            "indication": "麻醉诱导",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_psychiatry_01",
-      "title": "SSRI+苯二氮卓",
-      "description": "抑郁焦虑共病，舍曲林+劳拉西泮",
+      "title": "SSRI + 苯二氮卓",
+      "description": "抑郁焦虑共病，舍曲林基础上加用劳拉西泮，审查 Sedation/Beers",
       "department": "psychiatry",
       "category": "psychiatry",
       "request": {
         "patient_context": {
+          "subject_id": 60023,
+          "hadm_id": 70023,
           "age": 35,
           "gender": "F",
           "department": "psychiatry",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "35岁女性，抑郁焦虑共病，舍曲林治疗 4 周；急性焦虑发作，拟短期苯二氮卓。",
+          "chief_complaint": "焦虑加重、失眠",
+          "history_present_illness": "HAMD 18 分，无自杀意念；无物质滥用史。",
+          "symptoms_or_complaints": [
+            "焦虑",
+            "失眠",
+            "心悸"
+          ],
+          "past_medical_history": [
+            "抑郁症",
+            "焦虑症"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "296.32",
+              "name": "重度抑郁发作"
+            },
+            {
+              "icd9_code": "300.00",
+              "name": "焦虑障碍"
+            }
+          ],
           "current_medications": [
             {
               "name": "sertraline",
-              "dose": "50mg"
+              "ingredient": "sertraline",
+              "dose": "50 mg",
+              "route": "PO",
+              "frequency": "qd"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "lorazepam",
-            "dose": "0.5mg",
-            "indication": "焦虑"
+            "ingredient": "lorazepam",
+            "dose": "0.5 mg",
+            "route": "PO",
+            "frequency": "bid",
+            "indication": "急性焦虑",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_dermatology_01",
-      "title": "系统免疫抑制",
-      "description": "银屑病，甲氨蝶呤基础上加酮康唑",
+      "title": "MTX + NSAIDs（银屑病）",
+      "description": "银屑病系统治疗，甲氨蝶呤基础上加用布洛芬",
       "department": "dermatology",
       "category": "dermatology",
       "request": {
         "patient_context": {
+          "subject_id": 60024,
+          "hadm_id": 70024,
           "age": 42,
           "gender": "M",
           "department": "dermatology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "42岁男性，中重度斑块型银屑病，每周甲氨蝶呤；关节型皮损疼痛，拟短期布洛芬。",
+          "chief_complaint": "皮损疼痛",
+          "history_present_illness": "PASI 12，LFT 正常；无溃疡性结肠炎。",
+          "symptoms_or_complaints": [
+            "皮损疼痛",
+            "瘙痒"
+          ],
+          "past_medical_history": [
+            "银屑病"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "696.1",
+              "name": "银屑病"
+            }
+          ],
           "current_medications": [
             {
               "name": "methotrexate",
-              "dose": "15mg weekly"
+              "ingredient": "methotrexate",
+              "dose": "15 mg",
+              "route": "PO",
+              "frequency": "weekly"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
-            "name": "ketoconazole",
-            "dose": "200mg",
-            "indication": "真菌感染"
+            "name": "ibuprofen",
+            "ingredient": "ibuprofen",
+            "dose": "400 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "皮损相关疼痛",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_ophthalmology_01",
-      "title": "青光眼系统用药",
-      "description": "开角型青光眼，噻吗洛尔滴眼液+口服 β 阻滞剂",
+      "title": "噻吗洛尔滴眼液 + 口服 β 阻滞剂",
+      "description": "青光眼已用局部 β 阻滞剂，再加口服美托洛尔存在叠加风险",
       "department": "ophthalmology",
       "category": "ophthalmology",
       "request": {
         "patient_context": {
+          "subject_id": 60025,
+          "hadm_id": 70025,
           "age": 60,
           "gender": "M",
           "department": "ophthalmology",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "OUTPATIENT",
+          "source_text": "60岁男性，开角型青光眼，噻吗洛尔滴眼液控制眼压；合并高血压，心内科建议加美托洛尔。",
+          "chief_complaint": "眼压控制尚可，血压偏高",
+          "history_present_illness": "眼压 18 mmHg，BP 148/92 mmHg。",
+          "symptoms_or_complaints": [],
+          "past_medical_history": [
+            "青光眼",
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "365.11",
+              "name": "原发性开角型青光眼"
+            },
+            {
+              "icd9_code": "401.9",
+              "name": "高血压"
+            }
+          ],
           "current_medications": [
             {
               "name": "timolol",
-              "dose": "0.5% eye drops bid"
+              "ingredient": "timolol",
+              "dose": "0.5%",
+              "route": "TOP",
+              "frequency": "bid"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "metoprolol",
-            "dose": "25mg",
-            "indication": "高血压"
+            "ingredient": "metoprolol",
+            "dose": "25 mg",
+            "route": "PO",
+            "frequency": "bid",
+            "indication": "高血压",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_ent_01",
       "title": "急性咽炎抗感染",
-      "description": "急性咽炎，阿莫西林候选",
+      "description": "A 组链球菌咽炎，阿莫西林标准治疗（信息完整阴性对照）",
       "department": "ent",
       "category": "ent",
       "request": {
         "patient_context": {
+          "subject_id": 60026,
+          "hadm_id": 70026,
           "age": 26,
           "gender": "F",
           "department": "ent",
+          "admission_type": "URGENT",
+          "source_text": "26岁女性，急性咽炎，链球菌快速检测阳性；无青霉素过敏，拟阿莫西林 7 天疗程。",
+          "chief_complaint": "咽痛发热 2 天",
+          "history_present_illness": "咽部充血，扁桃体渗出；体温 37.8℃。",
+          "symptoms_or_complaints": [
+            "咽痛",
+            "发热",
+            "吞咽痛"
+          ],
+          "past_medical_history": [],
+          "diagnoses": [
+            {
+              "icd9_code": "462",
+              "name": "急性咽炎"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "loratadine",
+              "ingredient": "loratadine",
+              "dose": "10 mg",
+              "route": "PO",
+              "frequency": "qd"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
           "pregnancy_status": "not_applicable",
-          "current_medications": [],
-          "allergies": [],
-          "diagnoses": []
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "amoxicillin",
-            "dose": "500mg tid",
-            "indication": "急性咽炎"
+            "ingredient": "amoxicillin",
+            "dose": "500 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "急性咽炎",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     },
     {
       "id": "dept_rehabilitation_01",
-      "title": "康复期多重用药",
-      "description": "卒中后康复，多种心血管药物联用",
+      "title": "卒中二级预防：双抗",
+      "description": "缺血性卒中后康复，阿司匹林基础上加用氯吡格雷",
       "department": "rehabilitation",
       "category": "rehabilitation",
       "request": {
         "patient_context": {
+          "subject_id": 60027,
+          "hadm_id": 70027,
           "age": 72,
           "gender": "M",
           "department": "rehabilitation",
-          "pregnancy_status": "not_applicable",
+          "admission_type": "REHAB",
+          "source_text": "72岁男性，急性缺血性卒中后 3 周康复期，已阿司匹林及他汀；神经科建议加氯吡格雷双抗。",
+          "chief_complaint": "卒中后肢体康复",
+          "history_present_illness": "mRS 3，NIHSS 遗留轻度偏瘫；无活动性出血。",
+          "symptoms_or_complaints": [
+            "左侧肢体无力",
+            "步态不稳"
+          ],
+          "past_medical_history": [
+            "缺血性卒中",
+            "高血压",
+            "高脂血症"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "434.91",
+              "name": "缺血性卒中"
+            },
+            {
+              "icd9_code": "401.9",
+              "name": "高血压"
+            }
+          ],
           "current_medications": [
             {
               "name": "aspirin",
-              "dose": "100mg"
+              "ingredient": "aspirin",
+              "dose": "100 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "atorvastatin",
-              "dose": "20mg"
+              "ingredient": "atorvastatin",
+              "dose": "20 mg",
+              "route": "PO",
+              "frequency": "qd"
             },
             {
               "name": "metoprolol",
-              "dose": "25mg"
+              "ingredient": "metoprolol",
+              "dose": "25 mg",
+              "route": "PO",
+              "frequency": "bid"
             }
           ],
-          "allergies": [],
-          "diagnoses": []
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
         "candidate_drugs": [
           {
             "name": "clopidogrel",
-            "dose": "75mg",
-            "indication": "卒中二级预防"
+            "ingredient": "clopidogrel",
+            "dose": "75 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "卒中二级预防",
+            "source": "candidate"
           }
-        ]
+        ],
+        "persist": false
       }
     }
   ]

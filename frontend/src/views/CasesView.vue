@@ -3,25 +3,18 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { medsafeApi } from '@/api/medsafe'
+import type { CaseSummary } from '@/types'
 
 const auth = useAuthStore()
-const cases = ref<string[]>([])
+const cases = ref<CaseSummary[]>([])
 const error = ref('')
-const filter = ref<'all' | 'dept' | 'other'>('dept')
 
-const myDept = computed(() => auth.profile?.dept_id ?? '')
-
-const filteredCases = computed(() => {
-  if (filter.value === 'all') return cases.value
-  return cases.value.filter(id => {
-    const isDept = id.includes(myDept.value) || id.includes('clinical_' + myDept.value.replace('_', ''))
-    return filter.value === 'dept' ? isDept || !myDept.value : !isDept
-  })
-})
+const deptLabel = computed(() => auth.department?.name_cn ?? auth.profile?.dept_id ?? '—')
 
 onMounted(async () => {
   try {
     if (!auth.workspace) await auth.fetchMe()
+    if (!auth.profile?.dept_id) return
     cases.value = (await medsafeApi.listCases(50)).cases
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -32,40 +25,54 @@ onMounted(async () => {
 <template>
   <div>
     <h1>Case 回放</h1>
-    <p class="sub">查看历史审查记录与事件链 · 科室：{{ auth.department?.name_cn ?? '—' }}</p>
-
-    <div class="filters">
-      <button type="button" :class="{ active: filter === 'all' }" @click="filter = 'all'">All</button>
-      <button type="button" :class="{ active: filter === 'dept' }" @click="filter = 'dept'">本科室</button>
-      <button type="button" :class="{ active: filter === 'other' }" @click="filter = 'other'">其他科室</button>
-    </div>
+    <p class="sub">本科室多智能体会诊历史 · 科室：{{ deptLabel }}</p>
 
     <p v-if="error" class="err">{{ error }}</p>
-    <div v-if="filteredCases.length" class="case-list">
-      <RouterLink v-for="id in filteredCases" :key="id" :to="`/cases/${id}`" class="case-item card">
-        <code>{{ id }}</code>
-        <span>查看详情 →</span>
-      </RouterLink>
+    <p v-else-if="!auth.profile?.dept_id" class="empty">登录后可查看本科室 Case 回放</p>
+
+    <div v-else-if="cases.length" class="case-table card">
+      <table>
+        <thead>
+          <tr>
+            <th>科室</th>
+            <th>Case ID</th>
+            <th>更新时间</th>
+            <th>专家数</th>
+            <th>最终建议</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in cases" :key="item.case_id">
+            <td>{{ item.department_name_cn || deptLabel }}</td>
+            <td><code>{{ item.case_id }}</code></td>
+            <td>{{ item.updated_at || item.created_at }}</td>
+            <td>{{ item.agent_count }}</td>
+            <td class="rec">{{ item.final_recommendation || '—' }}</td>
+            <td>
+              <RouterLink :to="`/cases/${item.case_id}`" class="link">查看详情 →</RouterLink>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <p v-else-if="!error" class="empty">暂无匹配的 Case，请在会诊页提交并勾选「保存 Case Log」（需已登录）</p>
+
+    <p v-else-if="!error" class="empty">
+      本科室暂无多智能体会诊回放。完成一次「多智能体会诊」后将自动保存到此列表。
+    </p>
   </div>
 </template>
 
 <style scoped>
 .sub { color: var(--text-muted); margin-bottom: 1rem; }
-.filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-.filters button {
-  border: 1px solid var(--border); background: var(--surface-2);
-  padding: 0.3rem 0.75rem; border-radius: 999px; cursor: pointer; font-size: 0.82rem;
-}
-.filters button.active { border-color: var(--primary); color: var(--primary); }
-.case-list { display: flex; flex-direction: column; gap: 0.65rem; }
-.case-item {
-  display: flex; justify-content: space-between; align-items: center;
-  text-decoration: none; color: inherit;
-}
-.case-item:hover { border-color: var(--primary); }
-code { font-family: var(--mono); }
+.case-table { overflow-x: auto; padding: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { border-bottom: 1px solid var(--border); padding: 0.65rem 0.75rem; text-align: left; vertical-align: top; }
+th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; }
+code { font-family: var(--mono); font-size: 0.82rem; }
+.rec { max-width: 360px; color: var(--text-muted); }
+.link { color: var(--primary); text-decoration: none; white-space: nowrap; }
+.link:hover { text-decoration: underline; }
 .empty, .err { color: var(--text-muted); }
 .err { color: var(--danger); }
 </style>

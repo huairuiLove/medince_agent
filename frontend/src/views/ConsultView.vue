@@ -20,7 +20,6 @@ const clarifyError = ref('')
 
 const inputMode = ref<'text' | 'form'>('form')
 const clinicalText = ref('')
-const persist = ref(true)
 
 const emptyPatient = (): PatientContext => ({
   gender: 'unknown',
@@ -118,10 +117,14 @@ async function submit() {
   clarifyError.value = ''
   const payload = {
     candidate_drugs: drugs.value,
-    persist: persist.value,
     ...(inputMode.value === 'text'
       ? { text: clinicalText.value }
-      : { patient_context: patient.value }),
+      : {
+          patient_context: {
+            ...patient.value,
+            department: auth.profile?.dept_id ?? patient.value.department ?? '',
+          },
+        }),
   }
   await run(payload)
 }
@@ -150,11 +153,14 @@ function patientFromExtract(extract: Record<string, unknown> | null | undefined)
 }
 
 function consultPatientContext(): PatientContext {
-  if (inputMode.value === 'form') return patient.value
-  if (result.value?.extract_output) {
-    return patientFromExtract(result.value.extract_output as Record<string, unknown>)
+  const dept = auth.profile?.dept_id ?? ''
+  if (inputMode.value === 'form') {
+    return { ...patient.value, department: patient.value.department || dept }
   }
-  return emptyPatient()
+  if (result.value?.extract_output) {
+    return { ...patientFromExtract(result.value.extract_output as Record<string, unknown>), department: dept }
+  }
+  return { ...emptyPatient(), department: dept }
 }
 
 async function submitClarify(payload: { answers: Record<string, string> }) {
@@ -168,7 +174,6 @@ async function submitClarify(payload: { answers: Record<string, string> }) {
       review_output: result.value.rule_output,
       user_answers: payload.answers,
       case_id: result.value.case_id,
-      persist: persist.value,
     })
     result.value = {
       ...result.value,
@@ -283,10 +288,6 @@ const arb = computed(() => result.value?.arbitration)
             <input v-model="newDrugName" class="input" placeholder="药名" @keyup.enter="addDrug" />
             <button type="button" class="btn-secondary" @click="addDrug">添加</button>
           </div>
-        </div>
-
-        <div class="opts">
-          <label><input v-model="persist" type="checkbox" /> 保存 Case Log</label>
         </div>
 
         <button class="btn-primary submit" type="button" :disabled="loading" @click="submit">

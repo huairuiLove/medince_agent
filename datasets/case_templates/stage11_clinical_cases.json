@@ -2,78 +2,297 @@
   "cases": [
     {
       "case_id": "clinical_cardio_polypharmacy_01",
-      "title": "心内科复杂多药联用",
-      "description": "72岁男性，心衰+房颤+CKD3期，新增胺碘酮",
+      "title": "心衰房颤 CKD：加用胺碘酮",
+      "description": "心衰+房颤+CKD3 期多药联用，新增胺碘酮需审查 QT/地高辛/抗凝相互作用",
       "department": "cardiology",
       "category": "cardiology",
       "request": {
         "patient_context": {
+          "subject_id": 60005,
+          "hadm_id": 70005,
           "age": 72,
           "gender": "M",
-          "egfr": 42,
           "department": "cardiology",
+          "admission_type": "INPATIENT",
+          "source_text": "72岁男性，慢性心衰、持续性房颤及 CKD3 期，长期地高辛、利尿剂、华法林及螺内酯治疗；房颤心室率控制不佳，拟加用胺碘酮。",
+          "chief_complaint": "气促、心悸加重",
+          "history_present_illness": "BNP 890 pg/ml，LVEF 35%，eGFR 42；无甲状腺功能异常史。",
+          "symptoms_or_complaints": [
+            "气促",
+            "心悸",
+            "下肢水肿"
+          ],
+          "past_medical_history": [
+            "慢性心衰",
+            "房颤",
+            "CKD3",
+            "高血压"
+          ],
           "diagnoses": [
-            {"icd9_code": "428.0", "name": "Congestive heart failure"},
-            {"icd9_code": "427.31", "name": "Atrial fibrillation"},
-            {"icd9_code": "585.3", "name": "CKD stage 3"}
+            {
+              "icd9_code": "428.0",
+              "name": "充血性心力衰竭"
+            },
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            },
+            {
+              "icd9_code": "585.3",
+              "name": "慢性肾病 3 期"
+            }
           ],
           "current_medications": [
-            {"name": "digoxin", "dose": "0.125mg"},
-            {"name": "furosemide", "dose": "40mg"},
-            {"name": "warfarin", "dose": "3mg"},
-            {"name": "spironolactone", "dose": "20mg"}
-          ]
+            {
+              "name": "digoxin",
+              "ingredient": "digoxin",
+              "dose": "0.125 mg",
+              "route": "PO",
+              "frequency": "qd"
+            },
+            {
+              "name": "furosemide",
+              "ingredient": "furosemide",
+              "dose": "40 mg",
+              "route": "PO",
+              "frequency": "qd"
+            },
+            {
+              "name": "warfarin",
+              "ingredient": "warfarin",
+              "dose": "3 mg",
+              "route": "PO",
+              "frequency": "qd"
+            },
+            {
+              "name": "spironolactone",
+              "ingredient": "spironolactone",
+              "dose": "20 mg",
+              "route": "PO",
+              "frequency": "qd"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 42.0,
+          "weight_kg": 74.0
         },
-        "candidate_drugs": [{"name": "amiodarone", "dose": "200mg"}]
+        "candidate_drugs": [
+          {
+            "name": "amiodarone",
+            "ingredient": "amiodarone",
+            "dose": "200 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "房颤节律控制",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
       }
     },
     {
       "case_id": "clinical_neuro_epilepsy_01",
-      "title": "神经内科抗癫痫加药",
-      "description": "青年女性癫痫，丙戊酸基础上加拉莫三嗪",
+      "title": "癫痫合并房颤：华法林 + NSAIDs",
+      "description": "癫痫/房颤患者长期抗凝，因头痛拟加用布洛芬，需评估出血风险",
       "department": "neurology",
       "category": "neurology",
       "request": {
         "patient_context": {
-          "age": 28,
-          "gender": "F",
+          "subject_id": 60002,
+          "hadm_id": 70002,
+          "age": 55,
+          "gender": "M",
           "department": "neurology",
-          "current_medications": [{"name": "valproate", "dose": "500mg bid"}]
+          "admission_type": "OUTPATIENT",
+          "source_text": "55岁男性，癫痫及非瓣膜性房颤病史，长期丙戊酸及华法林治疗；近期反复头痛，拟短期使用 NSAIDs。",
+          "chief_complaint": "反复头痛 1 周",
+          "history_present_illness": "头痛以双侧颞部胀痛为主，VAS 5/10，无呕吐及意识障碍；INR 近期 2.3。",
+          "symptoms_or_complaints": [
+            "头痛",
+            "偶发头晕"
+          ],
+          "past_medical_history": [
+            "癫痫",
+            "非瓣膜性房颤",
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "345.90",
+              "name": "癫痫"
+            },
+            {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "valproate",
+              "ingredient": "valproate",
+              "dose": "500 mg",
+              "route": "PO",
+              "frequency": "bid"
+            },
+            {
+              "name": "warfarin",
+              "ingredient": "warfarin",
+              "dose": "3 mg",
+              "route": "PO",
+              "frequency": "qd"
+            },
+            {
+              "name": "levetiracetam",
+              "ingredient": "levetiracetam",
+              "dose": "500 mg",
+              "route": "PO",
+              "frequency": "bid"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
         },
-        "candidate_drugs": [{"name": "lamotrigine", "dose": "25mg"}]
+        "candidate_drugs": [
+          {
+            "name": "ibuprofen",
+            "ingredient": "ibuprofen",
+            "dose": "400 mg",
+            "route": "PO",
+            "frequency": "tid",
+            "indication": "头痛",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
       }
     },
     {
       "case_id": "clinical_oncology_chemo_01",
-      "title": "肿瘤科化疗 DDI",
-      "description": "顺铂方案联用强 CYP3A4 抑制剂",
+      "title": "化疗 DDI：顺铂 + 酮康唑",
+      "description": "顺铂方案联用强 CYP3A4 抑制剂酮康唑，需评估毒性叠加",
       "department": "oncology",
       "category": "oncology",
       "request": {
         "patient_context": {
+          "subject_id": 60007,
+          "hadm_id": 70007,
           "age": 58,
           "gender": "M",
           "department": "oncology",
-          "current_medications": [{"name": "cisplatin", "dose": "75mg/m2"}]
+          "admission_type": "INPATIENT",
+          "source_text": "58岁男性，非小细胞肺癌接受含顺铂化疗，因真菌感染预防拟加用酮康唑。",
+          "chief_complaint": "肺癌化疗第 2 周期",
+          "history_present_illness": "化疗耐受尚可，中性粒细胞 2.1×10⁹/L；既往无肝肾功能衰竭。",
+          "symptoms_or_complaints": [
+            "乏力",
+            "轻度恶心"
+          ],
+          "past_medical_history": [
+            "非小细胞肺癌",
+            "化疗中"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "162.9",
+              "name": "非小细胞肺癌"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "cisplatin",
+              "ingredient": "cisplatin",
+              "dose": "75 mg/m²",
+              "route": "IV",
+              "frequency": "q3w"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 78.0
         },
-        "candidate_drugs": [{"name": "ketoconazole", "dose": "200mg"}]
+        "candidate_drugs": [
+          {
+            "name": "ketoconazole",
+            "ingredient": "ketoconazole",
+            "dose": "200 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "真菌感染预防",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
       }
     },
     {
       "case_id": "clinical_safe_htn_01",
-      "title": "阴性测试-安全降压联合",
-      "description": "标准 ACEI+CCB 联合，应通过",
-      "department": "cardiology",
-      "category": "negative",
+      "title": "高血压联合用药（阴性对照）",
+      "description": "标准 CCB+ACEI 联合降压，信息完整，预期无高风险命中",
+      "department": "general_internal",
+      "category": "general_internal",
       "request": {
         "patient_context": {
+          "subject_id": 60010,
+          "hadm_id": 70010,
           "age": 55,
           "gender": "M",
-          "department": "cardiology",
-          "egfr": 85,
-          "current_medications": [{"name": "amlodipine", "dose": "5mg"}]
+          "department": "general_internal",
+          "admission_type": "OUTPATIENT",
+          "source_text": "55岁男性，原发性高血压，氨氯地平控制欠佳，拟加用 ACEI 联合降压。",
+          "chief_complaint": "血压控制不佳",
+          "history_present_illness": "家庭血压 150/95 mmHg，无蛋白尿及血钾异常；eGFR 85。",
+          "symptoms_or_complaints": [],
+          "past_medical_history": [
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "401.9",
+              "name": "原发性高血压"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "amlodipine",
+              "ingredient": "amlodipine",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 85.0
         },
-        "candidate_drugs": [{"name": "lisinopril", "dose": "10mg"}]
+        "candidate_drugs": [
+          {
+            "name": "lisinopril",
+            "ingredient": "lisinopril",
+            "dose": "10 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "高血压",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
       }
     }
   ]

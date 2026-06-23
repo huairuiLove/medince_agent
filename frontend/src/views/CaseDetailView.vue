@@ -27,6 +27,7 @@ const events = computed(() => caseLog.value?.events ?? [])
   <div v-if="caseLog" class="detail">
     <header>
       <h1>Case {{ caseLog.case_id }}</h1>
+      <span v-if="caseLog.department_name_cn" class="dept">{{ caseLog.department_name_cn }}</span>
       <span class="status">{{ caseLog.status }}</span>
     </header>
     <p class="meta">创建 {{ caseLog.created_at }} · 更新 {{ caseLog.updated_at }}</p>
@@ -66,7 +67,8 @@ const events = computed(() => caseLog.value?.events ?? [])
 </template>
 
 <style scoped>
-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.25rem; }
+header { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.25rem; flex-wrap: wrap; }
+.dept { background: var(--primary-light); color: var(--primary-dark); padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.82rem; }
 .status { background: var(--surface-2); padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.82rem; }
 .meta { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.5rem; }
 .timeline { margin-bottom: 1rem; }
