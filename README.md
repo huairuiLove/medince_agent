@@ -35,65 +35,44 @@
 
 ---
 
-## 快速开始（本地开发，推荐）
+## 快速开始
 
-### 1. 安装后端
+### 1. 首次安装（只需一次）
 
 ```bash
 cd medince_agent
-
-# 创建 venv、安装依赖、复制 .env、跑集成测试
 bash scripts/setup.sh
 ```
 
-首次安装会拉取 `torch` / `monai` 等影像依赖，耗时较长属正常。
+脚本会：创建 `.venv`、安装 Python 依赖、复制 `.env.example` → `.env`、运行集成测试。首次安装会拉取 `torch` / `monai` 等影像依赖，耗时较长属正常。
 
-### 2. 导入演示院目录（药库，推荐）
+按需编辑 `.env` 填入 API Key（规则引擎与 CPOE 可无 Key 离线运行；LLM / VLM / 报告合成未配置 Key 时相关接口返回 503）。
 
-API 启动时会自动导入 `data/hospital/formulary_demo.csv`（**1120 条**演示品种）。也可手动同步：
+### 2. 启动完整项目
+
+```bash
+bash scripts/start.sh
+```
+
+一条命令同时启动 **后端 API**（`:8000`）与 **Vue 前端**（`:5173`）。浏览器打开 http://localhost:5173 即可使用全部页面（会诊、药库、CPOE、智能问答、规则审查等）。
+
+按 `Ctrl+C` 会同时停止前端与 API。
+
+| 地址 | 说明 |
+|------|------|
+| http://localhost:5173 | 前端 UI（开发模式，代理 `/api` → 8000） |
+| http://localhost:8000/health | 健康检查 |
+| http://localhost:8000/docs | API 文档 |
+
+### 3. 验证药库已加载
+
+API 启动时会自动导入 `data/hospital/formulary_demo.csv`（1120 条演示品种）。也可手动同步：
 
 ```bash
 source .venv/bin/activate
-
-# 生成 / 刷新演示 CSV（1120+ 行）
-python scripts/build_demo_formulary.py
-
-# 导入 SQLite 药库
 python scripts/sync_formulary.py --csv data/hospital/formulary_demo.csv
+curl -s http://localhost:8000/api/v1/drug-catalog/stats | python -m json.tool
 ```
-
-验证：`curl -s http://localhost:8000/api/v1/drug-catalog/stats | python -m json.tool`
-
-### 3. 启动 API（终端 1）
-
-任选一种方式（**推荐方式 A**，不依赖 `medsafe` 命令是否已安装）：
-
-```bash
-source .venv/bin/activate
-
-# 方式 A：启动脚本（带热重载）
-bash scripts/run_api.sh
-
-# 方式 B：安装 CLI 后使用 medsafe
-pip install -e .
-medsafe serve --reload
-
-# 方式 C：直接 uvicorn
-python -m uvicorn src.app:app --host 0.0.0.0 --port 8000 --reload
-```
-
-验证：打开 http://localhost:8000/health ，应返回 `"status":"ok"` 且含 `drug_catalog.total_drugs`。
-
-API 文档：http://localhost:8000/docs
-
-### 4. 启动前端（终端 2）
-
-```bash
-bash scripts/dev_web.sh
-# → http://localhost:5173
-```
-
-Vite 已将 `/api`、`/health` 代理到 `localhost:8000`，**须先启动后端**。
 
 ---
 
@@ -177,19 +156,23 @@ python scripts/generate_stage9_validation_report.py
 
 ---
 
-## Docker 部署（文本 + 药库）
+## Docker 部署（可选）
 
-适合演示多智能体会诊、CPOE 审查、规则审查、智能问答；**不含分割模型权重与影像数据**。
+适合无本地 Python/Node 环境的演示部署；**不含分割模型权重与影像数据**。
 
 ```bash
 cp .env.example .env    # 填入真实 API Key（禁止 mock）
 docker compose up -d --build
-
-# 前端 UI:  http://localhost:3000
-# API 文档: http://localhost:8000/docs
 ```
 
+| 地址 | 说明 |
+|------|------|
+| http://localhost:3000 | 前端 UI |
+| http://localhost:8000/docs | API 文档 |
+
 将医院 CSV 挂载到容器内并设置 `MEDSAFE_DRUG_CATALOG__FORMULARY_PATH` 即可替换演示药库。Docker 内 `/imaging` 无本地模型与数据时分割不可用。
+
+日常本地开发请使用 `bash scripts/start.sh`（见上文「快速开始」）。
 
 ---
 
@@ -295,6 +278,9 @@ cp .env.example .env
 | `MEDSAFE_LLM__API_KEY` | 上述 LLM Key（必填） | 空 |
 | `MEDSAFE_CHAT__PROVIDER` | 智能问答 ReAct | `deepseek` |
 | `MEDSAFE_CHAT__API_KEY` | 问答 LLM Key（可填 DeepSeek） | 空 |
+| `MEDSAFE_EMBEDDING__PROVIDER` | Embedding（MCP RAG / 药典搜索） | `lmstudio` |
+| `MEDSAFE_EMBEDDING__BASE_URL` | Embedding API 地址 | `http://localhost:1234/v1` |
+| `MEDSAFE_EMBEDDING__MODEL` | Embedding 模型名 | `nomic-embed-text` |
 | `MEDSAFE_VISION_LLM__PROVIDER` | 影像 VLM（Qwen3-VL） | `qwen` |
 | `MEDSAFE_VISION_LLM__API_KEY` | 通义 DashScope Key（影像 VLM 必填） | 空 |
 | `MEDSAFE_DEEPSEEK__API_KEY` | 报告综合合成（必填） | 空 |
@@ -368,25 +354,22 @@ MCP 工具服务由 API 启动时自动拉起子进程（`python -m src.mcp.mcp_
 
 ## CLI 与脚本
 
-安装 editable 包后可使用：
+| 脚本 | 说明 |
+|------|------|
+| `bash scripts/setup.sh` | 首次安装（venv + 依赖 + .env + 集成测试） |
+| `bash scripts/start.sh` | **启动完整项目**（API + 前端） |
+| `python scripts/sync_formulary.py --csv …` | 导入 PIS CSV 到 SQLite |
+| `python scripts/build_demo_formulary.py` | 生成 1120 行演示院目录 CSV |
+| `python scripts/run_integration_tests.py` | 集成测试（30 项） |
+
+安装 editable 包后可使用 CLI 辅助命令：
 
 ```bash
 pip install -e .
-
-medsafe serve --reload   # 启动 API
 medsafe test             # 集成测试
 medsafe info             # 打印 LLM / 配置信息
 medsafe demo-data        # 生成 Demo 数据
 ```
-
-| 脚本 | 说明 |
-|------|------|
-| `bash scripts/run_api.sh` | 启动 API（等价 `medsafe serve`） |
-| `bash scripts/dev_web.sh` | 启动前端 |
-| `bash scripts/setup.sh` | 一键环境安装 |
-| `python scripts/build_demo_formulary.py` | 生成 1120 行演示院目录 CSV |
-| `python scripts/sync_formulary.py --csv …` | 导入 PIS CSV 到 SQLite |
-| `python scripts/run_integration_tests.py` | 集成测试（30 项） |
 
 ---
 
@@ -431,7 +414,7 @@ medince_agent/
 │   ├── mimic/             # MIMIC CT（自行放置）
 │   └── brats2024/         # BraTS MRI（自行放置）
 ├── models/                # 分割权重（download_models.py 下载）
-├── scripts/               # setup / run_api / sync_formulary / 测试
+├── scripts/               # setup / start / sync_formulary / 测试
 ├── docs/                  # DEBATE_ARCHITECTURE.md、REFERENCES.md
 ├── STAGE1~8_REPORT_CSDN.md  # 阶段落盘 Blog
 ├── config.yaml
@@ -442,11 +425,11 @@ medince_agent/
 
 ## 常见问题
 
-**`medsafe: command not found`**  
-`setup.sh` 只安装 `requirements.txt`，未注册 CLI。执行 `pip install -e .`，或改用 `bash scripts/run_api.sh`。
+**端口被占用 / 启动失败**  
+确认 8000、5173 未被占用；修改 `.env` 中 `MEDSAFE_SERVER__PORT` 后重启 `bash scripts/start.sh`。
 
 **前端报「后端未连接」**  
-先确认终端 1 中 API 已启动，且 http://localhost:8000/health 可访问。
+确认 `bash scripts/start.sh` 仍在运行，且 http://localhost:8000/health 可访问。
 
 **药库为空 / CPOE 报 UNRESOLVED_DRUG**  
 执行 `python scripts/sync_formulary.py --csv data/hospital/formulary_demo.csv`，或确认 `config.yaml` 中 `drug_catalog.auto_import_on_startup: true`。

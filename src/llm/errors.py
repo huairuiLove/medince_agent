@@ -18,8 +18,10 @@ class LLMNotConfiguredError(RuntimeError):
 class DrugSearchModelNotReadyError(RuntimeError):
     """Raised when semantic drug search model/index is unavailable."""
 
-    def __init__(self, detail: str = "") -> None:
+    def __init__(self, detail: str = "", hint: str = "") -> None:
         msg = "Drug catalog semantic search is not ready."
         if detail:
             msg = f"{msg} {detail}"
+        if hint:
+            msg = f"{msg} {hint}"
         super().__init__(msg)

@@ -1,13 +1,22 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ClarifyOutput } from '@/types'
 
-defineProps<{ clarify: ClarifyOutput | null | undefined }>()
+const props = defineProps<{ clarify: ClarifyOutput | null | undefined }>()
+
+const statusLabel = computed(() => {
+  const status = props.clarify?.status
+  if (!status || status === 'conservative_fallback') return ''
+  if (status === 'need_user_input') return '待补充信息'
+  if (status === 'complete') return '已完成'
+  return status
+})
 </script>
 
 <template>
   <section v-if="clarify" class="card clarify-panel">
     <h3>信息协调员 · Clarify</h3>
-    <span class="status">{{ clarify.status }}</span>
+    <span v-if="statusLabel" class="status">{{ statusLabel }}</span>
 
     <div v-if="clarify.questions.length" class="questions">
       <div v-for="q in clarify.questions" :key="q.field" class="q-item">
@@ -15,15 +24,6 @@ defineProps<{ clarify: ClarifyOutput | null | undefined }>()
         <p class="q-text">{{ q.question }}</p>
         <p class="q-reason">{{ q.reason }}</p>
       </div>
-    </div>
-
-    <div v-if="clarify.conservative_advice" class="fallback">
-      <h4>保守降级</h4>
-      <p>{{ clarify.conservative_advice.summary }}</p>
-      <ul>
-        <li v-for="(a, i) in clarify.conservative_advice.actions" :key="i">{{ a }}</li>
-      </ul>
-      <p class="disclaimer">{{ clarify.conservative_advice.disclaimer }}</p>
     </div>
 
     <p v-if="clarify.final_message" class="final-msg">{{ clarify.final_message }}</p>
@@ -55,15 +55,5 @@ h3 { margin-bottom: 0.5rem; }
 }
 .q-text { font-weight: 600; margin: 0.35rem 0; }
 .q-reason { font-size: 0.85rem; color: var(--text-muted); }
-.fallback {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 0.75rem;
-}
-.fallback h4 { color: var(--warning); margin-bottom: 0.5rem; }
-.fallback ul { padding-left: 1.2rem; font-size: 0.9rem; }
-.disclaimer { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.5rem; }
 .final-msg { margin-top: 0.75rem; font-weight: 500; }
 </style>

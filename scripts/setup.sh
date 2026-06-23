@@ -32,6 +32,6 @@ python -m compileall src -q
 python scripts/run_integration_tests.py
 
 echo ""
-echo "Setup complete. Start server:"
-echo "  source .venv/bin/activate && medsafe serve"
-echo "  or: docker compose up -d"
+echo "Setup complete. Start the full stack:"
+echo "  bash scripts/start.sh"
+echo "  → http://localhost:5173"

@@ -151,6 +151,21 @@ def download_ddi_bert(force: bool = False):
     print(f"  -> {target}")
 
 
+def download_drug_search(force: bool = False):
+    """Download multilingual-e5-small for hospital formulary semantic search."""
+    _, snapshot_download = ensure_hf()
+    target = MODELS / "drug_search"
+    config = target / "config.json"
+    if not force and config.exists():
+        print(f"Drug search model already present -> {target}")
+        return
+    target.mkdir(parents=True, exist_ok=True)
+    print("Downloading intfloat/multilingual-e5-small ...")
+    snapshot_download(repo_id="intfloat/multilingual-e5-small", local_dir=str(target))
+    print(f"  -> {target}")
+    print("Rebuild index after sync: POST /api/v1/drug-catalog/search-model/rebuild")
+
+
 def download_med7(force: bool = False):
     """Download Med7 spaCy wheel to models/med7/."""
     hf_hub_download, _ = ensure_hf()
@@ -228,6 +243,7 @@ def verify_all() -> bool:
         "cxr_lesion": MODELS / "cxr_lesion" / "pneumonia_unet" / "model.safetensors",
         "ddi_bert": MODELS / "ddi_bert" / "pytorch_model.bin",
         "med7": MODELS / "med7" / "en_core_med7_lg-1.1.0-py3-none-any.whl",
+        "drug_search": MODELS / "drug_search" / "config.json",
     }
     sam2d_alt = MODELS / "SAM2D" / "sam2d_from_med3d.pth"
     ok = True
@@ -261,12 +277,17 @@ def main():
     parser.add_argument("--safety-models", action="store_true", help="Med7 + Bio_ClinicalBERT DDI")
     parser.add_argument("--ddi-bert", action="store_true")
     parser.add_argument("--med7", action="store_true")
+    parser.add_argument(
+        "--drug-search",
+        action="store_true",
+        help="multilingual-e5-small for hospital formulary semantic search",
+    )
     parser.add_argument("--no-mr", action="store_true", help="Skip TotalSegmentator MRI weights")
     args = parser.parse_args()
     run_all = args.all or not any([
         args.vista3d, args.sam_med3d, args.sam2d, args.totalsegmentator,
         args.brats_tumor, args.cxr_lesion,
-        args.safety_models, args.ddi_bert, args.med7,
+        args.safety_models, args.ddi_bert, args.med7, args.drug_search,
     ])
 
     if run_all or args.vista3d:
@@ -285,6 +306,8 @@ def main():
         download_ddi_bert(force=args.force)
     if run_all or args.safety_models or args.med7:
         download_med7(force=args.force)
+    if args.drug_search:
+        download_drug_search(force=args.force)
 
     verify_all()
     print("\nDone.")

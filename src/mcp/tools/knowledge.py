@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 import json
 from pathlib import Path
-import httpx
+from src.llm.embedding_client import embed_text_async
+from src.llm.errors import LLMNotConfiguredError
 from src.react.yuan_config import config
 
 
@@ -70,22 +71,8 @@ def chunk_text(text: str, chunk_size: int = 900, overlap: int = 160) -> list[str
 # ============================================================
 
 async def get_embedding(text: str) -> list[float]:
-    """调用 DeepSeek Embedding API 获取文本向量"""
-    async with httpx.AsyncClient(timeout=config.LLM_TIMEOUT) as client:
-        resp = await client.post(
-            f"{config.DEEPSEEK_BASE_URL}/embeddings",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {config.DEEPSEEK_API_KEY}",
-            },
-            json={
-                "model": config.DEEPSEEK_EMBEDDING_MODEL,
-                "input": text,
-            },
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["data"][0]["embedding"]
+    """调用 embedding 服务（LM Studio / OpenAI 兼容 API 或本地模型）"""
+    return await embed_text_async(text, kind="passage")
 
 
 # ============================================================
@@ -114,13 +101,13 @@ async def retrieve_knowledge(query: str, top_k: int = 3) -> str:
     if not state.chunks:
         return "知识库为空，请先上传文档。"
 
-    # 对尚未计算 embedding 的分块补算
-    for chunk in state.chunks:
-        if chunk["embedding"] is None:
-            chunk["embedding"] = await get_embedding(chunk["text"])
-
-    # 查询向量
-    query_emb = await get_embedding(query)
+    try:
+        for chunk in state.chunks:
+            if chunk["embedding"] is None:
+                chunk["embedding"] = await get_embedding(chunk["text"])
+        query_emb = await get_embedding(query)
+    except LLMNotConfiguredError as exc:
+        return f"Embedding 未配置，无法检索：{exc}"
 
     # 相似度排序，取 top_k
     scored = []

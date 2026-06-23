@@ -1,11 +1,12 @@
 """MedSafe API Server — Multi-agent drug safety review via LLM API."""
 from __future__ import annotations
 
+import asyncio
 import glob
 import os
 import time
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -20,14 +21,20 @@ from src.mimic_store import get_mimic_store
 from src.clarify_engine import ClarifyEngine
 from src.config import load_config
 from src.llm.client import get_llm_client, is_llm_configured
+from src.llm.embedding_client import embedding_status
 from src.llm.errors import LLMNotConfiguredError
 from src.logging_config import get_logger, setup_logging
 from src.orchestrator import MultiAgentOrchestrator
-from src.drug_catalog.catalog_service import bootstrap_catalog_from_config, get_drug_catalog_service
+from src.drug_catalog.catalog_service import (
+    bootstrap_catalog_from_config,
+    ensure_semantic_index_if_needed,
+    get_drug_catalog_service,
+)
 from src.drug_catalog.review_facade import CpoeReviewFacade
 from src.auth.dependencies import get_current_user, get_optional_user
 from src.auth.models import (
     CreateCustomSkillRequest,
+    DepartmentsListResponse,
     LoginRequest,
     RegisterRequest,
     TokenResponse,
@@ -138,7 +145,23 @@ async def lifespan(app: FastAPI):
             )
     except Exception as exc:
         logger.warning("Drug catalog bootstrap skipped", extra={"error": str(exc)})
+
+    async def _build_semantic_index() -> None:
+        try:
+            index_status = ensure_semantic_index_if_needed()
+            if index_status and index_status.get("index_built"):
+                logger.info(
+                    "Drug semantic index ready",
+                    extra={"indexed_drugs": index_status.get("indexed_drugs")},
+                )
+        except Exception as exc:
+            logger.warning("Drug semantic index skipped", extra={"error": str(exc)})
+
+    semantic_task = asyncio.create_task(_build_semantic_index())
     yield
+    semantic_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await semantic_task
     await shutdown_chat_services()
     logger.info("MedSafe API shutdown")
 
@@ -273,6 +296,7 @@ def health() -> dict:
             "med7": get_med7_extractor().status(),
             "ddi_bert": get_ddi_classifier().status(),
         },
+        "embedding": embedding_status(),
     }
 
 
@@ -399,6 +423,11 @@ def review_case(req: ReviewRequest, request: Request) -> ReviewResponse:
 
 # ── CPOE / Hospital Formulary ────────────────────────────────────────────
 
+@app.get("/api/v1/auth/departments", response_model=DepartmentsListResponse, tags=["Auth"])
+def auth_list_departments() -> DepartmentsListResponse:
+    return DepartmentsListResponse(departments=get_auth_service().list_departments())
+
+
 @app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Auth"])
 def auth_login(body: LoginRequest) -> TokenResponse:
     result = get_auth_service().login(body.username, body.password)
@@ -504,10 +533,31 @@ def drug_catalog_lookup(hospital_drug_id: str) -> dict:
     return record.to_dict()
 
 
+@app.get("/api/v1/drug-catalog/search-model/status", tags=["CPOE"])
+def drug_catalog_search_model_status() -> dict:
+    return DRUG_CATALOG.search_model_status()
+
+
+@app.post("/api/v1/drug-catalog/search-model/rebuild", tags=["CPOE"])
+def drug_catalog_search_model_rebuild() -> dict:
+    from src.llm.errors import DrugSearchModelNotReadyError
+
+    try:
+        DRUG_CATALOG._ensure_semantic_index()
+        return DRUG_CATALOG.search_model_status()
+    except DrugSearchModelNotReadyError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 @app.get("/api/v1/drug-catalog/search", tags=["CPOE"])
-def drug_catalog_search(q: str, limit: int = 20) -> dict:
-    results = DRUG_CATALOG.search(q, limit=min(limit, 100))
-    return {"query": q, "count": len(results), "results": [r.to_dict() for r in results]}
+def drug_catalog_search(q: str, limit: int = 20, mode: str = "semantic") -> dict:
+    results, effective_mode = DRUG_CATALOG.search(q, limit=min(limit, 100), mode=mode)
+    return {
+        "query": q,
+        "mode": effective_mode,
+        "count": len(results),
+        "results": [r.to_dict() for r in results],
+    }
 
 
 @app.post("/api/v1/drug-catalog/sync", response_model=FormularySyncResponse, tags=["CPOE"])

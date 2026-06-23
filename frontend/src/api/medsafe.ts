@@ -4,6 +4,7 @@ import type {
   CaseLog,
   CaseTemplate,
   ClinicalReport,
+  DepartmentInfo,
   DoctorWorkspace,
   HealthResponse,
   ImagingStudy,
@@ -36,12 +37,25 @@ function authHeaders(): Record<string, string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
-    ...init,
-  })
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(init?.headers ?? {}) },
+      ...init,
+    })
+  } catch (e) {
+    const hint =
+      BASE
+        ? `无法连接后端 ${BASE}，请确认 API 已启动且地址正确`
+        : '无法连接后端，请运行 bash scripts/start.sh 启动完整项目'
+    throw new Error(e instanceof Error && e.message === 'Failed to fetch' ? hint : `${hint}（${String(e)}）`)
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
+    if (Array.isArray(err.detail)) {
+      const msg = err.detail.map((d: { msg?: string; loc?: string[] }) => d.msg ?? JSON.stringify(d)).join('；')
+      throw new Error(msg || res.statusText)
+    }
     throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err))
   }
   return res.json() as Promise<T>
@@ -74,6 +88,9 @@ export const medsafeApi = {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     }),
+
+  listDepartments: () =>
+    request<{ departments: DepartmentInfo[] }>('/api/v1/auth/departments'),
 
   register: (body: { username: string; password: string; display_name?: string; dept_id: string }) =>
     request<TokenResponse & DoctorWorkspace>('/api/v1/auth/register', {
@@ -162,7 +179,6 @@ export const medsafeApi = {
     text?: string
     patient_context?: PatientContext
     candidate_drugs: DrugItem[]
-    unable_to_answer?: boolean
     persist?: boolean
   }) =>
     request<MultiConsultResponse>('/api/v1/multi-consult', {

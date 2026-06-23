@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from src.config import load_config, resolve_path
+from src.llm.embedding_client import resolve_embedding_config
 
 
 class ChatConfig:
@@ -15,6 +16,7 @@ class ChatConfig:
         chat = cfg.get("chat", {})
         llm = cfg.get("llm", {})
         deepseek = cfg.get("deepseek_llm", {})
+        emb = resolve_embedding_config()
 
         self.provider: str = chat.get("provider") or llm.get("provider") or "deepseek"
         self.api_key: str = (
@@ -29,7 +31,11 @@ class ChatConfig:
             or "https://api.deepseek.com/v1"
         )
         self.model: str = chat.get("model") or deepseek.get("model") or "deepseek-chat"
-        self.embedding_model: str = chat.get("embedding_model", "text-embedding-ada-002")
+        self.embedding_provider: str = emb["provider"]
+        self.embedding_backend: str = emb["backend"]
+        self.embedding_api_key: str = emb["api_key"]
+        self.embedding_base_url: str = emb["base_url"]
+        self.embedding_model: str = emb["model"]
         self.timeout: int = int(chat.get("timeout") or deepseek.get("timeout") or 120)
         self.max_retries: int = int(chat.get("max_retries", 2))
         self.fallback_enabled: bool = chat.get("fallback_enabled", True)
@@ -51,6 +57,14 @@ class ChatConfig:
     @property
     def DEEPSEEK_EMBEDDING_MODEL(self) -> str:
         return self.embedding_model
+
+    @property
+    def EMBEDDING_BASE_URL(self) -> str:
+        return self.embedding_base_url
+
+    @property
+    def EMBEDDING_API_KEY(self) -> str:
+        return self.embedding_api_key
 
     @property
     def LLM_TIMEOUT(self) -> int:

@@ -127,7 +127,7 @@ async function runSearch() {
   }
   if (semanticBlocked.value) {
     error.value =
-      '语义检索模型未就绪，已禁止降级为关键词搜索。请先下载模型并重建索引，或切换为「关键词」模式。'
+      '语义检索模型未就绪。请先下载模型并重建索引，或切换为「关键词」模式。'
     return
   }
   loading.value = true
@@ -273,7 +273,7 @@ onMounted(async () => {
     <header class="page-head">
       <div>
         <h1>药品库</h1>
-        <p class="sub">ATC 分级浏览 · 语义检索（禁止降级）· 知识图谱安全信息</p>
+        <p class="sub">ATC 分级浏览 · 语义检索 · 知识图谱安全信息</p>
       </div>
       <div v-if="stats" class="stats-row">
         <div class="stat-pill"><span>品种</span><strong>{{ stats.total_drugs }}</strong></div>
@@ -284,8 +284,8 @@ onMounted(async () => {
 
     <div v-if="searchModel && !modelReady" class="card model-banner warn">
       <div>
-        <strong>语义检索未就绪 — 禁止自动降级</strong>
-        <p>默认使用语义搜索；模型或索引缺失时将返回 503，不会静默切换为关键词匹配。</p>
+        <strong>语义检索未就绪</strong>
+        <p>默认使用语义搜索；模型或索引缺失时将返回 503，请下载模型并重建索引，或切换为「关键词」模式。</p>
         <code>{{ searchModel.download_command }}</code>
         <p class="hint">下载后点击「重建索引」，或切换搜索模式为「关键词」。</p>
       </div>

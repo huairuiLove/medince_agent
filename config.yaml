@@ -61,6 +61,17 @@ chat:
   max_retries: 2
   fallback_enabled: true
   knowledge_graph: data/knowledge/drug_kg_v2.json
+embedding:
+  provider: lmstudio
+  api_key: lm-studio
+  base_url: http://localhost:1234/v1
+  model: nomic-embed-text
+  timeout: 60
+  query_prefix: ''
+  passage_prefix: ''
+  model_dir: models/drug_search
+  model_id: intfloat/multilingual-e5-small
+  batch_size: 32
 debate:
   enabled: true
   max_rounds: 3
@@ -70,6 +81,9 @@ drug_catalog:
   db_path: data/hospital/formulary.db
   formulary_path: data/hospital/formulary_demo.csv
   auto_import_on_startup: true
+  semantic_search:
+    enabled: true
+    min_score: 0.25
 pharmacy:
   enabled: true
   db_path: data/pharmacy/pharmacy_reviews.db

@@ -6,7 +6,7 @@ from typing import Any
 from src.llm.client import LLMClient
 from src.prompts import pretty_json
 from src.schemas import AgentOpinion, CandidateDrug, PatientContext, RuleEvidence
-from src.utils import parse_confidence
+from src.utils import coerce_llm_str_list, parse_confidence
 
 
 class BaseAgent(ABC):
@@ -49,12 +49,12 @@ class BaseAgent(ABC):
             role=self.role,
             risk_level=data.get("risk_level", "unknown"),
             block_decision=bool(data.get("block_decision", False)),
-            reasons=list(data.get("reasons", [])),
-            alternatives=list(data.get("alternatives", [])),
+            reasons=coerce_llm_str_list(data.get("reasons")),
+            alternatives=coerce_llm_str_list(data.get("alternatives")),
             need_clarification=bool(data.get("need_clarification", False)),
-            clarification_targets=list(data.get("clarification_targets", [])),
+            clarification_targets=coerce_llm_str_list(data.get("clarification_targets")),
             confidence=parse_confidence(data.get("confidence"), default=0.5),
-            evidence_cited=list(data.get("evidence_cited", [])),
+            evidence_cited=coerce_llm_str_list(data.get("evidence_cited")),
             summary=str(data.get("summary", "")),
             debate_round=debate_round,
         )

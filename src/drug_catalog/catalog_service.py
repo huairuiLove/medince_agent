@@ -351,11 +351,11 @@ def bootstrap_catalog_from_config() -> dict[str, Any] | None:
     cfg = get_config()
     catalog_cfg = cfg.get("drug_catalog", {})
     if not catalog_cfg.get("auto_import_on_startup", True):
-        return None
+        return ensure_semantic_index_if_needed()
 
     service = get_drug_catalog_service()
     if service.is_loaded():
-        return None
+        return ensure_semantic_index_if_needed()
 
     csv_rel = catalog_cfg.get("formulary_path", "data/hospital/formulary_sample.csv")
     csv_path = resolve_path(csv_rel)
@@ -365,8 +365,33 @@ def bootstrap_catalog_from_config() -> dict[str, Any] | None:
     from src.drug_catalog.csv_import import FormularyCsvImporter
 
     result = FormularyCsvImporter(service.db_path).import_csv(csv_path)
+    ensure_semantic_index_if_needed()
+    return result
+
+
+def ensure_semantic_index_if_needed() -> dict[str, Any] | None:
+    """Build in-memory semantic index when formulary is loaded but index is missing."""
+    import logging
+
+    logger = logging.getLogger("drug-catalog")
+    cfg = get_config().get("drug_catalog", {}).get("semantic_search", {})
+    if not cfg.get("enabled", True):
+        return None
+
+    service = get_drug_catalog_service()
+    if not service.is_loaded():
+        return None
+
+    index = get_semantic_index()
+    status = index.status()
+    if status.get("index_built") and status.get("indexed_drugs", 0) > 0:
+        return status
+
     try:
         service._ensure_semantic_index()
-    except DrugSearchModelNotReadyError:
-        pass
-    return result
+        built = get_semantic_index().status()
+        logger.info("Drug semantic index ready", extra={"indexed_drugs": built.get("indexed_drugs")})
+        return built
+    except DrugSearchModelNotReadyError as exc:
+        logger.warning("Drug semantic index skipped", extra={"error": str(exc)})
+        return None

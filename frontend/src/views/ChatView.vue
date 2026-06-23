@@ -12,7 +12,6 @@ const inputText = ref('')
 const isLoading = ref(false)
 const messagesRef = ref<HTMLElement | null>(null)
 const sidebarOpen = ref(false)
-const systemLevel = ref('')
 
 const roleLabel = computed(() =>
   role.value === 'doctor' ? '专业模式（医护）' : '大众模式（患者）',
@@ -118,8 +117,7 @@ async function send() {
           const ex = assistantMsg.tools?.find((t) => t.id === data.id)
           if (ex) Object.assign(ex, data)
           else assistantMsg.tools?.push(data as { id: string; name: string; status: string })
-        } else if (em[1] === 'system') systemLevel.value = (data.level as string) || ''
-        else if (em[1] === 'done') done = true
+        }         else if (em[1] === 'done') done = true
         else if (em[1] === 'error')
           assistantMsg.content += '\n[' + (data.message as string) + ']'
       }
@@ -148,7 +146,6 @@ async function send() {
         <p class="subtitle">ReAct + Graph RAG · 按角色差异化回答</p>
       </div>
       <div class="header-actions">
-        <span v-if="systemLevel" class="level-badge" :data-level="systemLevel">{{ systemLevel }}</span>
         <button class="role-toggle" :class="role" @click="toggleRole" :title="'切换至' + (role === 'doctor' ? '大众模式' : '专业模式')">
           {{ role === 'doctor' ? '🩺' : '👤' }} {{ roleLabel }}
         </button>
@@ -239,16 +236,6 @@ async function send() {
 .chat-header h1 { font-size: 1.15rem; margin: 0; color: var(--text, #1a2332); }
 .subtitle { font-size: 0.78rem; color: var(--muted, #64748b); margin: 0.2rem 0 0; }
 .header-actions { display: flex; gap: 0.5rem; align-items: center; }
-.level-badge {
-  font-size: 0.7rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  background: #e8f5e9;
-  color: #2e7d32;
-  text-transform: uppercase;
-}
-.level-badge[data-level='rule_fallback'],
-.level-badge[data-level='offline'] { background: #fff3e0; color: #e65100; }
 .role-toggle {
   border: 1px solid var(--border);
   background: #fff;

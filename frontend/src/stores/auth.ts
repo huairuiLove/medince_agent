@@ -52,7 +52,6 @@ export const useAuthStore = defineStore('auth', () => {
         agents: res.agents,
         custom_skills: res.custom_skills,
       }
-      await fetchMe()
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e)
       throw e

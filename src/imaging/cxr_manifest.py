@@ -1,4 +1,4 @@
-"""Build and load metadata for real chest X-rays under data/mimic_cxr/."""
+"""Build and load metadata for chest X-rays under data/mimic_cxr/ and official MIMIC-CXR-JPG in data/mimic/."""
 from __future__ import annotations
 
 import json
@@ -13,7 +13,9 @@ from src.utils import ensure_dir, save_json
 _MANIFEST_NAME = "studies_manifest.json"
 _CXR_ID_RE = re.compile(r"^(CXR\d+)", re.I)
 _NLMCXR_INDEX_RE = re.compile(r"^p_nlmcxr_(\d+)$", re.I)
-_REPORT_LABELS = ("INDICATION", "FINDINGS", "IMPRESSION", "COMPARISON")
+_MIMIC_CXR_PATIENT_RE = re.compile(r"^p\d{8}$", re.I)
+_MIMIC_CXR_STUDY_RE = re.compile(r"^s\d+$", re.I)
+_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
 
 
 def manifest_path() -> Path:
@@ -118,51 +120,141 @@ def resolve_nlmcxr_source_file(patient_id: str) -> str | None:
 def infer_collection(patient_id: str) -> str:
     if _NLMCXR_INDEX_RE.match(patient_id):
         return "NLMCXR"
-    if patient_id.startswith("p") and patient_id[1:].isdigit():
-        return "MIMIC-CXR"
+    if is_mimic_cxr_jpg_patient(patient_id):
+        return "MIMIC-CXR-JPG"
     return "local"
 
 
-def build_manifest(*, force_reports: bool = False) -> dict:
-    """Scan data/mimic_cxr/ and attach Open-I NLMCXR radiology reports where available."""
-    cxr_root = resolve_path("data/mimic_cxr")
-    ensure_reports_extracted(force=force_reports)
-    studies: dict[str, dict] = {}
+def is_mimic_cxr_jpg_patient(patient_id: str) -> bool:
+    return bool(_MIMIC_CXR_PATIENT_RE.match(patient_id))
 
-    if not cxr_root.is_dir():
-        return {"version": 1, "study_count": 0, "studies": studies}
 
-    for patient_dir in sorted(cxr_root.iterdir()):
+def is_mimic_cxr_jpg_study(study_id: str) -> bool:
+    return bool(_MIMIC_CXR_STUDY_RE.match(study_id))
+
+
+def iter_study_images(study_dir: Path) -> list[Path]:
+    return sorted(
+        p for p in study_dir.iterdir()
+        if p.is_file() and p.suffix.lower() in _IMAGE_SUFFIXES
+    )
+
+
+def load_mimic_cxr_jpg_report(patient_dir: Path, study_id: str) -> str:
+    report_path = patient_dir / f"{study_id}.txt"
+    if not report_path.is_file():
+        return ""
+    return report_path.read_text(encoding="utf-8", errors="replace").strip()
+
+
+def study_key(patient_id: str, study_folder: str) -> str:
+    return f"mimic_cxr_{patient_id}_{study_folder}"
+
+
+def register_study(
+    studies: dict[str, dict],
+    *,
+    patient_id: str,
+    study_folder: str,
+    images: list[Path],
+    collection: str,
+    report_text: str = "",
+    source_file: str = "",
+    cxr_id: str = "",
+) -> None:
+    if not images:
+        return
+    key = study_key(patient_id, study_folder)
+    studies[key] = {
+        "study_id": key,
+        "patient_id": patient_id,
+        "study_folder": study_folder,
+        "collection": collection,
+        "source_file": source_file or images[0].name,
+        "cxr_id": cxr_id,
+        "image_count": len(images),
+        "primary_image": rel_project_path(images[0]),
+        "image_paths": [rel_project_path(p) for p in images],
+        "report_text": report_text,
+    }
+
+
+def scan_mimic_cxr_jpg_root(root: Path, studies: dict[str, dict]) -> set[str]:
+    """Index official PhysioNet MIMIC-CXR-JPG layout under data/mimic/."""
+    indexed: set[str] = set()
+    if not root.is_dir():
+        return indexed
+    for patient_dir in sorted(root.iterdir()):
         if not patient_dir.is_dir() or patient_dir.name.startswith("."):
+            continue
+        if not is_mimic_cxr_jpg_patient(patient_dir.name):
+            continue
+        for study_dir in sorted(patient_dir.iterdir()):
+            if not study_dir.is_dir() or not is_mimic_cxr_jpg_study(study_dir.name):
+                continue
+            images = iter_study_images(study_dir)
+            if not images:
+                continue
+            report_text = load_mimic_cxr_jpg_report(patient_dir, study_dir.name)
+            register_study(
+                studies,
+                patient_id=patient_dir.name,
+                study_folder=study_dir.name,
+                images=images,
+                collection="MIMIC-CXR-JPG",
+                report_text=report_text,
+            )
+            indexed.add(patient_dir.name)
+    return indexed
+
+
+def scan_cxr_drop_root(
+    root: Path,
+    studies: dict[str, dict],
+    *,
+    skip_patients: set[str] | None = None,
+) -> None:
+    """Index NLMCXR / supplemental PNGs under data/mimic_cxr/."""
+    if not root.is_dir():
+        return
+    skip = skip_patients or set()
+    for patient_dir in sorted(root.iterdir()):
+        if not patient_dir.is_dir() or patient_dir.name.startswith("."):
+            continue
+        if patient_dir.name in skip and is_mimic_cxr_jpg_patient(patient_dir.name):
             continue
         for study_dir in sorted(patient_dir.iterdir()):
             if not study_dir.is_dir():
                 continue
-            images = sorted(
-                p for p in study_dir.iterdir()
-                if p.suffix.lower() in {".jpg", ".jpeg", ".png"}
-            )
+            images = iter_study_images(study_dir)
             if not images:
                 continue
-            study_key = f"mimic_cxr_{patient_dir.name}_{study_dir.name}"
-            primary = images[0]
-            source_file = resolve_nlmcxr_source_file(patient_dir.name) or primary.name
+            key = study_key(patient_dir.name, study_dir.name)
+            if key in studies:
+                continue
+            source_file = resolve_nlmcxr_source_file(patient_dir.name) or images[0].name
             cxr_id = cxr_id_from_filename(source_file) or ""
-            collection = infer_collection(patient_dir.name)
             report_text = load_report_text(cxr_id) if cxr_id else ""
-            studies[study_key] = {
-                "study_id": study_key,
-                "patient_id": patient_dir.name,
-                "study_folder": study_dir.name,
-                "collection": collection,
-                "source_file": source_file,
-                "cxr_id": cxr_id,
-                "image_count": len(images),
-                "primary_image": rel_project_path(primary),
-                "image_paths": [rel_project_path(p) for p in images],
-                "report_text": report_text,
-            }
+            register_study(
+                studies,
+                patient_id=patient_dir.name,
+                study_folder=study_dir.name,
+                images=images,
+                collection=infer_collection(patient_dir.name),
+                report_text=report_text,
+                source_file=source_file,
+                cxr_id=cxr_id,
+            )
 
+
+def build_manifest(*, force_reports: bool = False) -> dict:
+    """Scan official MIMIC-CXR-JPG (data/mimic/) and supplemental CXR (data/mimic_cxr/)."""
+    ensure_reports_extracted(force=force_reports)
+    studies: dict[str, dict] = {}
+    mimic_jpg_root = resolve_path("data/mimic")
+    cxr_root = resolve_path("data/mimic_cxr")
+    official_patients = scan_mimic_cxr_jpg_root(mimic_jpg_root, studies)
+    scan_cxr_drop_root(cxr_root, studies, skip_patients=official_patients)
     return {"version": 1, "study_count": len(studies), "studies": studies}
 
 

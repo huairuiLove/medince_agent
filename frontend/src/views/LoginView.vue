@@ -11,15 +11,23 @@ const mode = ref<'login' | 'register'>('login')
 const username = ref('')
 const password = ref('')
 const displayName = ref('')
-const deptId = ref('respiratory')
+const deptId = ref('')
 const departments = ref<DepartmentInfo[]>([])
+const departmentsLoading = ref(true)
 const localError = ref('')
 
 onMounted(async () => {
+  departmentsLoading.value = true
   try {
     departments.value = (await medsafeApi.listDepartments()).departments
+    if (departments.value.length) {
+      deptId.value = departments.value[0].dept_id
+    }
   } catch {
     departments.value = []
+    localError.value = '无法加载科室列表，请确认后端服务已启动'
+  } finally {
+    departmentsLoading.value = false
   }
 })
 
@@ -57,7 +65,7 @@ async function submit() {
       <form @submit.prevent="submit">
         <label class="field">
           <span>用户名</span>
-          <input v-model="username" required autocomplete="username" />
+          <input v-model="username" required autocomplete="username" minlength="2" maxlength="64" />
         </label>
         <label v-if="mode === 'register'" class="field">
           <span>显示名称</span>
@@ -65,7 +73,13 @@ async function submit() {
         </label>
         <label v-if="mode === 'register'" class="field">
           <span>科室</span>
-          <select v-model="deptId" required>
+          <select
+            v-model="deptId"
+            class="select"
+            required
+            :disabled="departmentsLoading || !departments.length"
+          >
+            <option value="" disabled>{{ departmentsLoading ? '加载科室…' : '请选择科室' }}</option>
             <option v-for="d in departments" :key="d.dept_id" :value="d.dept_id">
               {{ d.name_cn }} ({{ d.dept_id }})
             </option>
@@ -73,7 +87,7 @@ async function submit() {
         </label>
         <label class="field">
           <span>密码</span>
-          <input v-model="password" type="password" required autocomplete="current-password" minlength="4" />
+          <input v-model="password" type="password" required autocomplete="current-password" minlength="6" maxlength="128" />
         </label>
 
         <p v-if="localError || auth.error" class="err">{{ localError || auth.error }}</p>

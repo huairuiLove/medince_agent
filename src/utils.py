@@ -54,6 +54,51 @@ def dedupe_preserve_order(items: Iterable[str]) -> list[str]:
     return result
 
 
+_UNKNOWN_LIST_VALUES = frozenset(
+    {"unknown", "none", "n/a", "na", "无", "不详", "未知", "nkda", "无过敏", "无已知", "not known"}
+)
+
+
+def _format_llm_list_item(item: object) -> str:
+    if isinstance(item, str):
+        return item.strip()
+    if isinstance(item, dict):
+        drug = item.get("drug") or item.get("name") or item.get("alternative")
+        reason = item.get("reason") or item.get("rationale") or item.get("summary") or item.get("text")
+        if drug and reason:
+            return f"{drug}: {reason}"
+        if drug:
+            return str(drug).strip()
+        for key in ("message", "summary", "text", "recommendation"):
+            if item.get(key):
+                return str(item[key]).strip()
+        return json.dumps(item, ensure_ascii=False)
+    return str(item).strip()
+
+
+def coerce_llm_str_list(value: object) -> list[str]:
+    """Normalize LLM JSON list fields that may arrive as strings or dict items."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        text = value.strip()
+        if not text or text.lower() in _UNKNOWN_LIST_VALUES:
+            return []
+        if re.search(r"[,，;；\n]", text):
+            parts = re.split(r"[,，;；\n]+", text)
+            return [part.strip() for part in parts if part.strip()]
+        return [text]
+    if isinstance(value, list):
+        result: list[str] = []
+        for item in value:
+            formatted = _format_llm_list_item(item)
+            if formatted:
+                result.append(formatted)
+        return result
+    formatted = _format_llm_list_item(value)
+    return [formatted] if formatted else []
+
+
 def extract_json_payload(text: str) -> Optional[Any]:
     cleaned = text.strip()
     if cleaned.startswith("```"):

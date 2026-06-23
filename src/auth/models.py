@@ -34,6 +34,10 @@ class DepartmentInfo(BaseModel):
     description: str = ""
 
 
+class DepartmentsListResponse(BaseModel):
+    departments: list[DepartmentInfo]
+
+
 class UserProfile(BaseModel):
     user_id: str
     username: str

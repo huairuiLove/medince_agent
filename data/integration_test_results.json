@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-22T21:39:14.452178",
+  "timestamp": "2026-06-23T11:50:04.995879",
   "tests": [
     {
       "name": "rule: high risk warfarin+ibuprofen",
@@ -32,19 +32,94 @@
       "detail": ""
     },
     {
-      "name": "extract: skipped",
-      "status": "SKIP",
-      "detail": "MEDSAFE_LLM__API_KEY 未配置"
+      "name": "extract: parses",
+      "status": "PASS",
+      "detail": ""
     },
     {
-      "name": "agent: skipped",
-      "status": "SKIP",
-      "detail": "MEDSAFE_LLM__API_KEY 未配置"
+      "name": "extract: age",
+      "status": "PASS",
+      "detail": ""
     },
     {
-      "name": "debate: skipped",
-      "status": "SKIP",
-      "detail": "MEDSAFE_LLM__API_KEY 未配置"
+      "name": "extract: meds",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "agent: multi-agent opinions",
+      "status": "PASS",
+      "detail": "agents=5"
+    },
+    {
+      "name": "agent: arbitration block high risk",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "agent: rule evidence preserved",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "agent: pharmacist present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "agent: pharmacy present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "agent: clarify triggered",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "agent: conservative path",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "case: persisted",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "case: agent opinions",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "case: arbitration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "debate: enabled",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "debate: multi-round",
+      "status": "PASS",
+      "detail": "rounds=2"
+    },
+    {
+      "name": "debate: safety panel",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "debate: consensus or flag",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "debate: min confidence tracked",
+      "status": "PASS",
+      "detail": "min_conf=0.85"
     },
     {
       "name": "catalog: csv import",
@@ -93,9 +168,9 @@
     }
   ],
   "summary": {
-    "total": 18,
-    "passed": 15,
+    "total": 33,
+    "passed": 33,
     "failed": 0,
-    "pass_rate": "83.3%"
+    "pass_rate": "100.0%"
   }
 }

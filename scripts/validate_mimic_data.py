@@ -104,7 +104,11 @@ def _validate_cxr() -> tuple[list[str], list[str]]:
     cxr = catalog.list_studies(source="mimic_cxr")
     png_count = sum(len(s.image_paths) for s in cxr)
     with_reports = sum(1 for s in cxr if s.report_text.strip())
+    official = sum(1 for s in cxr if s.collection == "MIMIC-CXR-JPG")
+    nlmcxr = sum(1 for s in cxr if s.collection == "NLMCXR")
     ok_lines.append(f"  CXR studies: {len(cxr)} ({png_count} images)")
+    ok_lines.append(f"  MIMIC-CXR-JPG (data/mimic/): {official} studies")
+    ok_lines.append(f"  NLMCXR (data/mimic_cxr/): {nlmcxr} studies")
     ok_lines.append(f"  with radiology reports: {with_reports}")
     manifest = manifest_path()
     if cxr and not manifest.is_file():

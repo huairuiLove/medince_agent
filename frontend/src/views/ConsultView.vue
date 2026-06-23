@@ -14,7 +14,6 @@ const { loading, error, result, run, reset } = useMultiConsult()
 
 const inputMode = ref<'text' | 'form'>('form')
 const clinicalText = ref('')
-const unableToAnswer = ref(false)
 const persist = ref(true)
 
 const emptyPatient = (): PatientContext => ({
@@ -90,7 +89,6 @@ async function submit() {
   }
   const payload = {
     candidate_drugs: drugs.value,
-    unable_to_answer: unableToAnswer.value,
     persist: persist.value,
     ...(inputMode.value === 'text'
       ? { text: clinicalText.value }
@@ -161,7 +159,6 @@ const arb = computed(() => result.value?.arbitration)
         </div>
 
         <div class="opts">
-          <label><input v-model="unableToAnswer" type="checkbox" /> 无法补充信息（保守降级）</label>
           <label><input v-model="persist" type="checkbox" /> 保存 Case Log</label>
         </div>
 

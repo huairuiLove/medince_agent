@@ -11,7 +11,6 @@ export function useMultiConsult() {
     text?: string
     patient_context?: PatientContext
     candidate_drugs: DrugItem[]
-    unable_to_answer?: boolean
     persist?: boolean
   }) {
     loading.value = true
