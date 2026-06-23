@@ -386,6 +386,9 @@ class ImagingStudyItem(BaseModel):
     image_paths: List[str] = Field(default_factory=list)
     volume_path: Optional[str] = None
     slice_count: int = 0
+    collection: str = Field(default="", description="NLMCXR | MIMIC-CXR | local")
+    report_text: str = Field(default="", description="Radiology report text when available")
+    cxr_id: str = Field(default="")
 
 
 class SegmentRequest(BaseModel):
@@ -584,3 +587,37 @@ class FormularySyncResponse(BaseModel):
     rows_upserted: int = 0
     source_path: str = Field(default="")
     catalog_stats: Dict[str, Any] = Field(default_factory=dict)
+
+
+class MimicPatientSummary(BaseModel):
+    subject_id: int
+    hadm_id: int
+    gender: str = Field(default="unknown")
+    age: Optional[int] = None
+    admission_type: str = Field(default="")
+    diagnosis_count: int = 0
+    medication_count: int = 0
+    has_chief_complaint: bool = False
+    has_allergies: bool = False
+
+
+class MimicPatientListResponse(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    items: List[MimicPatientSummary] = Field(default_factory=list)
+
+
+class MimicDataStatsResponse(BaseModel):
+    raw_dir: str
+    raw_available: bool
+    raw_tables_present: int
+    raw_tables_required: int
+    processed_path: str
+    processed_available: bool
+    context_count: int = 0
+    with_clinical_notes: int = 0
+    with_medications: int = 0
+    with_diagnoses: int = 0
+    age_min: Optional[int] = None
+    age_max: Optional[int] = None

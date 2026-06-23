@@ -53,6 +53,19 @@ ALL_DEPARTMENTS = [
     "geriatrics",
     "icu",
     "obgyn",
+    "neurosurgery",
+    "radiology",
+    "oncology",
+    "emergency",
+    "general_internal",
+    "pediatrics",
+    "orthopedic",
+    "urology",
+    "anesthesiology",
+    "dermatology",
+    "ophthalmology",
+    "ent",
+    "rehabilitation",
 ]
 
 

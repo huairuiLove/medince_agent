@@ -1,16 +1,23 @@
-"""Generate demo case data and synthetic patient contexts for integration testing."""
+"""Generate case template fixtures and MIMIC-III patient contexts for integration testing."""
 from __future__ import annotations
 
 import json
-import random
+import subprocess
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+MIMIC_CANDIDATE_DIRS = (
+    PROJECT_ROOT / "data" / "mimic-iii-clinical-database-1.4",
+    PROJECT_ROOT / "data" / "raw" / "mimiciii",
+    PROJECT_ROOT / "data" / "external" / "mimiciii-demo",
+)
+
 
 def generate_review_cases():
     """Generate 3 review demo cases."""
-    demo_dir = PROJECT_ROOT / "data" / "demo_cases"
+    demo_dir = PROJECT_ROOT / "data" / "case_templates"
     demo_dir.mkdir(parents=True, exist_ok=True)
 
     # Case 1: High risk - warfarin + ibuprofen interaction
@@ -144,7 +151,7 @@ def generate_review_cases():
 
 def generate_clarify_cases():
     """Generate clarify demo cases."""
-    demo_dir = PROJECT_ROOT / "data" / "demo_cases"
+    demo_dir = PROJECT_ROOT / "data" / "case_templates"
     demo_dir.mkdir(parents=True, exist_ok=True)
 
     # Clarify case 1: need_user_input - missing allergy and pregnancy
@@ -254,7 +261,7 @@ def generate_clarify_cases():
 
 def generate_consult_case():
     """Generate full consult demo case."""
-    demo_dir = PROJECT_ROOT / "data" / "demo_cases"
+    demo_dir = PROJECT_ROOT / "data" / "case_templates"
     demo_dir.mkdir(parents=True, exist_ok=True)
 
     consult1 = {
@@ -302,120 +309,72 @@ def generate_consult_case():
     print("Created 1 consult demo case.")
 
 
-def generate_synthetic_patient_contexts():
-    """Generate 100 synthetic patient contexts for dataset building."""
+def resolve_mimic_raw_dir() -> Path | None:
+    for path in MIMIC_CANDIDATE_DIRS:
+        if (path / "PATIENTS.csv").is_file() and (path / "ADMISSIONS.csv").is_file():
+            return path
+    return None
+
+
+def is_full_mimic_dataset(raw_dir: Path) -> bool:
+    rx = raw_dir / "PRESCRIPTIONS.csv"
+    return rx.is_file() and rx.stat().st_size >= 50_000_000
+
+
+def generate_mimic_patient_contexts(*, max_samples: int = 2000, skip_notes: bool = False) -> None:
+    """Build patient contexts from real MIMIC-III CSV tables (no synthetic fallback)."""
+    raw_dir = resolve_mimic_raw_dir()
+    if raw_dir is None:
+        raise FileNotFoundError(
+            "MIMIC-III CSV not found. Expected PATIENTS.csv + ADMISSIONS.csv under "
+            "data/mimic-iii-clinical-database-1.4/ or data/raw/mimiciii/."
+        )
+
     processed_dir = PROJECT_ROOT / "data" / "processed"
     processed_dir.mkdir(parents=True, exist_ok=True)
-
-    rng = random.Random(42)
-
-    first_names = ["张", "李", "王", "刘", "陈", "杨", "赵", "黄", "周", "吴"]
-    genders = ["M", "F"]
-    admission_types = ["EMERGENCY", "URGENT", "ELECTIVE"]
-
-    chief_complaints = [
-        "胸痛伴呼吸困难", "发热咳嗽3天", "头晕头痛反复", "腹痛腹泻",
-        "心悸胸闷", "关节疼痛", "咳嗽咳痰发热", "恶心呕吐",
-        "腰背疼痛", "呼吸困难加重"
-    ]
-
-    diagnosis_pools = [
-        [{"icd9_code": "410.71", "name": "心内膜下心肌梗死"}, {"icd9_code": "401.9", "name": "高血压"}],
-        [{"icd9_code": "486", "name": "肺炎"}],
-        [{"icd9_code": "401.9", "name": "高血压"}, {"icd9_code": "250.0", "name": "糖尿病"}],
-        [{"icd9_code": "428.0", "name": "心力衰竭"}, {"icd9_code": "401.9", "name": "高血压"}],
-        [{"icd9_code": "585.6", "name": "慢性肾病"}, {"icd9_code": "401.9", "name": "高血压"}],
-        [{"icd9_code": "462", "name": "急性咽炎"}],
-        [{"icd9_code": "466.0", "name": "急性支气管炎"}],
-        [{"icd9_code": "414.01", "name": "冠心病"}, {"icd9_code": "401.9", "name": "高血压"}],
-        [{"icd9_code": "434.91", "name": "脑梗死"}, {"icd9_code": "401.9", "name": "高血压"}],
-        [{"icd9_code": "599.0", "name": "尿路感染"}]
-    ]
-
-    medication_pools = [
-        [{"name": "aspirin", "ingredient": "aspirin", "dose": "81mg", "route": "PO", "frequency": "qd"}],
-        [{"name": "warfarin", "ingredient": "warfarin", "dose": "5mg", "route": "PO", "frequency": "qd"}],
-        [{"name": "metoprolol", "ingredient": "metoprolol", "dose": "25mg", "route": "PO", "frequency": "bid"}],
-        [],
-        [{"name": "lisinopril", "ingredient": "lisinopril", "dose": "10mg", "route": "PO", "frequency": "qd"}],
-        [{"name": "simvastatin", "ingredient": "simvastatin", "dose": "20mg", "route": "PO", "frequency": "qd"}],
-        [{"name": "heparin", "ingredient": "heparin", "dose": "5000IU", "route": "SC", "frequency": "bid"}],
-        [{"name": "ibuprofen", "ingredient": "ibuprofen", "dose": "400mg", "route": "PO", "frequency": "tid"}],
-        [],
-        [{"name": "acetaminophen", "ingredient": "acetaminophen", "dose": "500mg", "route": "PO", "frequency": "q6h"}]
-    ]
-
-    allergy_pools = [
-        [], ["penicillin"], ["aspirin"], ["sulfa"],
-        [], [], [], ["penicillin", "aspirin"],
-        [], ["nsaid"]
-    ]
-
-    contexts = []
-    for i in range(100):
-        gender = rng.choice(genders)
-        age = rng.randint(18, 85)
-        admission_type = rng.choice(admission_types)
-
-        # Age > 89 is not set above 90 in MIMIC
-        if age > 89:
-            age = 89
-
-        pregnancy_status = "not_applicable"
-        if gender == "F" and 12 <= age <= 55:
-            pregnancy_status = rng.choice(["not_pregnant", "unknown", "unknown"])
-
-        diagnoses = rng.choice(diagnosis_pools)
-        medications = rng.choice(medication_pools)
-        allergies = rng.choice(allergy_pools)
-
-        missing = []
-        if not allergies:
-            missing.append("allergies")
-        if not medications:
-            missing.append("current_medications")
-        if pregnancy_status == "unknown":
-            missing.append("pregnancy_status")
-
-        context = {
-            "subject_id": 10010 + i,
-            "hadm_id": 20010 + i,
-            "gender": gender,
-            "age": age,
-            "admission_type": admission_type,
-            "chief_complaint": rng.choice(chief_complaints),
-            "symptoms_or_complaints": [rng.choice(chief_complaints)],
-            "past_medical_history": [],
-            "diagnoses": diagnoses,
-            "current_medications": medications,
-            "allergies": allergies,
-            "pregnancy_status": pregnancy_status,
-            "missing_fields": missing
-        }
-        contexts.append(context)
-
     output_path = processed_dir / "mimiciii_patient_contexts.json"
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(contexts, f, ensure_ascii=False, indent=2)
 
-    # Stats
-    high_risk_count = sum(1 for c in contexts if any(
-        m.get("ingredient") in ("warfarin", "heparin")
-        for m in c["current_medications"]
-    ))
-    allergy_missing = sum(1 for c in contexts if "allergies" in c["missing_fields"])
-    pregnancy_missing = sum(1 for c in contexts if "pregnancy_status" in c["missing_fields"])
-    print(f"Created 100 synthetic patient contexts.")
-    print(f"  - Ages: {min(c['age'] for c in contexts)}~{max(c['age'] for c in contexts)}")
-    print(f"  - Female: {sum(1 for c in contexts if c['gender']=='F')}, Male: {sum(1 for c in contexts if c['gender']=='M')}")
-    print(f"  - Has high-risk current meds: {high_risk_count}")
-    print(f"  - Allergy missing: {allergy_missing}")
-    print(f"  - Pregnancy missing: {pregnancy_missing}")
+    cmd = [
+        sys.executable,
+        "-m",
+        "src.build_mimic_samples",
+        "--raw_dir",
+        str(raw_dir),
+        "--out_path",
+        str(output_path),
+        "--max_samples",
+        str(max_samples),
+        "--require-medications",
+    ]
+    if skip_notes:
+        cmd.append("--skip-notes")
+
+    print(f"Building patient contexts from {raw_dir.relative_to(PROJECT_ROOT)} ...")
+    subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
+
+    with open(output_path, encoding="utf-8") as f:
+        contexts = json.load(f)
+
+    with_meds = sum(1 for c in contexts if c.get("current_medications"))
+    with_diag = sum(1 for c in contexts if c.get("diagnoses"))
+    ages = [c["age"] for c in contexts if c.get("age") is not None]
+    print(f"Created {len(contexts)} MIMIC-III patient contexts → {output_path.relative_to(PROJECT_ROOT)}")
+    if ages:
+        print(f"  - Ages: {min(ages)}~{max(ages)}")
+    print(f"  - With medications: {with_meds}")
+    print(f"  - With diagnoses: {with_diag}")
+    print(f"  - Female: {sum(1 for c in contexts if c.get('gender') == 'F')}, "
+          f"Male: {sum(1 for c in contexts if c.get('gender') == 'M')}")
 
 
 if __name__ == "__main__":
     generate_review_cases()
     generate_clarify_cases()
     generate_consult_case()
-    generate_synthetic_patient_contexts()
-    print("\nAll demo data generated successfully.")
+    raw_dir = resolve_mimic_raw_dir()
+    use_notes = raw_dir is not None and is_full_mimic_dataset(raw_dir)
+    if raw_dir:
+        tier = "full 1.4" if use_notes else "demo/partial"
+        print(f"MIMIC source: {raw_dir.relative_to(PROJECT_ROOT)} ({tier})")
+    generate_mimic_patient_contexts(max_samples=2000, skip_notes=not use_notes)
+    print("\nAll case templates and MIMIC patient contexts generated successfully.")

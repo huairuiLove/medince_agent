@@ -15,11 +15,11 @@ agents:
   - pharmacy_inventory
   - specialist
 data:
-  raw_dir: data/raw/mimiciii
+  raw_dir: data/mimic-iii-clinical-database-1.4
   processed_dir: data/processed
   knowledge_dir: data/knowledge
   cases_dir: data/cases
-  demo_dir: data/demo_cases
+  case_templates_dir: data/case_templates
   knowledge_base: data/knowledge/hospital_production_v4.json
   formulary: data/knowledge/pharmacy_formulary.json
 server:

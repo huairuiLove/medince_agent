@@ -1,0 +1,190 @@
+"""Build and load metadata for real chest X-rays under data/mimic_cxr/."""
+from __future__ import annotations
+
+import json
+import re
+import tarfile
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+from src.config import project_root, resolve_path
+from src.utils import ensure_dir, save_json
+
+_MANIFEST_NAME = "studies_manifest.json"
+_CXR_ID_RE = re.compile(r"^(CXR\d+)", re.I)
+_NLMCXR_INDEX_RE = re.compile(r"^p_nlmcxr_(\d+)$", re.I)
+_REPORT_LABELS = ("INDICATION", "FINDINGS", "IMPRESSION", "COMPARISON")
+
+
+def manifest_path() -> Path:
+    return resolve_path("data/mimic_cxr") / _MANIFEST_NAME
+
+
+def nlmcxr_png_root() -> Path:
+    return resolve_path("data/external/nlmcxr/NLMCXR_png")
+
+
+def nlmcxr_reports_dir() -> Path:
+    return resolve_path("data/external/nlmcxr/ecgen-radiology")
+
+
+def nlmcxr_reports_archive() -> Path:
+    return resolve_path("data/external/nlmcxr/NLMCXR_reports.tgz")
+
+
+def rel_project_path(path: Path) -> str:
+    root = project_root().resolve()
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(root))
+    except ValueError:
+        return str(resolved)
+
+
+def cxr_id_from_filename(name: str) -> str | None:
+    match = _CXR_ID_RE.match(Path(name).stem)
+    return match.group(1).upper() if match else None
+
+
+def pmc_id_from_cxr_id(cxr_id: str) -> str | None:
+    if cxr_id.upper().startswith("CXR"):
+        digits = cxr_id[3:]
+        return digits if digits.isdigit() else None
+    return None
+
+
+def ensure_reports_extracted(*, force: bool = False) -> Path:
+    dest = nlmcxr_reports_dir()
+    archive = nlmcxr_reports_archive()
+    if not archive.is_file():
+        return dest
+    xml_count = len(list(dest.glob("*.xml"))) if dest.is_dir() else 0
+    if force or xml_count < 100:
+        ensure_dir(dest.parent)
+        with tarfile.open(archive, "r:gz") as tar:
+            try:
+                tar.extractall(path=dest.parent, filter="data")
+            except TypeError:
+                tar.extractall(path=dest.parent)
+    return dest
+
+
+def parse_report_xml(path: Path) -> tuple[str, str]:
+    """Return (cxr_uid, plain-text report)."""
+    root = ET.parse(path).getroot()
+    uid = ""
+    uid_el = root.find("uId")
+    if uid_el is not None and uid_el.get("id"):
+        uid = uid_el.get("id", "")
+    parts: list[str] = []
+    for abstract in root.iter("AbstractText"):
+        label = abstract.get("Label", "").strip()
+        text = (abstract.text or "").strip()
+        if not text:
+            continue
+        if label:
+            parts.append(f"{label}: {text}")
+        else:
+            parts.append(text)
+    return uid, "\n".join(parts)
+
+
+def load_report_text(cxr_id: str) -> str:
+    pmc = pmc_id_from_cxr_id(cxr_id)
+    if not pmc:
+        return ""
+    reports_dir = ensure_reports_extracted()
+    report_path = reports_dir / f"{pmc}.xml"
+    if not report_path.is_file():
+        return ""
+    _, text = parse_report_xml(report_path)
+    return text
+
+
+def resolve_nlmcxr_source_file(patient_id: str) -> str | None:
+    match = _NLMCXR_INDEX_RE.match(patient_id)
+    if not match:
+        return None
+    index = int(match.group(1))
+    png_root = nlmcxr_png_root()
+    if not png_root.is_dir():
+        return None
+    png_files = sorted(png_root.rglob("*.png"))
+    if index < 1 or index > len(png_files):
+        return None
+    return png_files[index - 1].name
+
+
+def infer_collection(patient_id: str) -> str:
+    if _NLMCXR_INDEX_RE.match(patient_id):
+        return "NLMCXR"
+    if patient_id.startswith("p") and patient_id[1:].isdigit():
+        return "MIMIC-CXR"
+    return "local"
+
+
+def build_manifest(*, force_reports: bool = False) -> dict:
+    """Scan data/mimic_cxr/ and attach Open-I NLMCXR radiology reports where available."""
+    cxr_root = resolve_path("data/mimic_cxr")
+    ensure_reports_extracted(force=force_reports)
+    studies: dict[str, dict] = {}
+
+    if not cxr_root.is_dir():
+        return {"version": 1, "study_count": 0, "studies": studies}
+
+    for patient_dir in sorted(cxr_root.iterdir()):
+        if not patient_dir.is_dir() or patient_dir.name.startswith("."):
+            continue
+        for study_dir in sorted(patient_dir.iterdir()):
+            if not study_dir.is_dir():
+                continue
+            images = sorted(
+                p for p in study_dir.iterdir()
+                if p.suffix.lower() in {".jpg", ".jpeg", ".png"}
+            )
+            if not images:
+                continue
+            study_key = f"mimic_cxr_{patient_dir.name}_{study_dir.name}"
+            primary = images[0]
+            source_file = resolve_nlmcxr_source_file(patient_dir.name) or primary.name
+            cxr_id = cxr_id_from_filename(source_file) or ""
+            collection = infer_collection(patient_dir.name)
+            report_text = load_report_text(cxr_id) if cxr_id else ""
+            studies[study_key] = {
+                "study_id": study_key,
+                "patient_id": patient_dir.name,
+                "study_folder": study_dir.name,
+                "collection": collection,
+                "source_file": source_file,
+                "cxr_id": cxr_id,
+                "image_count": len(images),
+                "primary_image": rel_project_path(primary),
+                "image_paths": [rel_project_path(p) for p in images],
+                "report_text": report_text,
+            }
+
+    return {"version": 1, "study_count": len(studies), "studies": studies}
+
+
+def save_manifest(data: dict | None = None) -> Path:
+    payload = data if data is not None else build_manifest()
+    out = manifest_path()
+    ensure_dir(out.parent)
+    save_json(payload, out)
+    return out
+
+
+def load_manifest() -> dict:
+    path = manifest_path()
+    if not path.is_file():
+        return {"version": 1, "study_count": 0, "studies": {}}
+    with path.open(encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def get_study_meta(study_id: str) -> dict | None:
+    studies = load_manifest().get("studies") or {}
+    if isinstance(studies, dict):
+        item = studies.get(study_id)
+        return item if isinstance(item, dict) else None
+    return None

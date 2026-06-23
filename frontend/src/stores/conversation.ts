@@ -16,15 +16,12 @@ export interface Conversation {
   updatedAt: number
 }
 
-const DEFAULT_WELCOME =
-  '你好！我是 MedSafe 用药安全助手。\n\n我可以帮你：\n- 检查多种药物之间的相互作用\n- 识别处方药、OTC、保健品之间的冲突\n- 评估特定人群（孕妇/老人/儿童）的用药风险\n- 提醒食物与药物的禁忌搭配\n\n请告诉我你正在服用什么药物，或直接点击下方的快捷问题开始。'
-
 function createConversation(title = '新对话'): Conversation {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   return {
     id,
     title,
-    messages: [{ id: '1', role: 'assistant', content: DEFAULT_WELCOME }],
+    messages: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }

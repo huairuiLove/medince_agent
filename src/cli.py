@@ -49,9 +49,35 @@ def cmd_test(args: argparse.Namespace) -> None:
     subprocess.run([sys.executable, str(script)], check=True)
 
 
-def cmd_demo_data(args: argparse.Namespace) -> None:
+def cmd_case_templates(args: argparse.Namespace) -> None:
     script = PROJECT_ROOT / "scripts" / "generate_demo_data.py"
     subprocess.run([sys.executable, str(script)], check=True)
+
+
+def cmd_build_mimic(args: argparse.Namespace) -> None:
+    from scripts.generate_demo_data import (
+        generate_mimic_patient_contexts,
+        is_full_mimic_dataset,
+        resolve_mimic_raw_dir,
+    )
+
+    raw_dir = resolve_mimic_raw_dir()
+    if raw_dir is None:
+        print("MIMIC-III CSV not found under data/mimic-iii-clinical-database-1.4/")
+        sys.exit(1)
+    use_notes = not args.skip_notes and is_full_mimic_dataset(raw_dir)
+    generate_mimic_patient_contexts(
+        max_samples=args.max_samples,
+        skip_notes=not use_notes,
+    )
+
+
+def cmd_validate_mimic(args: argparse.Namespace) -> None:
+    script = PROJECT_ROOT / "scripts" / "validate_mimic_data.py"
+    cmd = [sys.executable, str(script)]
+    if args.strict:
+        cmd.append("--strict")
+    subprocess.run(cmd, check=not args.no_fail)
 
 
 def cmd_info(args: argparse.Namespace) -> None:
@@ -86,7 +112,17 @@ def main() -> None:
     serve_p.set_defaults(func=cmd_serve)
 
     sub.add_parser("test", help="Run integration tests").set_defaults(func=cmd_test)
-    sub.add_parser("demo-data", help="Generate demo data").set_defaults(func=cmd_demo_data)
+    sub.add_parser("case-templates", help="Generate case template fixtures").set_defaults(func=cmd_case_templates)
+    build_p = sub.add_parser("build-mimic", help="Build MIMIC-III patient contexts from CSV tables")
+    build_p.add_argument("--max-samples", type=int, default=2000, help="Max admissions to export (0 = all)")
+    build_p.add_argument("--skip-notes", action="store_true", help="Skip NOTEEVENTS (faster, no chief complaint)")
+    build_p.set_defaults(func=cmd_build_mimic)
+    validate_p = sub.add_parser("validate-mimic", help="Check MIMIC-III raw + processed data")
+    validate_p.add_argument("--strict", action="store_true", help="Require clinical notes in processed file")
+    validate_p.add_argument("--no-fail", action="store_true", help="Always exit 0")
+    validate_p.set_defaults(func=cmd_validate_mimic)
+    legacy = sub.add_parser("demo-data", help="(deprecated) use case-templates")
+    legacy.set_defaults(func=cmd_case_templates)
     sub.add_parser("info", help="Print system info").set_defaults(func=cmd_info)
 
     args = parser.parse_args()

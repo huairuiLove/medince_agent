@@ -16,12 +16,18 @@ services:
       - path: .env
         required: false
     environment:
-      - MEDSAFE_LLM__PROVIDER=${MEDSAFE_LLM_PROVIDER:-mock}
+      - MEDSAFE_LLM__PROVIDER=${MEDSAFE_LLM_PROVIDER:-deepseek}
       - MEDSAFE_LLM__API_KEY=${MEDSAFE_LLM_API_KEY:-}
       - MEDSAFE_LOGGING__FORMAT=structured
     volumes:
       - ./data/cases:/app/data/cases
       - ./data/knowledge:/app/data/knowledge
+      - ./data/case_templates:/app/data/case_templates
+      - ./data/hospital:/app/data/hospital
+      - ./data/departments:/app/data/departments
+      - ./data/agents:/app/data/agents
+      - ./data/pharmacy:/app/data/pharmacy
+      - ./data/auth:/app/data/auth
       - ./logs:/app/logs
     restart: unless-stopped
     healthcheck:

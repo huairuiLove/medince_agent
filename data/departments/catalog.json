@@ -212,9 +212,12 @@
       "name_cn": "肾内科",
       "name_en": "Nephrology",
       "sort_order": 80,
-      "imaging_sources": ["mimic"],
-      "default_models": ["totalsegmentator"],
-      "recommended_datasets": [{"id": "kiTS19", "name": "KiTS Kidney Tumor", "modality": "CT"}],
+      "imaging_sources": ["mimic", "kits19"],
+      "default_models": ["totalsegmentator", "vista3d"],
+      "recommended_datasets": [
+        {"id": "kits19", "name": "KiTS Kidney Tumor", "modality": "CT", "notes": "data/kits19/ 已接入 imaging catalog"},
+        {"id": "mimic_iii", "name": "MIMIC-III", "modality": "EHR"}
+      ],
       "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "肾脏/泌尿轮廓"}],
       "description": "肾功能相关剂量调整与造影剂风险"
     },
@@ -239,6 +242,33 @@
       "recommended_datasets": [],
       "vision_models": [],
       "description": "抗凝/化疗骨髓抑制与出血风险审查"
+    },
+    {
+      "dept_id": "geriatrics",
+      "name_cn": "老年科",
+      "name_en": "Geriatrics",
+      "sort_order": 105,
+      "imaging_sources": ["mimic_cxr", "mimic"],
+      "default_models": ["cxr_lesion", "totalsegmentator"],
+      "recommended_datasets": [
+        {"id": "mimic_cxr", "name": "MIMIC-CXR / NLMCXR", "modality": "XR"},
+        {"id": "mimic_iii", "name": "MIMIC-III", "modality": "EHR"}
+      ],
+      "vision_models": [{"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "老年肺炎/心衰胸片"}],
+      "description": "Beers 准则、跌倒风险与多重用药审查"
+    },
+    {
+      "dept_id": "rheumatology",
+      "name_cn": "风湿免疫科",
+      "name_en": "Rheumatology",
+      "sort_order": 115,
+      "imaging_sources": ["mimic"],
+      "default_models": ["totalsegmentator", "sam2d"],
+      "recommended_datasets": [
+        {"id": "mimic_iii", "name": "MIMIC-III", "modality": "EHR"}
+      ],
+      "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "关节/软组织 CT"}],
+      "description": "MTX/生物制剂/免疫抑制交互与骨髓抑制"
     },
     {
       "dept_id": "infectious_disease",
@@ -289,9 +319,12 @@
       "name_cn": "泌尿外科",
       "name_en": "Urology",
       "sort_order": 150,
-      "imaging_sources": ["mimic"],
-      "default_models": ["totalsegmentator"],
-      "recommended_datasets": [{"id": "picai", "name": "PI-CAI Prostate", "modality": "MRI"}],
+      "imaging_sources": ["mimic", "kits19"],
+      "default_models": ["totalsegmentator", "vista3d"],
+      "recommended_datasets": [
+        {"id": "kits19", "name": "KiTS19 Renal CT", "modality": "CT", "notes": "data/kits19/"},
+        {"id": "picai", "name": "PI-CAI Prostate", "modality": "MRI"}
+      ],
       "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "盆腔 CT"}],
       "description": "泌尿系影像与 α-blocker/抗凝联用"
     },

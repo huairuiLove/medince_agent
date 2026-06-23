@@ -14,6 +14,7 @@ import type {
 } from '@/types'
 
 const studies = ref<ImagingStudy[]>([])
+const sourceFilter = ref<'all' | 'mimic_cxr' | 'brats2024' | 'mimic'>('all')
 const models = ref<SegModelInfo[]>([])
 const selectedStudy = ref<ImagingStudy | null>(null)
 const selectedModels = ref<ModelId[]>(['sam2d'])
@@ -45,6 +46,22 @@ const viewerRef = ref<HTMLDivElement | null>(null)
 const memoryPeak = ref(0)
 const volumeMaskPath = ref<string | null>(null)
 
+const filteredStudies = computed(() => {
+  if (sourceFilter.value === 'all') return studies.value
+  return studies.value.filter(s => s.source === sourceFilter.value)
+})
+
+async function loadStudies() {
+  const res = await medsafeApi.listImagingStudies(
+    sourceFilter.value === 'all' ? undefined : sourceFilter.value,
+  )
+  studies.value = res.studies
+  if (!studies.value.some(s => s.study_id === selectedStudy.value?.study_id)) {
+    if (studies.value.length) selectStudy(studies.value[0])
+    else selectedStudy.value = null
+  }
+}
+
 const hasVolume = computed(() => Boolean(selectedStudy.value?.volume_path))
 
 const compatibleModels = computed(() => {
@@ -73,12 +90,14 @@ const targetOptions = computed(() => {
 function defaultModelsForStudy(s: ImagingStudy): ModelId[] {
   if (s.source === 'mimic_cxr') return ['cxr_lesion']
   if (s.source === 'brats2024') return ['brats_tumor']
+  if (s.source === 'kits19') return ['totalsegmentator', 'vista3d']
   return ['sam2d']
 }
 
 function defaultTargetForStudy(s: ImagingStudy): string {
   if (s.source === 'mimic_cxr') return 'opacity'
   if (s.source === 'brats2024') return 'whole_tumor'
+  if (s.source === 'kits19') return 'kidney'
   return 'brain'
 }
 
@@ -167,7 +186,7 @@ async function loadSegmentHistory() {
 
 onMounted(async () => {
   try {
-    studies.value = (await medsafeApi.listImagingStudies()).studies
+    await loadStudies()
     models.value = (await medsafeApi.listSegmentModels()).models
     const vlmCfg = await medsafeApi.getVlmConfig()
     vlmConfigured.value = vlmCfg.configured
@@ -177,6 +196,10 @@ onMounted(async () => {
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   }
+})
+
+watch(sourceFilter, () => {
+  void loadStudies()
 })
 
 watch([currentSegmentImagePath, mprAxis, mprIndex, sliceIndex, viewMode], () => {
@@ -201,7 +224,9 @@ function selectStudy(s: ImagingStudy) {
   volumeMaskPath.value = null
   selectedModels.value = defaultModelsForStudy(s)
   organ.value = defaultTargetForStudy(s)
-  clinicalText.value = `${s.title} — ${s.modality} 影像会诊`
+  clinicalText.value = s.report_text?.trim()
+    ? s.report_text
+    : `${s.title} — ${s.modality} 影像会诊`
   void loadSegmentHistory()
 }
 
@@ -402,15 +427,26 @@ const sortedParagraphs = computed(() =>
     <div class="grid-main">
       <aside class="card panel">
         <h3>影像检查</h3>
+        <div class="source-filter">
+          <button
+            v-for="opt in ([['all', '全部'], ['mimic_cxr', '胸片 CXR'], ['kits19', '肾脏 CT'], ['mimic', 'CT'], ['brats2024', 'MRI']] as const)"
+            :key="opt[0]"
+            type="button"
+            class="mode-btn"
+            :class="{ active: sourceFilter === opt[0] }"
+            @click="sourceFilter = opt[0]"
+          >{{ opt[1] }}</button>
+        </div>
         <ul class="study-list">
           <li
-            v-for="s in studies"
+            v-for="s in filteredStudies"
             :key="s.study_id"
             :class="{ active: selectedStudy?.study_id === s.study_id }"
             @click="selectStudy(s)"
           >
             <span class="mod">{{ s.modality }}</span>
             {{ s.title }}
+            <small v-if="s.collection">{{ s.collection }}</small>
             <small>{{ s.volume_path ? '3D NIfTI' : `${s.slice_count} 张` }}</small>
           </li>
         </ul>

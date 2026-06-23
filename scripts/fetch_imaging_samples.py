@@ -43,28 +43,20 @@ def download_file(url: str, dest: Path) -> None:
 
 
 def fetch_cxr_samples(force: bool = False) -> int:
-    count = 0
+    """Count local CXR under data/mimic_cxr/ (use fetch_demo_datasets.py --nlmcxr-archives to populate)."""
     base = ROOT / "data" / "mimic_cxr"
-    samples = [
-        ("p10000980", "s54577367", "00000001.png",
-         "https://openi.nlm.nih.gov/imgs/collections/NLMCXR/NLMCXR0001_0001.png"),
-        ("p10000980", "s54577367", "00000002.png",
-         "https://openi.nlm.nih.gov/imgs/collections/NLMCXR/NLMCXR0002_0001.png"),
+    if not base.is_dir():
+        print("  no data/mimic_cxr/ — run: python scripts/fetch_demo_datasets.py --nlmcxr-archives --nlmcxr-map 30")
+        return 0
+    paths = [
+        p for p in base.rglob("*")
+        if p.suffix.lower() in {".png", ".jpg", ".jpeg"} and p.stat().st_size > 1000
     ]
-    for patient_id, study_id, filename, url in samples:
-        out = base / patient_id / study_id / filename
-        if force and out.exists():
-            out.unlink()
-        if not out.exists() or out.stat().st_size < 1000:
-            try:
-                download_file(url, out)
-            except Exception as exc:
-                print(f"  skip {filename}: {exc}")
-                continue
-        if out.exists() and out.stat().st_size > 1000:
-            count += 1
-            print(f"  CXR -> {out.relative_to(ROOT)}")
-    return count
+    for path in sorted(paths)[:5]:
+        print(f"  CXR -> {path.relative_to(ROOT)}")
+    if len(paths) > 5:
+        print(f"  ... and {len(paths) - 5} more")
+    return len(paths)
 
 
 def fetch_brats_sample(force: bool = False) -> int:

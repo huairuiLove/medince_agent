@@ -35,6 +35,19 @@ DEPARTMENT_COUNTS: dict[str, int] = {
     "geriatrics": 6,
     "icu": 6,
     "obgyn": 5,
+    "neurosurgery": 6,
+    "radiology": 4,
+    "oncology": 8,
+    "emergency": 6,
+    "general_internal": 6,
+    "pediatrics": 5,
+    "orthopedic": 5,
+    "urology": 5,
+    "anesthesiology": 5,
+    "dermatology": 4,
+    "ophthalmology": 3,
+    "ent": 4,
+    "rehabilitation": 4,
 }
 
 # Curated rule_ids chosen so ReviewEngine fires them against hospital_production_v4.json.
@@ -175,6 +188,97 @@ DEPARTMENT_RULES: dict[str, list[str]] = {
         "pop_pregnancy_warfarin",
         "pop_pregnancy_levofloxacin",
     ],
+    "neurosurgery": [
+        "ddi_opioid_benzo_diazepam_morphine",
+        "ddi_carbamazepine_valproate",
+        "ddi_valproate_phenytoin",
+        "ddi_carbamazepine_cyp3a4i_carbamazepine_clarithromycin",
+        "ddi_antipsychotic_qt_haloperidol_moxifloxacin",
+        "ddi_lithium_nsaids",
+    ],
+    "radiology": [
+        "ddi_metformin_contrast",
+        "pop_renal_metformin",
+        "pop_renal_gentamicin",
+        "pop_renal_rivaroxaban",
+    ],
+    "oncology": [
+        "ddi_methotrexate_nsaids_gi",
+        "ddi_methotrexate_leflunomide",
+        "ddi_methotrexate_tmp_smx",
+        "ddi_ibrutinib_ppi",
+        "ddi_mycophenolate_ppi",
+        "ddi_cyclophosphamide_allopurinol",
+        "ddi_azathioprine_allopurinol",
+        "ddi_hcq_tamoxifen",
+    ],
+    "emergency": [
+        "ddi_opioid_benzo_diazepam_fentanyl",
+        "ddi_warfarin_ibuprofen_bleeding",
+        "ddi_sotalol_qt_moxifloxacin_sotalol",
+        "alg_penicillin_amoxicillin",
+        "ddi_heparin_ssri_enoxaparin_fluoxetine",
+        "ddi_metformin_contrast",
+    ],
+    "general_internal": [
+        "ddi_warfarin_aspirin_bleeding",
+        "ddi_acei_arb_dual_lisinopril_losartan",
+        "pop_renal_metformin",
+        "ddi_clopidogrel_omeprazole",
+        "ddi_levothyroxine_calcium",
+        "ddi_clarithromycin_simvastatin_muscle",
+    ],
+    "pediatrics": [
+        "pop_pediatric_aspirin",
+        "pop_pediatric_levofloxacin",
+        "pop_pediatric_codeine",
+        "pop_pediatric_valproic_acid",
+        "pop_pediatric_doxycycline",
+    ],
+    "orthopedic": [
+        "ddi_warfarin_ibuprofen_bleeding",
+        "ddi_aspirin_ibuprofen_antiplatelet",
+        "ddi_methotrexate_nsaids_gi",
+        "ddi_opioid_benzo_lorazepam_oxycodone",
+        "ddi_doac_nsaids_ibuprofen_rivaroxaban",
+    ],
+    "urology": [
+        "ddi_lithium_diuretics",
+        "pop_renal_gentamicin",
+        "ddi_acei_potassium_lisinopril_potassium chloride",
+        "pop_renal_spironolactone",
+        "pop_renal_metformin",
+    ],
+    "anesthesiology": [
+        "ddi_icu_propofol_lipid",
+        "ddi_opioid_benzo_diazepam_fentanyl",
+        "ddi_icu_sedative_nmb_midazolam_rocuronium",
+        "ddi_icu_vasopressin_norepinephrine",
+        "ddi_opioid_benzo_lorazepam_oxycodone",
+    ],
+    "dermatology": [
+        "ddi_methotrexate_nsaids_gi",
+        "ddi_methotrexate_tmp_smx",
+        "ddi_azathioprine_allopurinol",
+        "alg_penicillin_amoxicillin",
+    ],
+    "ophthalmology": [
+        "ddi_sotalol_qt_moxifloxacin_sotalol",
+        "ddi_bb_ccb_metoprolol_verapamil",
+        "ddi_antipsychotic_qt_haloperidol_moxifloxacin",
+    ],
+    "ent": [
+        "alg_penicillin_amoxicillin",
+        "ddi_clarithromycin_simvastatin_muscle",
+        "ddi_metoclopramide_anticholinergic",
+        "ddi_warfarin_metronidazole",
+    ],
+    "rehabilitation": [
+        "pop_beers_diazepam",
+        "ddi_geriatrics_fall_benzo_bp_diazepam_metoprolol",
+        "ddi_geriatrics_anticholinergic_burden_diphenhydramine_oxybutynin",
+        "pop_beers_amitriptyline",
+    ],
 }
 
 DEPARTMENT_DESCRIPTIONS: dict[str, str] = {
@@ -191,6 +295,19 @@ DEPARTMENT_DESCRIPTIONS: dict[str, str] = {
     "geriatrics": "老年科用药安全",
     "icu": "ICU/急诊用药安全",
     "obgyn": "妇产科用药安全",
+    "neurosurgery": "神经外科用药安全",
+    "radiology": "放射科用药安全",
+    "oncology": "肿瘤科用药安全",
+    "emergency": "急诊科用药安全",
+    "general_internal": "普通内科用药安全",
+    "pediatrics": "儿科用药安全",
+    "orthopedic": "骨科用药安全",
+    "urology": "泌尿外科用药安全",
+    "anesthesiology": "麻醉科用药安全",
+    "dermatology": "皮肤科用药安全",
+    "ophthalmology": "眼科用药安全",
+    "ent": "耳鼻喉科用药安全",
+    "rehabilitation": "康复医学科用药安全",
 }
 
 DIFFICULTY_BY_RISK = {"high": "hard", "medium": "medium", "low": "easy", "none": "easy", "unknown": "hard"}
@@ -403,7 +520,12 @@ def _tags_for_rule(rule_id: str, department: str) -> list[str]:
     return tags
 
 
-def generate_cases(kb_path: Path, output_dir: Path, strict: bool = True) -> dict[str, Any]:
+def generate_cases(
+    kb_path: Path,
+    output_dir: Path,
+    strict: bool = True,
+    departments: list[str] | None = None,
+) -> dict[str, Any]:
     kb = SafetyKnowledgeBase(kb_path)
     engine = ReviewEngine(kb=kb)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -420,6 +542,8 @@ def generate_cases(kb_path: Path, output_dir: Path, strict: bool = True) -> dict
     case_index = 0
 
     for department, expected_count in DEPARTMENT_COUNTS.items():
+        if departments and department not in departments:
+            continue
         rule_ids = DEPARTMENT_RULES.get(department, [])
         if len(rule_ids) != expected_count:
             raise ValueError(
@@ -472,9 +596,20 @@ def main() -> None:
         default=True,
         help="Fail if any case does not fire its required rule",
     )
+    parser.add_argument(
+        "--departments",
+        nargs="*",
+        metavar="DEPT",
+        help="Generate only listed departments (default: all)",
+    )
     args = parser.parse_args()
 
-    summary = generate_cases(args.kb, args.output, strict=args.strict)
+    summary = generate_cases(
+        args.kb,
+        args.output,
+        strict=args.strict,
+        departments=args.departments or None,
+    )
     print(f"Generated {summary['total_cases']} benchmark cases in {args.output}")
     for dept, count in summary["departments"].items():
         print(f"  {dept}: {count}")

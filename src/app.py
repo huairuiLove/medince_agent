@@ -15,6 +15,8 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from src.agents.extract_agent import ExtractAgent
 from src.case_store import CaseStore
+from src.case_templates import CaseTemplateListResponse, get_case_template, list_case_templates
+from src.mimic_store import get_mimic_store
 from src.clarify_engine import ClarifyEngine
 from src.config import load_config
 from src.llm.client import get_llm_client, is_llm_configured
@@ -59,6 +61,8 @@ from src.schemas import (
     MultiConsultResponse,
     MultiReviewRequest,
     MultiReviewResponse,
+    MimicDataStatsResponse,
+    MimicPatientListResponse,
     PatientContext,
     ReportAskRequest,
     ReportAskResponse,
@@ -172,6 +176,7 @@ app.add_middleware(
 )
 
 CASE_STORE = CaseStore()
+MIMIC_STORE = get_mimic_store()
 DRUG_CATALOG = get_drug_catalog_service()
 CPOE_REVIEW = CpoeReviewFacade(catalog=DRUG_CATALOG)
 REVIEW_ENGINE = CPOE_REVIEW.review_engine
@@ -283,6 +288,61 @@ def metrics() -> dict:
 @app.get("/api/v1/agents", tags=["Multi-Agent"])
 def list_agents() -> dict:
     return {"agents": ORCHESTRATOR.list_agents()}
+
+
+@app.get("/api/v1/case-templates", response_model=CaseTemplateListResponse, tags=["Cases"])
+def api_list_case_templates() -> CaseTemplateListResponse:
+    return CaseTemplateListResponse(templates=list_case_templates())
+
+
+@app.get("/api/v1/case-templates/{template_id}", tags=["Cases"])
+def api_get_case_template(template_id: str) -> dict:
+    tpl = get_case_template(template_id)
+    if tpl is None:
+        raise HTTPException(status_code=404, detail=f"Case template {template_id} not found.")
+    return tpl.model_dump()
+
+
+@app.get("/api/v1/mimic/stats", response_model=MimicDataStatsResponse, tags=["MIMIC"])
+def api_mimic_stats() -> MimicDataStatsResponse:
+    return MIMIC_STORE.stats()
+
+
+@app.get("/api/v1/mimic/patients", response_model=MimicPatientListResponse, tags=["MIMIC"])
+def api_mimic_patients(
+    offset: int = 0,
+    limit: int = 25,
+    gender: Optional[str] = None,
+    min_medications: int = 0,
+) -> MimicPatientListResponse:
+    if limit < 1 or limit > 200:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+    if offset < 0:
+        raise HTTPException(status_code=400, detail="offset must be >= 0")
+    if not MIMIC_STORE.is_processed_available():
+        raise HTTPException(
+            status_code=503,
+            detail="MIMIC-III patient contexts not built. Run: python -m src.cli build-mimic",
+        )
+    return MIMIC_STORE.list_patients(
+        offset=offset,
+        limit=limit,
+        gender=gender,
+        min_medications=min_medications,
+    )
+
+
+@app.get("/api/v1/mimic/patients/{subject_id}/{hadm_id}", response_model=PatientContext, tags=["MIMIC"])
+def api_mimic_patient(subject_id: int, hadm_id: int) -> PatientContext:
+    if not MIMIC_STORE.is_processed_available():
+        raise HTTPException(
+            status_code=503,
+            detail="MIMIC-III patient contexts not built. Run: python -m src.cli build-mimic",
+        )
+    ctx = MIMIC_STORE.get_patient(subject_id, hadm_id)
+    if ctx is None:
+        raise HTTPException(status_code=404, detail=f"Admission {subject_id}/{hadm_id} not in processed index.")
+    return ctx
 
 
 # ── Extract ────────────────────────────────────────────────────────────
@@ -704,8 +764,8 @@ def list_cases(limit: int = 20):
 # ── Imaging & Reports ────────────────────────────────────────────────────
 
 @app.get("/api/v1/imaging/studies", tags=["Imaging"])
-def list_imaging_studies():
-    studies = IMAGING_CATALOG.list_studies()
+def list_imaging_studies(source: Optional[str] = None):
+    studies = IMAGING_CATALOG.list_studies(source=source)
     return {"count": len(studies), "studies": [s.model_dump() for s in studies]}
 
 
@@ -717,7 +777,11 @@ def list_segment_models():
 @app.get("/api/v1/imaging/file", tags=["Imaging"])
 def serve_imaging_file(path: str):
     root = resolve_path(".")
-    target = (root / path).resolve()
+    target = Path(path)
+    if not target.is_absolute():
+        target = (root / path).resolve()
+    else:
+        target = target.resolve()
     if not str(target).startswith(str(root.resolve())):
         raise HTTPException(status_code=403, detail="Invalid path")
     if not target.exists():

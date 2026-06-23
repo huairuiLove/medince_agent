@@ -16,6 +16,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.utils import load_json, normalize_text, save_json
 
 DEFAULT_CSV_CANDIDATES = (
+    PROJECT_ROOT / "data" / "TWOSIDES.csv",
+    PROJECT_ROOT / "data" / "twosides.csv",
     PROJECT_ROOT / "data" / "external" / "twosides.csv",
     PROJECT_ROOT / "data" / "external" / "TWOSIDES.csv",
     PROJECT_ROOT / "data" / "external" / "TWOSIDES.csv.gz",
@@ -37,7 +39,9 @@ def resolve_twosides_csv(explicit: Path | None = None) -> Path:
         if candidate.exists():
             return candidate
     searched = ", ".join(str(p) for p in DEFAULT_CSV_CANDIDATES)
-    raise FileNotFoundError(f"TWOSIDES CSV not found. Place twosides.csv under data/external/ or pass --csv. Tried: {searched}")
+    raise FileNotFoundError(
+        f"TWOSIDES CSV not found. Place TWOSIDES.csv under data/ or data/external/, or pass --csv. Tried: {searched}"
+    )
 
 
 def _build_inn_lookup(inn_map_path: Path) -> dict[str, str]:
@@ -81,6 +85,18 @@ def _open_csv(path: Path):
     return path.open("r", encoding="utf-8", errors="replace", newline="")
 
 
+def _row_value(row: dict[str, str], *keys: str) -> str:
+    for key in keys:
+        if key in row and row[key]:
+            return str(row[key]).strip()
+    lowered = {str(k).lower(): v for k, v in row.items()}
+    for key in keys:
+        value = lowered.get(key.lower(), "")
+        if value:
+            return str(value).strip()
+    return ""
+
+
 def import_twosides(
     csv_path: Path,
     inn_map_path: Path,
@@ -98,20 +114,26 @@ def import_twosides(
         for row in reader:
             rows_total += 1
             try:
-                prr = float(row.get("PRR") or row.get("prr") or 0)
-                count_a = float(row.get("A") or row.get("a") or 0)
+                prr = float(_row_value(row, "PRR", "prr") or 0)
+                count_a = float(_row_value(row, "A", "a") or 0)
             except ValueError:
                 continue
             if prr < PRR_MIN or count_a < A_MIN:
                 continue
 
-            drug1 = _resolve_drug(row.get("drug1_name") or row.get("Drug1_Name") or "", lookup)
-            drug2 = _resolve_drug(row.get("drug2_name") or row.get("Drug2_Name") or "", lookup)
+            drug1 = _resolve_drug(
+                _row_value(row, "drug1_name", "Drug1_Name", "drug_1_concept_name", "drug_1_name"),
+                lookup,
+            )
+            drug2 = _resolve_drug(
+                _row_value(row, "drug2_name", "Drug2_Name", "drug_2_concept_name", "drug_2_name"),
+                lookup,
+            )
             if not drug1 or not drug2 or drug1 == drug2:
                 continue
 
             pair = tuple(sorted([drug1, drug2]))
-            event_name = (row.get("event_name") or row.get("Event_Name") or "").strip()
+            event_name = _row_value(row, "event_name", "Event_Name", "condition_concept_name", "condition_name")
             rows_passed += 1
 
             current = pair_best.get(pair)

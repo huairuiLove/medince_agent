@@ -183,11 +183,12 @@ export interface AgentInfo {
   role: string
 }
 
-export interface DemoCase {
+export interface CaseTemplate {
   id: string
   title: string
   description: string
-  mode: 'text' | 'context'
+  category: string
+  input_mode: 'text' | 'context'
   text?: string
   patient_context?: PatientContext
   candidate_drugs: DrugItem[]
@@ -222,6 +223,9 @@ export interface ImagingStudy {
   image_paths: string[]
   volume_path?: string | null
   slice_count: number
+  collection?: string
+  report_text?: string
+  cxr_id?: string
 }
 
 export type VolumeAxis = 'axial' | 'coronal' | 'sagittal'

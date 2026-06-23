@@ -18,6 +18,7 @@
 | Stage 6 | 视觉报告 + 段落 RAG | [STAGE6_REPORT_CSDN.md](STAGE6_REPORT_CSDN.md) |
 | Stage 7 | 3D MPR + VISTA3D Bundle | [STAGE7_REPORT_CSDN.md](STAGE7_REPORT_CSDN.md) |
 | Stage 8 | 院级药库 CSV + CPOE 审查（1120 行演示目录） | [STAGE8_REPORT_CSDN.md](STAGE8_REPORT_CSDN.md) |
+| Stage 9 | 全内科 KB v4 + TWOSIDES + FHIR + 药师工作台 + Benchmark | [STAGE9_REPORT_CSDN.md](STAGE9_REPORT_CSDN.md) · [验证报告](docs/STAGE9_VALIDATION_REPORT.md) |
 
 ---
 
@@ -151,6 +152,28 @@ curl -X POST http://localhost:8000/api/v1/cpoe/medication-review \
 ```
 
 华法林 + 布洛芬应返回 `"overall_status": "blocked"` 及 DDI 告警。
+
+### Stage 9 生产知识库（hospital_production_v4）
+
+将 TWOSIDES CSV 置于 `data/TWOSIDES.csv` 后执行：
+
+```bash
+source .venv/bin/activate
+
+# 1) 导入 TWOSIDES 信号并合并 curated + expanded 规则 → v4 KB + KG v2
+python scripts/import_twosides.py --csv data/TWOSIDES.csv
+python scripts/build_stage9_kb.py --import-twosides --twosides-csv data/TWOSIDES.csv
+
+# 2) Benchmark 验证（110 例 / 13 科室）
+python scripts/run_benchmark.py --mode rule-only --dept all
+python scripts/run_benchmark.py --mode cpoe --dept all
+python scripts/run_benchmark.py --mode compare --kb-v1 expanded_mined_v1 --kb-v2 hospital_production_v4
+
+# 3) 生成验证报告
+python scripts/generate_stage9_validation_report.py
+```
+
+`config.yaml` 已指向 `data/knowledge/hospital_production_v4.json`。无 TWOSIDES 时可用 `python scripts/build_stage9_kb.py --without-twosides` 仅重建 curated 层（不含 FAERS 信号）。
 
 ---
 

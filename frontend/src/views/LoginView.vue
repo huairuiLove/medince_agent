@@ -82,15 +82,6 @@ async function submit() {
           {{ auth.loading ? '处理中…' : mode === 'login' ? '登录' : '注册并登录' }}
         </button>
       </form>
-
-      <div class="demo-hint">
-        <strong>演示账号</strong>
-        <ul>
-          <li>呼吸科：<code>resp_doc</code> / <code>resp123</code></li>
-          <li>神内科：<code>neuro_doc</code> / <code>neuro123</code></li>
-          <li>放射科：<code>radio_admin</code> / <code>admin123</code></li>
-        </ul>
-      </div>
     </div>
   </div>
 </template>
@@ -124,7 +115,5 @@ async function submit() {
 .field span { display: block; font-size: 0.82rem; margin-bottom: 0.25rem; color: var(--text-muted); }
 .field input, .field select { width: 100%; padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: var(--radius); }
 .err { color: var(--danger); font-size: 0.85rem; margin: 0.5rem 0; }
-.demo-hint { margin-top: 1.25rem; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; }
-.demo-hint ul { margin: 0.35rem 0 0 1rem; padding: 0; }
 code { font-family: var(--mono); font-size: 0.78rem; }
 </style>

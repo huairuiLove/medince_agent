@@ -172,7 +172,7 @@ async function send() {
 
       <div class="chat-main">
         <div class="messages" ref="messagesRef">
-          <div v-if="conv && conv.messages.length <= 1" class="welcome">
+          <div v-if="conv && conv.messages.length === 0" class="welcome">
             <div class="mode-badge" :class="role" @click="toggleRole">
               {{ roleLabel }} · 点击切换
             </div>

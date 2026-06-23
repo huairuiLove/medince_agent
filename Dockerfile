@@ -12,7 +12,7 @@ LABEL org.opencontainers.image.version="2.0.0"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    MEDSAFE_LLM__PROVIDER=mock \
+    MEDSAFE_LLM__PROVIDER=deepseek \
     MEDSAFE_SERVER__HOST=0.0.0.0 \
     MEDSAFE_SERVER__PORT=8000 \
     MEDSAFE_LOGGING__FORMAT=structured
@@ -30,9 +30,12 @@ COPY pyproject.toml config.yaml .env.example ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY data/knowledge/ ./data/knowledge/
-COPY data/demo_cases/ ./data/demo_cases/
+COPY data/case_templates/ ./data/case_templates/
+COPY data/hospital/ ./data/hospital/
+COPY data/departments/ ./data/departments/
+COPY data/agents/ ./data/agents/
 
-RUN mkdir -p data/cases data/processed logs
+RUN mkdir -p data/cases data/processed data/pharmacy data/auth logs
 
 EXPOSE 8000
 

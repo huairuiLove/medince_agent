@@ -2,6 +2,7 @@ import type {
   AgentInfo,
   AlertDecisionAction,
   CaseLog,
+  CaseTemplate,
   ClinicalReport,
   DoctorWorkspace,
   HealthResponse,
@@ -179,8 +180,10 @@ export const medsafeApi = {
 
   getCase: (caseId: string) => request<CaseLog>(`/api/v1/case/${caseId}`),
 
-  listImagingStudies: () =>
-    request<{ count: number; studies: ImagingStudy[] }>('/api/v1/imaging/studies'),
+  listImagingStudies: (source?: string) => {
+    const q = source ? `?source=${encodeURIComponent(source)}` : ''
+    return request<{ count: number; studies: ImagingStudy[] }>(`/api/v1/imaging/studies${q}`)
+  },
 
   listSegmentModels: () =>
     request<{ models: SegModelInfo[] }>('/api/v1/imaging/models'),
@@ -293,4 +296,9 @@ export const medsafeApi = {
       '/api/v1/imaging/report/ask',
       { method: 'POST', body: JSON.stringify(body) },
     ),
+
+  listCaseTemplates: () =>
+    request<{ templates: CaseTemplate[] }>('/api/v1/case-templates'),
+
+  getCaseTemplate: (id: string) => request<CaseTemplate>(`/api/v1/case-templates/${id}`),
 }

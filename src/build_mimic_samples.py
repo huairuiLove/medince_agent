@@ -108,6 +108,53 @@ def read_csv(path: Path, usecols: Iterable[str]) -> pd.DataFrame:
     return pd.read_csv(path, usecols=list(usecols), low_memory=False)
 
 
+def resolve_noteevents_path(raw_dir: Path) -> Path | None:
+    for name in ("NOTEEVENTS.csv.gz", "NOTEEVENTS.csv"):
+        candidate = raw_dir / name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def build_note_map_from_path(path: Path, *, chunk_size: int = 50_000) -> dict[tuple[int, int], str]:
+    """Stream NOTEEVENTS and keep the latest discharge summary per admission."""
+    note_map: dict[tuple[int, int], str] = {}
+    sort_meta: dict[tuple[int, int], tuple] = {}
+
+    compression = "gzip" if path.suffix == ".gz" else None
+    reader = pd.read_csv(
+        path,
+        usecols=list(NOTEEVENT_COLS),
+        chunksize=chunk_size,
+        low_memory=False,
+        compression=compression,
+    )
+    for chunk in tqdm(reader, desc="Reading discharge summaries"):
+        discharge = chunk[
+            chunk["CATEGORY"].astype(str).str.lower() == "discharge summary"
+        ].dropna(subset=["SUBJECT_ID", "HADM_ID"])
+        if discharge.empty:
+            continue
+
+        for col in ("CHARTDATE", "CHARTTIME"):
+            if col in discharge.columns:
+                discharge[col] = pd.to_datetime(discharge[col], errors="coerce")
+
+        for _, row in discharge.iterrows():
+            key = (int(row["SUBJECT_ID"]), int(row["HADM_ID"]))
+            chartdate = row.get("CHARTDATE")
+            charttime = row.get("CHARTTIME")
+            meta = (
+                chartdate if not pd.isna(chartdate) else pd.Timestamp.min,
+                charttime if not pd.isna(charttime) else pd.Timestamp.min,
+            )
+            if key not in note_map or meta >= sort_meta.get(key, (pd.Timestamp.min, pd.Timestamp.min)):
+                note_map[key] = str(row.get("TEXT", "") or "")
+                sort_meta[key] = meta
+
+    return note_map
+
+
 def build_note_map(noteevents: pd.DataFrame) -> dict[tuple[int, int], str]:
     discharge_notes = noteevents[
         noteevents["CATEGORY"].astype(str).str.lower() == "discharge summary"
@@ -189,16 +236,32 @@ def main(args: argparse.Namespace) -> None:
     diagnoses = read_csv(raw_dir / "DIAGNOSES_ICD.csv", DIAGNOSIS_COLS)
     d_icd = read_csv(raw_dir / "D_ICD_DIAGNOSES.csv", D_ICD_COLS)
     prescriptions = read_csv(raw_dir / "PRESCRIPTIONS.csv", PRESCRIPTION_COLS)
-    noteevents = read_csv(raw_dir / "NOTEEVENTS.csv", NOTEEVENT_COLS)
+
+    note_map: dict[tuple[int, int], str] = {}
+    if not args.skip_notes:
+        notes_path = resolve_noteevents_path(raw_dir)
+        if notes_path is None:
+            print("WARNING: NOTEEVENTS not found; continuing without clinical notes.")
+        else:
+            print(f"Loading discharge summaries from {notes_path.name} ...")
+            note_map = build_note_map_from_path(notes_path, chunk_size=args.note_chunk_size)
 
     patients["DOB"] = pd.to_datetime(patients["DOB"], errors="coerce")
     admissions["ADMITTIME"] = pd.to_datetime(admissions["ADMITTIME"], errors="coerce")
 
-    note_map = build_note_map(noteevents)
     diag_group = build_diagnosis_map(diagnoses, d_icd)
     med_group = build_medication_map(prescriptions)
 
     merged = admissions.merge(patients, on="SUBJECT_ID", how="left")
+    if args.require_medications:
+        merged = merged[
+            merged.apply(
+                lambda row: bool(med_group.get((int(row["SUBJECT_ID"]), int(row["HADM_ID"]))))
+                if not pd.isna(row.get("HADM_ID")) and not pd.isna(row.get("SUBJECT_ID"))
+                else False,
+                axis=1,
+            )
+        ]
 
     samples: list[dict] = []
     for _, row in tqdm(merged.iterrows(), total=len(merged), desc="Building patient contexts"):
@@ -259,4 +322,20 @@ if __name__ == "__main__":
     parser.add_argument("--raw_dir", type=str, required=True)
     parser.add_argument("--out_path", type=str, required=True)
     parser.add_argument("--max_samples", type=int, default=2000)
+    parser.add_argument(
+        "--skip-notes",
+        action="store_true",
+        help="Skip NOTEEVENTS (faster; chief complaint / HPI / allergies will be empty).",
+    )
+    parser.add_argument(
+        "--require-medications",
+        action="store_true",
+        help="Only include admissions with at least one prescription.",
+    )
+    parser.add_argument(
+        "--note-chunk-size",
+        type=int,
+        default=50_000,
+        help="Chunk size when streaming NOTEEVENTS.",
+    )
     main(parser.parse_args())
