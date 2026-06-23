@@ -1,0 +1,855 @@
+{
+  "description": "各科室默认病例模板 — 每个科室至少 1 个",
+  "cases": [
+    {
+      "id": "dept_respiratory_01",
+      "title": "COPD 急性加重抗感染",
+      "description": "慢阻肺急性加重，长期吸入激素基础上加用大环内酯",
+      "department": "respiratory",
+      "category": "respiratory",
+      "request": {
+        "patient_context": {
+          "age": 68,
+          "gender": "M",
+          "department": "respiratory",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "salbutamol",
+              "dose": "2 puff prn"
+            },
+            {
+              "name": "budesonide",
+              "dose": "400mcg bid"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "azithromycin",
+            "dose": "500mg",
+            "indication": "COPD 急性加重"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_neurology_01",
+      "title": "抗癫痫药物加用",
+      "description": "癫痫患者丙戊酸基础上加用拉莫三嗪",
+      "department": "neurology",
+      "category": "neurology",
+      "request": {
+        "patient_context": {
+          "age": 28,
+          "gender": "F",
+          "department": "neurology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "valproate",
+              "dose": "500mg bid"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "lamotrigine",
+            "dose": "25mg",
+            "indication": "癫痫"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_neurosurgery_01",
+      "title": "围术期抗凝桥接",
+      "description": "颅脑肿瘤术前，华法林需桥接低分子肝素",
+      "department": "neurosurgery",
+      "category": "neurosurgery",
+      "request": {
+        "patient_context": {
+          "age": 55,
+          "gender": "M",
+          "department": "neurosurgery",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "warfarin",
+              "dose": "5mg"
+            },
+            {
+              "name": "levetiracetam",
+              "dose": "500mg bid"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "enoxaparin",
+            "dose": "40mg",
+            "indication": "术前抗凝桥接"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_radiology_01",
+      "title": "造影前二甲双胍暂停",
+      "description": "糖尿病拟行 CT 增强，需评估二甲双胍",
+      "department": "radiology",
+      "category": "radiology",
+      "request": {
+        "patient_context": {
+          "age": 62,
+          "gender": "F",
+          "department": "radiology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "metformin",
+              "dose": "850mg bid"
+            },
+            {
+              "name": "lisinopril",
+              "dose": "10mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "iohexol",
+            "dose": "350mgI/ml",
+            "indication": "CT 增强造影"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_cardiology_01",
+      "title": "心衰多药联用审查",
+      "description": "心衰+房颤+CKD，新增胺碘酮",
+      "department": "cardiology",
+      "category": "cardiology",
+      "request": {
+        "patient_context": {
+          "age": 72,
+          "gender": "M",
+          "department": "cardiology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "digoxin",
+              "dose": "0.125mg"
+            },
+            {
+              "name": "furosemide",
+              "dose": "40mg"
+            },
+            {
+              "name": "warfarin",
+              "dose": "3mg"
+            },
+            {
+              "name": "spironolactone",
+              "dose": "20mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "amiodarone",
+            "dose": "200mg",
+            "indication": "房颤节律控制"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_gastroenterology_01",
+      "title": "PPI 与氯吡格雷",
+      "description": "消化性溃疡史，双抗基础上加 PPI",
+      "department": "gastroenterology",
+      "category": "gastroenterology",
+      "request": {
+        "patient_context": {
+          "age": 58,
+          "gender": "M",
+          "department": "gastroenterology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "aspirin",
+              "dose": "100mg"
+            },
+            {
+              "name": "clopidogrel",
+              "dose": "75mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "omeprazole",
+            "dose": "20mg",
+            "indication": "溃疡预防"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_oncology_01",
+      "title": "化疗 DDI 审查",
+      "description": "顺铂方案联用强 CYP3A4 抑制剂",
+      "department": "oncology",
+      "category": "oncology",
+      "request": {
+        "patient_context": {
+          "age": 58,
+          "gender": "M",
+          "department": "oncology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "cisplatin",
+              "dose": "75mg/m2"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "ketoconazole",
+            "dose": "200mg",
+            "indication": "真菌预防"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_emergency_01",
+      "title": "急诊阿片+苯二氮卓",
+      "description": "急性创伤镇痛，吗啡联用地西泮",
+      "department": "emergency",
+      "category": "emergency",
+      "request": {
+        "patient_context": {
+          "age": 45,
+          "gender": "M",
+          "department": "emergency",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "morphine",
+            "dose": "5mg IV",
+            "indication": "急性疼痛"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_pharmacy_01",
+      "title": "高警示药品审查",
+      "description": "临床药师会诊：华法林+NSAIDs 出血风险",
+      "department": "pharmacy",
+      "category": "pharmacy",
+      "request": {
+        "patient_context": {
+          "age": 67,
+          "gender": "M",
+          "department": "pharmacy",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "warfarin",
+              "dose": "5mg"
+            },
+            {
+              "name": "aspirin",
+              "dose": "81mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "ibuprofen",
+            "dose": "400mg",
+            "indication": "止痛"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_general_internal_01",
+      "title": "高血压联合用药",
+      "description": "普通内科住院，CCB 基础上加 ACEI",
+      "department": "general_internal",
+      "category": "general_internal",
+      "request": {
+        "patient_context": {
+          "age": 55,
+          "gender": "M",
+          "department": "general_internal",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "amlodipine",
+              "dose": "5mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "lisinopril",
+            "dose": "10mg",
+            "indication": "高血压"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_nephrology_01",
+      "title": "CKD 高钾风险",
+      "description": "CKD4 期，ACEI+螺内酯联用",
+      "department": "nephrology",
+      "category": "nephrology",
+      "request": {
+        "patient_context": {
+          "age": 64,
+          "gender": "F",
+          "department": "nephrology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "lisinopril",
+              "dose": "10mg"
+            },
+            {
+              "name": "furosemide",
+              "dose": "40mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "spironolactone",
+            "dose": "25mg",
+            "indication": "蛋白尿"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_endocrinology_01",
+      "title": "糖尿病二甲双胍审查",
+      "description": "2 型糖尿病，eGFR 偏低评估二甲双胍",
+      "department": "endocrinology",
+      "category": "endocrinology",
+      "request": {
+        "patient_context": {
+          "age": 58,
+          "gender": "F",
+          "department": "endocrinology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "glibenclamide",
+              "dose": "5mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "metformin",
+            "dose": "850mg bid",
+            "indication": "2 型糖尿病"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_hematology_01",
+      "title": "抗凝+抗血小板",
+      "description": "血液科患者华法林基础上加氯吡格雷",
+      "department": "hematology",
+      "category": "hematology",
+      "request": {
+        "patient_context": {
+          "age": 60,
+          "gender": "M",
+          "department": "hematology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "warfarin",
+              "dose": "5mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "clopidogrel",
+            "dose": "75mg",
+            "indication": "血小板减少症相关"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_geriatrics_01",
+      "title": "老年多重用药",
+      "description": "80 岁多病共存，新增苯二氮卓",
+      "department": "geriatrics",
+      "category": "geriatrics",
+      "request": {
+        "patient_context": {
+          "age": 80,
+          "gender": "F",
+          "department": "geriatrics",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "metoprolol",
+              "dose": "25mg"
+            },
+            {
+              "name": "amlodipine",
+              "dose": "5mg"
+            },
+            {
+              "name": "donepezil",
+              "dose": "5mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "lorazepam",
+            "dose": "0.5mg",
+            "indication": "失眠"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_rheumatology_01",
+      "title": "MTX 与 NSAIDs",
+      "description": "类风湿关节炎，MTX 基础上加布洛芬",
+      "department": "rheumatology",
+      "category": "rheumatology",
+      "request": {
+        "patient_context": {
+          "age": 52,
+          "gender": "F",
+          "department": "rheumatology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "methotrexate",
+              "dose": "15mg weekly"
+            },
+            {
+              "name": "folic acid",
+              "dose": "5mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "ibuprofen",
+            "dose": "400mg",
+            "indication": "关节痛"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_infectious_disease_01",
+      "title": "抗感染过敏史缺失",
+      "description": "社区肺炎，阿莫西林候选，过敏史未知",
+      "department": "infectious_disease",
+      "category": "infectious_disease",
+      "request": {
+        "patient_context": {
+          "age": 34,
+          "gender": "F",
+          "department": "infectious_disease",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "amoxicillin",
+            "dose": "500mg tid",
+            "indication": "社区获得性肺炎"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_obstetrics_gynecology_01",
+      "title": "妊娠期高血压",
+      "description": "妊娠 32 周，新增甲基多巴",
+      "department": "obstetrics_gynecology",
+      "category": "obstetrics_gynecology",
+      "request": {
+        "patient_context": {
+          "age": 28,
+          "gender": "F",
+          "department": "obstetrics_gynecology",
+          "pregnancy_status": "pregnant",
+          "current_medications": [
+            {
+              "name": "folic acid",
+              "dose": "5mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "methyldopa",
+            "dose": "250mg bid",
+            "indication": "妊娠期高血压"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_pediatrics_01",
+      "title": "儿童抗生素选择",
+      "description": "8 岁儿童急性中耳炎",
+      "department": "pediatrics",
+      "category": "pediatrics",
+      "request": {
+        "patient_context": {
+          "age": 8,
+          "gender": "M",
+          "department": "pediatrics",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "amoxicillin",
+            "dose": "25mg/kg bid",
+            "indication": "急性中耳炎"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_orthopedic_01",
+      "title": "围术期 NSAIDs",
+      "description": "骨科术后，华法林基础上加布洛芬",
+      "department": "orthopedic",
+      "category": "orthopedic",
+      "request": {
+        "patient_context": {
+          "age": 70,
+          "gender": "M",
+          "department": "orthopedic",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "warfarin",
+              "dose": "3mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "ibuprofen",
+            "dose": "400mg",
+            "indication": "术后止痛"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_urology_01",
+      "title": "α 阻滞剂+降压",
+      "description": "良性前列腺增生，坦索罗辛+多沙唑嗪",
+      "department": "urology",
+      "category": "urology",
+      "request": {
+        "patient_context": {
+          "age": 65,
+          "gender": "M",
+          "department": "urology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "tamsulosin",
+              "dose": "0.4mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "doxazosin",
+            "dose": "2mg",
+            "indication": "BPH"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_icu_01",
+      "title": "ICU 镇静镇痛",
+      "description": "机械通气患者，丙泊酚+芬太尼",
+      "department": "icu",
+      "category": "icu",
+      "request": {
+        "patient_context": {
+          "age": 48,
+          "gender": "M",
+          "department": "icu",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "norepinephrine",
+              "dose": "0.1mcg/kg/min"
+            },
+            {
+              "name": "vancomycin",
+              "dose": "1g"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "propofol",
+            "dose": "50mg/h",
+            "indication": "镇静"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_anesthesiology_01",
+      "title": "麻醉诱导用药",
+      "description": "全麻诱导，咪达唑仑+芬太尼",
+      "department": "anesthesiology",
+      "category": "anesthesiology",
+      "request": {
+        "patient_context": {
+          "age": 50,
+          "gender": "F",
+          "department": "anesthesiology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "ondansetron",
+              "dose": "4mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "midazolam",
+            "dose": "2mg IV",
+            "indication": "麻醉诱导"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_psychiatry_01",
+      "title": "SSRI+苯二氮卓",
+      "description": "抑郁焦虑共病，舍曲林+劳拉西泮",
+      "department": "psychiatry",
+      "category": "psychiatry",
+      "request": {
+        "patient_context": {
+          "age": 35,
+          "gender": "F",
+          "department": "psychiatry",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "sertraline",
+              "dose": "50mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "lorazepam",
+            "dose": "0.5mg",
+            "indication": "焦虑"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_dermatology_01",
+      "title": "系统免疫抑制",
+      "description": "银屑病，甲氨蝶呤基础上加酮康唑",
+      "department": "dermatology",
+      "category": "dermatology",
+      "request": {
+        "patient_context": {
+          "age": 42,
+          "gender": "M",
+          "department": "dermatology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "methotrexate",
+              "dose": "15mg weekly"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "ketoconazole",
+            "dose": "200mg",
+            "indication": "真菌感染"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_ophthalmology_01",
+      "title": "青光眼系统用药",
+      "description": "开角型青光眼，噻吗洛尔滴眼液+口服 β 阻滞剂",
+      "department": "ophthalmology",
+      "category": "ophthalmology",
+      "request": {
+        "patient_context": {
+          "age": 60,
+          "gender": "M",
+          "department": "ophthalmology",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "timolol",
+              "dose": "0.5% eye drops bid"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "metoprolol",
+            "dose": "25mg",
+            "indication": "高血压"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_ent_01",
+      "title": "急性咽炎抗感染",
+      "description": "急性咽炎，阿莫西林候选",
+      "department": "ent",
+      "category": "ent",
+      "request": {
+        "patient_context": {
+          "age": 26,
+          "gender": "F",
+          "department": "ent",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "amoxicillin",
+            "dose": "500mg tid",
+            "indication": "急性咽炎"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dept_rehabilitation_01",
+      "title": "康复期多重用药",
+      "description": "卒中后康复，多种心血管药物联用",
+      "department": "rehabilitation",
+      "category": "rehabilitation",
+      "request": {
+        "patient_context": {
+          "age": 72,
+          "gender": "M",
+          "department": "rehabilitation",
+          "pregnancy_status": "not_applicable",
+          "current_medications": [
+            {
+              "name": "aspirin",
+              "dose": "100mg"
+            },
+            {
+              "name": "atorvastatin",
+              "dose": "20mg"
+            },
+            {
+              "name": "metoprolol",
+              "dose": "25mg"
+            }
+          ],
+          "allergies": [],
+          "diagnoses": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "clopidogrel",
+            "dose": "75mg",
+            "indication": "卒中二级预防"
+          }
+        ]
+      }
+    }
+  ]
+}
