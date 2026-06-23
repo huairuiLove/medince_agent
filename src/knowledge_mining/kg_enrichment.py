@@ -6,7 +6,7 @@ import csv
 from pathlib import Path
 from typing import Any
 
-from src.config import resolve_path
+from src.config import datasets_path, resolve_path
 from src.utils import load_json, normalize_text
 
 ATC_INDICATION_MAP: dict[str, str] = {
@@ -115,7 +115,7 @@ def enrich_knowledge_graph(
     for enzyme_id, label in EXTRA_ENZYMES:
         ensure_node({"id": enzyme_id, "type": "Enzyme", "name": label})
 
-    csv_path = formulary_csv or resolve_path("data/hospital/formulary_demo.csv")
+    csv_path = formulary_csv or datasets_path("hospital/formulary_demo.csv")
     if not csv_path.exists():
         raise FileNotFoundError(f"Formulary CSV required for KG enrichment: {csv_path}")
 
@@ -194,7 +194,7 @@ def enrich_knowledge_graph(
                 },
             )
 
-    base_food = load_json(resolve_path("data/knowledge/drug_kg.json"))
+    base_food = load_json(datasets_path("knowledge/drug_kg.json"))
     for edge in base_food.get("edges", []):
         if edge.get("type") != "FOOD_INTERACTION":
             continue

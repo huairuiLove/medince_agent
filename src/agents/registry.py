@@ -10,7 +10,7 @@ import yaml
 
 from src.agents.base import BaseAgent
 from src.agents.skill_loader import SkillSpec, compose_system_prompt, load_skill_body, skills_root
-from src.config import resolve_path
+from src.config import datasets_path, resolve_path
 from src.llm.client import LLMClient
 from src.schemas import CandidateDrug, PatientContext
 
@@ -31,7 +31,7 @@ class AgentSpec:
 
 class AgentRegistry:
     def __init__(self, registry_path: Path | None = None) -> None:
-        path = registry_path or resolve_path("data/agents/registry.yaml")
+        path = registry_path or datasets_path("agents/registry.yaml")
         with path.open("r", encoding="utf-8") as fh:
             raw = yaml.safe_load(fh) or {}
         self._specs: dict[str, AgentSpec] = {}

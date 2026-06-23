@@ -7,7 +7,7 @@ import tarfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from src.config import project_root, resolve_path
+from src.config import datasets_path, project_root, resolve_path
 from src.utils import ensure_dir, save_json
 
 _MANIFEST_NAME = "studies_manifest.json"
@@ -19,19 +19,19 @@ _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
 
 
 def manifest_path() -> Path:
-    return resolve_path("data/mimic_cxr") / _MANIFEST_NAME
+    return datasets_path("mimic_cxr") / _MANIFEST_NAME
 
 
 def nlmcxr_png_root() -> Path:
-    return resolve_path("data/external/nlmcxr/NLMCXR_png")
+    return datasets_path("external/nlmcxr/NLMCXR_png")
 
 
 def nlmcxr_reports_dir() -> Path:
-    return resolve_path("data/external/nlmcxr/ecgen-radiology")
+    return datasets_path("external/nlmcxr/ecgen-radiology")
 
 
 def nlmcxr_reports_archive() -> Path:
-    return resolve_path("data/external/nlmcxr/NLMCXR_reports.tgz")
+    return datasets_path("external/nlmcxr/NLMCXR_reports.tgz")
 
 
 def rel_project_path(path: Path) -> str:
@@ -248,11 +248,11 @@ def scan_cxr_drop_root(
 
 
 def build_manifest(*, force_reports: bool = False) -> dict:
-    """Scan official MIMIC-CXR-JPG (data/mimic/) and supplemental CXR (data/mimic_cxr/)."""
+    """Scan official MIMIC-CXR-JPG (datasets/mimic/) and supplemental CXR (datasets/mimic_cxr/)."""
     ensure_reports_extracted(force=force_reports)
     studies: dict[str, dict] = {}
-    mimic_jpg_root = resolve_path("data/mimic")
-    cxr_root = resolve_path("data/mimic_cxr")
+    mimic_jpg_root = datasets_path("mimic")
+    cxr_root = datasets_path("mimic_cxr")
     official_patients = scan_mimic_cxr_jpg_root(mimic_jpg_root, studies)
     scan_cxr_drop_root(cxr_root, studies, skip_patients=official_patients)
     return {"version": 1, "study_count": len(studies), "studies": studies}

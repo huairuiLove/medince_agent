@@ -20,14 +20,20 @@ services:
       - MEDSAFE_LLM__API_KEY=${MEDSAFE_LLM_API_KEY:-}
       - MEDSAFE_LOGGING__FORMAT=structured
     volumes:
-      - ./data/cases:/app/data/cases
-      - ./data/knowledge:/app/data/knowledge
-      - ./data/case_templates:/app/data/case_templates
-      - ./data/hospital:/app/data/hospital
-      - ./data/departments:/app/data/departments
-      - ./data/agents:/app/data/agents
+      - ./datasets/cases:/app/datasets/cases
+      - ./datasets/knowledge:/app/datasets/knowledge
+      - ./datasets/case_templates:/app/datasets/case_templates
+      - ./datasets/hospital:/app/datasets/hospital
+      - ./datasets/departments:/app/datasets/departments
+      - ./datasets/agents:/app/datasets/agents
+      - ./datasets/mimic_cxr:/app/datasets/mimic_cxr
+      - ./datasets/chest_ct:/app/datasets/chest_ct
+      - ./datasets/kits19:/app/datasets/kits19
+      - ./datasets/brats2024:/app/datasets/brats2024
       - ./data/pharmacy:/app/data/pharmacy
       - ./data/auth:/app/data/auth
+      - ./data/hospital:/app/data/hospital
+      - ./data/imaging_cache:/app/data/imaging_cache
       - ./logs:/app/logs
     restart: unless-stopped
     healthcheck:

@@ -1,0 +1,41 @@
+{
+  "description": "Skill 配置与样例清单 — 用于 skill_loader / AgentRegistry / auth skill-prefs 测试",
+  "version": "1.0",
+  "configs": [
+    {
+      "id": "default",
+      "file": "configs/default_skill_prefs.json",
+      "summary": "默认启用各 agent 的 base + 核心 skill"
+    },
+    {
+      "id": "cardiology_focused",
+      "file": "configs/cardiology_focused_prefs.json",
+      "summary": "心内科场景：强化 DDI / 抗凝 / 专科 skill"
+    },
+    {
+      "id": "minimal",
+      "file": "configs/minimal_agent_set.json",
+      "summary": "仅启用临床药师 + 内科主治，关闭其余 debate agent"
+    }
+  ],
+  "custom_skills": [
+    {
+      "id": "csk_001",
+      "meta": "custom/csk_001_cardiology_ddi.json",
+      "body": "custom/csk_001_cardiology_ddi.md"
+    },
+    {
+      "id": "csk_002",
+      "meta": "custom/csk_002_geriatric_fallback.json",
+      "body": "custom/csk_002_geriatric_fallback.md"
+    }
+  ],
+  "sample_skills": {
+    "clinical_pharmacist": ["base", "ddi_review", "dose_review", "qt_prolongation"],
+    "internal_medicine": ["base", "indication_match", "comorbidity"],
+    "allergy_specialist": ["base", "cross_allergy", "adr_history"],
+    "pharmacy_inventory": ["base", "formulary_check", "stock_alternative"],
+    "specialist": ["base", "pregnancy", "anticoagulation", "geriatric"]
+  },
+  "registry_override": "registry.test.yaml"
+}

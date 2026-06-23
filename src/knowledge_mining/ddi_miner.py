@@ -81,8 +81,8 @@ class DdiRuleMiner:
             )
 
         universe = collect_canonical_drugs(
-            inn_map_path=inn_map_path or "data/knowledge/drug_inn_map.json",
-            formulary_path=formulary_path or "data/hospital/formulary_demo.csv",
+            inn_map_path=inn_map_path or "datasets/knowledge/drug_inn_map.json",
+            formulary_path=formulary_path or "datasets/hospital/formulary_demo.csv",
             max_drugs=max_drugs,
         )
         drugs = self.filter_drugs_with_smiles(universe, allow_network=allow_network)

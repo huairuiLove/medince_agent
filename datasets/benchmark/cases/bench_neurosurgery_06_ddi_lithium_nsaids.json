@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_neurosurgery_06_ddi_lithium_nsaids",
+  "department": "neurosurgery",
+  "description": "神经外科用药安全：NSAIDs 降低锂肾清除，可致锂中毒。",
+  "difficulty": "hard",
+  "tags": [
+    "neurosurgery",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50005,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "神经外科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "lithium",
+          "ingredient": "lithium",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "ibuprofen",
+        "ingredient": "ibuprofen",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_lithium_nsaids",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

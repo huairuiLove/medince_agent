@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_rehabilitation_02_ddi_geriatrics_fall_benzo_bp_diazepam_metoprolol",
+  "department": "rehabilitation",
+  "description": "康复医学科用药安全：老年患者苯二氮卓与降压药联用跌倒风险增加。",
+  "difficulty": "hard",
+  "tags": [
+    "rehabilitation",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50062,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "康复医学科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "diazepam",
+          "ingredient": "diazepam",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "metoprolol",
+        "ingredient": "metoprolol",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_geriatrics_fall_benzo_bp_diazepam_metoprolol",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

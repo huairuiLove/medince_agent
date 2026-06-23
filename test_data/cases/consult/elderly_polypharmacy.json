@@ -1,0 +1,49 @@
+{
+  "case_id": "test_consult_02",
+  "description": "老年多重用药：应触发 specialist agent 激活条件",
+  "category": "consult",
+  "tags": ["geriatric", "specialist", "polypharmacy"],
+  "request": {
+    "patient_context": {
+      "subject_id": 90008,
+      "hadm_id": 91008,
+      "gender": "M",
+      "age": 78,
+      "admission_type": "EMERGENCY",
+      "chief_complaint": "跌倒后髋部疼痛",
+      "symptoms_or_complaints": ["髋部疼痛", "活动受限"],
+      "past_medical_history": ["房颤", "高血压", "骨关节炎"],
+      "diagnoses": [
+        { "icd9_code": "427.31", "name": "房颤" },
+        { "icd9_code": "820.8", "name": "股骨颈骨折" }
+      ],
+      "current_medications": [
+        { "name": "warfarin", "ingredient": "warfarin", "dose": "3mg", "route": "PO", "frequency": "qd" },
+        { "name": "metoprolol", "ingredient": "metoprolol", "dose": "25mg", "route": "PO", "frequency": "bid" },
+        { "name": "diazepam", "ingredient": "diazepam", "dose": "2mg", "route": "PO", "frequency": "hs" }
+      ],
+      "allergies": [],
+      "pregnancy_status": "not_applicable",
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "ibuprofen",
+        "ingredient": "ibuprofen",
+        "dose": "400mg",
+        "route": "PO",
+        "frequency": "tid",
+        "indication": "术后止痛",
+        "source": "candidate"
+      }
+    ],
+    "unable_to_answer": false,
+    "persist": false
+  },
+  "expected": {
+    "should_activate_specialist": true,
+    "risk_level": "high",
+    "block_decision": true,
+    "should_hit_ddi": true
+  }
+}

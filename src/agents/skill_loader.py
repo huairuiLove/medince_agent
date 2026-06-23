@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.config import resolve_path
+from src.config import datasets_path
 from src.prompts import _AGENT_JSON_SCHEMA
 
 
@@ -17,7 +17,7 @@ class SkillSpec:
 
 
 def skills_root() -> Path:
-    return resolve_path("data/agents")
+    return datasets_path("agents")
 
 
 def load_skill_body(agent_id: str, skill_id: str) -> str:

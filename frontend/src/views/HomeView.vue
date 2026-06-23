@@ -44,7 +44,12 @@ const features = [
       <div v-if="health" class="status-box">
         <div class="stat"><span>API</span><strong class="ok">{{ health.status }}</strong></div>
         <div class="stat"><span>版本</span><strong>{{ health.version }}</strong></div>
-        <div class="stat"><span>LLM</span><strong>{{ health.llm_provider }}</strong></div>
+        <div class="stat">
+          <span>LLM</span>
+          <strong :class="{ ok: health.llm_configured }">
+            {{ health.llm_configured ? health.llm_provider : '未配置' }}
+          </strong>
+        </div>
         <div class="stat"><span>运行</span><strong>{{ Math.round(health.uptime_seconds) }}s</strong></div>
       </div>
       <p v-else-if="error" class="err">后端未连接：{{ error }} — 请先 <code>medsafe serve</code></p>

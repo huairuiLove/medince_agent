@@ -26,7 +26,7 @@ if [ ! -f "$ENV_FILE" ]; then
   echo "Created .env from .env.example"
 fi
 
-mkdir -p data/cases data/processed data/case_templates logs
+mkdir -p datasets/cases datasets/processed datasets/case_templates data/imaging_cache data/auth data/hospital data/pharmacy logs
 
 python -m compileall src -q
 python scripts/run_integration_tests.py

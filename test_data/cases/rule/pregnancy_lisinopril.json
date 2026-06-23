@@ -1,0 +1,21 @@
+{
+  "case_id": "test_rule_03",
+  "description": "规则引擎：已妊娠 + 赖诺普利禁忌",
+  "category": "rule",
+  "tags": ["rule", "population", "offline"],
+  "request": {
+    "patient_context": {
+      "gender": "F",
+      "age": 30,
+      "current_medications": [],
+      "allergies": [],
+      "pregnancy_status": "pregnant"
+    },
+    "candidate_drugs": [{ "name": "lisinopril", "dose": "10mg" }]
+  },
+  "expected": {
+    "risk_level": "high",
+    "block_decision": true,
+    "hit_rules": ["pop_pregnancy_lisinopril"]
+  }
+}

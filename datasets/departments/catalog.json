@@ -14,7 +14,7 @@
           "name": "MIMIC-CXR-JPG",
           "modality": "XR",
           "url": "https://physionet.org/content/mimic-cxr-jpg/2.1.0/",
-          "notes": "本院演示目录 data/mimic_cxr/；含胸片 DICOM→JPG 与 NLP 报告"
+          "notes": "本院演示目录 datasets/mimic_cxr/；含胸片 DICOM→JPG 与 NLP 报告"
         },
         {
           "id": "chexpert",
@@ -54,7 +54,7 @@
           "name": "BraTS 2024",
           "modality": "MRI",
           "url": "https://www.synapse.org/Synapse:syn51156910/wiki/",
-          "notes": "演示目录 data/brats2024/；T1/T1ce/T2/FLAIR + 可选 seg"
+          "notes": "演示目录 datasets/brats2024/；T1/T1ce/T2/FLAIR + 可选 seg"
         },
         {
           "id": "isles2022",
@@ -101,12 +101,13 @@
       "name_cn": "放射科",
       "name_en": "Radiology",
       "sort_order": 5,
-      "imaging_sources": ["mimic", "mimic_cxr", "brats2024"],
+      "imaging_sources": ["mimic_cxr", "chest_ct", "kits19", "brats2024"],
       "default_models": ["cxr_lesion", "brats_tumor", "totalsegmentator", "vista3d", "sam2d"],
       "recommended_datasets": [
         {"id": "mimic_cxr", "name": "MIMIC-CXR-JPG", "modality": "XR"},
-        {"id": "brats2024", "name": "BraTS 2024", "modality": "MRI"},
-        {"id": "mimic_ct", "name": "MIMIC-III CT 采样", "modality": "CT", "notes": "data/mimic/ 演示 CT 切片"}
+        {"id": "chest_ct", "name": "胸部/肺 CT 示例", "modality": "CT", "notes": "datasets/chest_ct/ MONAI COPD 演示体数据"},
+        {"id": "kits19", "name": "KiTS19 肾脏 CT", "modality": "CT", "notes": "datasets/kits19/ 已接入 imaging catalog"},
+        {"id": "brats2024", "name": "BraTS 2024", "modality": "MRI"}
       ],
       "vision_models": [
         {"model_id": "cxr_lesion", "name": "CXR Lesion", "task": "胸片"},
@@ -215,7 +216,7 @@
       "imaging_sources": ["mimic", "kits19"],
       "default_models": ["totalsegmentator", "vista3d"],
       "recommended_datasets": [
-        {"id": "kits19", "name": "KiTS Kidney Tumor", "modality": "CT", "notes": "data/kits19/ 已接入 imaging catalog"},
+        {"id": "kits19", "name": "KiTS Kidney Tumor", "modality": "CT", "notes": "datasets/kits19/ 已接入 imaging catalog"},
         {"id": "mimic_iii", "name": "MIMIC-III", "modality": "EHR"}
       ],
       "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "肾脏/泌尿轮廓"}],
@@ -322,7 +323,7 @@
       "imaging_sources": ["mimic", "kits19"],
       "default_models": ["totalsegmentator", "vista3d"],
       "recommended_datasets": [
-        {"id": "kits19", "name": "KiTS19 Renal CT", "modality": "CT", "notes": "data/kits19/"},
+        {"id": "kits19", "name": "KiTS19 Renal CT", "modality": "CT", "notes": "datasets/kits19/"},
         {"id": "picai", "name": "PI-CAI Prostate", "modality": "MRI"}
       ],
       "vision_models": [{"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "盆腔 CT"}],

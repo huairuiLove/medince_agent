@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_ophthalmology_01_ddi_sotalol_qt_moxifloxacin_sotalol",
+  "department": "ophthalmology",
+  "description": "眼科用药安全：索他洛尔与 QT 延长药物联用可致尖端扭转室速。",
+  "difficulty": "hard",
+  "tags": [
+    "ophthalmology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50054,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "眼科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "moxifloxacin",
+          "ingredient": "moxifloxacin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "sotalol",
+        "ingredient": "sotalol",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_sotalol_qt_moxifloxacin_sotalol",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

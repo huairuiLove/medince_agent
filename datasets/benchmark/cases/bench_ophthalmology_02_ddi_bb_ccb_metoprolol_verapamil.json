@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_ophthalmology_02_ddi_bb_ccb_metoprolol_verapamil",
+  "department": "ophthalmology",
+  "description": "眼科用药安全：β 阻滞剂与非二氢吡啶类钙拮抗剂联用可致严重心动过缓、传导阻滞或心衰。",
+  "difficulty": "hard",
+  "tags": [
+    "ophthalmology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50055,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "眼科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "metoprolol",
+          "ingredient": "metoprolol",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "verapamil",
+        "ingredient": "verapamil",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_bb_ccb_metoprolol_verapamil",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

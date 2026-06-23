@@ -29,8 +29,8 @@ from src.schemas import (
 from src.utils import load_json, save_json
 
 DEFAULT_KB = PROJECT_ROOT / "data" / "knowledge" / "hospital_production_v4.json"
-CASES_DIR = PROJECT_ROOT / "data" / "benchmark" / "cases"
-REPORTS_DIR = PROJECT_ROOT / "data" / "benchmark" / "reports"
+CASES_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "cases"
+REPORTS_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "reports"
 
 KB_ALIASES: dict[str, Path] = {
     "expanded_mined_v1": PROJECT_ROOT / "data" / "knowledge" / "expanded_drug_safety_rules.json",

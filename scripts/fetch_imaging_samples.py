@@ -44,7 +44,7 @@ def download_file(url: str, dest: Path) -> None:
 
 def fetch_cxr_samples(force: bool = False) -> int:
     """Count local CXR under data/mimic_cxr/ (use fetch_demo_datasets.py --nlmcxr-archives to populate)."""
-    base = ROOT / "data" / "mimic_cxr"
+    base = ROOT / "datasets" / "mimic_cxr"
     if not base.is_dir():
         print("  no data/mimic_cxr/ — run: python scripts/fetch_demo_datasets.py --nlmcxr-archives --nlmcxr-map 30")
         return 0
@@ -60,7 +60,7 @@ def fetch_cxr_samples(force: bool = False) -> int:
 
 
 def fetch_brats_sample(force: bool = False) -> int:
-    case_dir = ROOT / "data" / "brats2024" / "BraTS2024_001"
+    case_dir = ROOT / "datasets" / "brats2024" / "BraTS2024_001"
     if not force and any(case_dir.glob("*t1c*.nii.gz")):
         print(f"  BraTS case already present -> {case_dir}")
         return 1
@@ -77,7 +77,6 @@ def fetch_brats_sample(force: bool = False) -> int:
         if not tar_path.exists():
             download_file(BRATS_SAMPLE_ZIP, tar_path)
         if tar_path.exists():
-            import tarfile
             with tarfile.open(tar_path, "r:gz") as tf:
                 tf.extractall(path=cache / "brats_extract")
             extracted = cache / "brats_extract"
@@ -103,6 +102,20 @@ def fetch_brats_sample(force: bool = False) -> int:
                 return 1
     except Exception as exc:
         print(f"  BraTS tarball skipped: {exc}")
+
+    # Fallback: download individual modalities from MONAI extra test data
+    for url, suffix in BRATS_FALLBACK_FILES:
+        dest = case_dir / f"BraTS2024_001-{suffix}.nii.gz"
+        if not force and dest.exists() and dest.stat().st_size > 1000:
+            print(f"  exists -> {dest.relative_to(ROOT)}")
+            continue
+        try:
+            download_file(url, dest)
+            print(f"  BraTS -> {dest.relative_to(ROOT)}")
+        except Exception as exc:
+            print(f"  skip {suffix}: {exc}")
+    if any(case_dir.glob("*t1c*.nii.gz")) or any(case_dir.glob("*t1n*.nii.gz")):
+        return 1
 
     print("  BraTS: place 4 modalities manually under data/brats2024/{case_id}/")
     print("  Expected: *t1c*.nii.gz *t1n*.nii.gz *t2w*.nii.gz *t2f*.nii.gz")

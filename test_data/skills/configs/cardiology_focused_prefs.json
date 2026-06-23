@@ -1,0 +1,30 @@
+{
+  "description": "心内科会诊场景 — 启用专科 agent 与抗凝/DDI 相关 skill",
+  "agents": [
+    { "agent_id": "clinical_pharmacist", "enabled": true },
+    { "agent_id": "internal_medicine", "enabled": true },
+    { "agent_id": "allergy_specialist", "enabled": true },
+    { "agent_id": "pharmacy_inventory", "enabled": true },
+    { "agent_id": "specialist", "enabled": true }
+  ],
+  "skills": [
+    { "agent_id": "clinical_pharmacist", "skill_id": "base", "enabled": true },
+    { "agent_id": "clinical_pharmacist", "skill_id": "ddi_review", "enabled": true },
+    { "agent_id": "clinical_pharmacist", "skill_id": "dose_review", "enabled": true },
+    { "agent_id": "clinical_pharmacist", "skill_id": "duplicate_review", "enabled": true },
+    { "agent_id": "internal_medicine", "skill_id": "base", "enabled": true },
+    { "agent_id": "internal_medicine", "skill_id": "indication_match", "enabled": true },
+    { "agent_id": "internal_medicine", "skill_id": "comorbidity", "enabled": true },
+    { "agent_id": "allergy_specialist", "skill_id": "base", "enabled": true },
+    { "agent_id": "allergy_specialist", "skill_id": "cross_allergy", "enabled": true },
+    { "agent_id": "allergy_specialist", "skill_id": "adr_history", "enabled": true },
+    { "agent_id": "pharmacy_inventory", "skill_id": "base", "enabled": true },
+    { "agent_id": "pharmacy_inventory", "skill_id": "formulary_check", "enabled": true },
+    { "agent_id": "pharmacy_inventory", "skill_id": "stock_alternative", "enabled": true },
+    { "agent_id": "specialist", "skill_id": "base", "enabled": true },
+    { "agent_id": "specialist", "skill_id": "pregnancy", "enabled": false },
+    { "agent_id": "specialist", "skill_id": "anticoagulation", "enabled": true },
+    { "agent_id": "specialist", "skill_id": "geriatric", "enabled": true }
+  ],
+  "custom_skill_ids": ["csk_001"]
+}

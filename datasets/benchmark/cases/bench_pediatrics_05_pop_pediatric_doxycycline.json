@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_pediatrics_05_pop_pediatric_doxycycline",
+  "department": "pediatrics",
+  "description": "儿科用药安全：8 岁以下儿童使用四环素类可致牙齿永久着色。",
+  "difficulty": "hard",
+  "tags": [
+    "pediatrics",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50034,
+      "gender": "M",
+      "age": 10,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "儿科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "doxycycline",
+        "ingredient": "doxycycline",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_pediatric_doxycycline",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

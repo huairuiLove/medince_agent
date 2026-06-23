@@ -8,7 +8,7 @@ from typing import Any
 from src.config import resolve_path
 from src.utils import load_json, normalize_text
 
-DEFAULT_EXCLUSIONS_PATH = "data/knowledge/ddi_mining_exclusions.json"
+DEFAULT_EXCLUSIONS_PATH = "datasets/knowledge/ddi_mining_exclusions.json"
 
 
 def _pair_tuple(drug_a: str, drug_b: str) -> tuple[str, str]:

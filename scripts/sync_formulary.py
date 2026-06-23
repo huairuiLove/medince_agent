@@ -19,7 +19,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Import PIS formulary CSV into MedSafe drug catalog")
     parser.add_argument(
         "--csv",
-        default="data/hospital/formulary_sample.csv",
+        default="datasets/hospital/formulary_sample.csv",
         help="CSV path relative to project root (default: sample formulary)",
     )
     parser.add_argument("--version", default="", help="Sync version tag (default: UTC timestamp)")

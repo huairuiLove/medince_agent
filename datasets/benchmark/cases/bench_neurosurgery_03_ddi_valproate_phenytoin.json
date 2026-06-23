@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_neurosurgery_03_ddi_valproate_phenytoin",
+  "department": "neurosurgery",
+  "description": "神经外科用药安全：丙戊酸与苯妥英联用可因蛋白结合置换升高游离苯妥英。",
+  "difficulty": "hard",
+  "tags": [
+    "neurosurgery",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50002,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "神经外科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "valproic acid",
+          "ingredient": "valproic acid",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "phenytoin",
+        "ingredient": "phenytoin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_valproate_phenytoin",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

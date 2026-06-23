@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_general_internal_04_ddi_clopidogrel_omeprazole",
+  "department": "general_internal",
+  "description": "普通内科用药安全：奥美拉唑抑制 CYP2C19，可显著降低氯吡格雷抗血小板活性。",
+  "difficulty": "hard",
+  "tags": [
+    "general_internal",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50027,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "普通内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "clopidogrel",
+          "ingredient": "clopidogrel",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "omeprazole",
+        "ingredient": "omeprazole",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_clopidogrel_omeprazole",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

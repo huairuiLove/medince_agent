@@ -1,0 +1,49 @@
+{
+  "case_id": "test_review_01",
+  "description": "高风险 DDI：华法林 + 布洛芬出血风险",
+  "category": "review",
+  "tags": ["ddi", "high", "block", "warfarin"],
+  "request": {
+    "patient_context": {
+      "subject_id": 90001,
+      "hadm_id": 91001,
+      "gender": "M",
+      "age": 67,
+      "admission_type": "EMERGENCY",
+      "source_text": "患者男性67岁，因胸痛和呼吸困难入院。既往冠心病、房颤病史，长期口服华法林。",
+      "chief_complaint": "胸痛和呼吸困难",
+      "symptoms_or_complaints": ["胸痛", "呼吸困难"],
+      "past_medical_history": ["冠心病", "高血压", "房颤"],
+      "diagnoses": [
+        { "icd9_code": "410.71", "name": "心内膜下心肌梗死" },
+        { "icd9_code": "401.9", "name": "高血压" }
+      ],
+      "current_medications": [
+        { "name": "warfarin", "ingredient": "warfarin", "dose": "5mg", "route": "PO", "frequency": "qd" },
+        { "name": "aspirin", "ingredient": "aspirin", "dose": "81mg", "route": "PO", "frequency": "qd" }
+      ],
+      "allergies": [],
+      "pregnancy_status": "not_applicable",
+      "missing_fields": ["allergies"]
+    },
+    "candidate_drugs": [
+      {
+        "name": "ibuprofen",
+        "ingredient": "ibuprofen",
+        "dose": "400mg",
+        "route": "PO",
+        "frequency": "tid",
+        "indication": "胸痛",
+        "source": "candidate"
+      }
+    ],
+    "persist": false
+  },
+  "expected": {
+    "risk_level": "high",
+    "block_decision": true,
+    "need_clarification": true,
+    "should_hit_ddi": true,
+    "hit_rules": ["ddi_warfarin_ibuprofen_bleeding"]
+  }
+}

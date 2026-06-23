@@ -11,7 +11,7 @@ from src.utils import normalize_text
 
 def mine_duplicate_rules(
     *,
-    inn_map_path: str = "data/knowledge/drug_inn_map.json",
+    inn_map_path: str = "datasets/knowledge/drug_inn_map.json",
     min_aliases: int = 2,
 ) -> list[dict[str, Any]]:
     """Create duplicate-ingredient rules when multiple CN names map to same INN."""

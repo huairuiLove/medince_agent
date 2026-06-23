@@ -64,6 +64,8 @@ def export_slice_png(nii_path: str | Path, slice_index: int | None = None, out_d
     target_dir = Path(out_dir) if out_dir else cache_root / nii_path.parent.name
     ensure_dir(target_dir)
     out = target_dir / f"{nii_path.stem}_z{idx:04d}.png"
+    if out.is_file() and out.stat().st_size > 1000:
+        return out
     Image.fromarray(slc).save(out)
     return out
 
@@ -73,10 +75,13 @@ def list_volume_slices(nii_path: str | Path) -> list[int]:
         import nibabel as nib
     except ImportError:
         return [0]
-    vol = nib.load(str(nii_path)).get_fdata()
-    if vol.ndim == 4:
-        vol = vol[..., 0]
-    depth = vol.shape[2] if vol.ndim == 3 else 1
+    shape = nib.load(str(nii_path)).shape
+    if len(shape) == 4:
+        depth = shape[2]
+    elif len(shape) == 3:
+        depth = shape[2]
+    else:
+        depth = 1
     step = max(1, depth // 24)
     return list(range(0, depth, step))
 

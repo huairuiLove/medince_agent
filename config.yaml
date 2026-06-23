@@ -15,13 +15,13 @@ agents:
   - pharmacy_inventory
   - specialist
 data:
-  raw_dir: data/mimic-iii-clinical-database-1.4
-  processed_dir: data/processed
-  knowledge_dir: data/knowledge
-  cases_dir: data/cases
-  case_templates_dir: data/case_templates
-  knowledge_base: data/knowledge/hospital_production_v4.json
-  formulary: data/knowledge/pharmacy_formulary.json
+  raw_dir: datasets/mimic-iii-clinical-database-1.4
+  processed_dir: datasets/processed
+  knowledge_dir: datasets/knowledge
+  cases_dir: datasets/cases
+  case_templates_dir: datasets/case_templates
+  knowledge_base: datasets/knowledge/hospital_production_v4.json
+  formulary: datasets/knowledge/pharmacy_formulary.json
 server:
   host: 0.0.0.0
   port: 8000
@@ -40,7 +40,8 @@ logging:
 paths:
   logs_dir: logs
   models_dir: models
-  reports_dir: data/reports
+  datasets_dir: datasets
+  reports_dir: datasets/reports
 vision_llm:
   provider: qwen
   api_key: ''
@@ -60,7 +61,7 @@ chat:
   timeout: 120
   max_retries: 2
   fallback_enabled: true
-  knowledge_graph: data/knowledge/drug_kg_v2.json
+  knowledge_graph: datasets/knowledge/drug_kg_v2.json
 embedding:
   provider: lmstudio
   api_key: lm-studio
@@ -79,7 +80,7 @@ debate:
   flag_for_human_on_no_consensus: true
 drug_catalog:
   db_path: data/hospital/formulary.db
-  formulary_path: data/hospital/formulary_demo.csv
+  formulary_path: datasets/hospital/formulary_demo.csv
   auto_import_on_startup: true
   semantic_search:
     enabled: true
@@ -98,12 +99,12 @@ auth:
 clinical_knowledge:
   version: hospital_production_v4
   ddi_source: ddi_bert_mined
-  mined_rules_path: data/knowledge/mined_ddi_rules.json
-  expanded_rules_path: data/knowledge/expanded_drug_safety_rules.json
-  production_rules_path: data/knowledge/hospital_production_v4.json
-  drug_kg_v2_path: data/knowledge/drug_kg_v2.json
-  twosides_signals_path: data/knowledge/twosides_ddi_signals.json
-  mining_exclusions: data/knowledge/ddi_mining_exclusions.json
+  mined_rules_path: datasets/knowledge/mined_ddi_rules.json
+  expanded_rules_path: datasets/knowledge/expanded_drug_safety_rules.json
+  production_rules_path: datasets/knowledge/hospital_production_v4.json
+  drug_kg_v2_path: datasets/knowledge/drug_kg_v2.json
+  twosides_signals_path: datasets/knowledge/twosides_ddi_signals.json
+  mining_exclusions: datasets/knowledge/ddi_mining_exclusions.json
   mining_thresholds:
     high: 0.7
     medium: 0.65
@@ -115,13 +116,13 @@ safety_models:
   ddi_bert:
     enabled: true
     model_dir: models/ddi_bert
-    smiles_path: data/knowledge/drug_smiles.json
+    smiles_path: datasets/knowledge/drug_smiles.json
     high_threshold: 0.75
     medium_threshold: 0.55
   pubchem:
     enabled: true
     cache_path: data/knowledge/smiles_cache.db
-    inn_map_path: data/knowledge/drug_inn_map.json
+    inn_map_path: datasets/knowledge/drug_inn_map.json
     timeout: 10
     rate_limit_seconds: 0.25
 imaging:

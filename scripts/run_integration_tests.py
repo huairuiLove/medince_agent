@@ -46,26 +46,26 @@ print("=" * 70)
 print("RULE ENGINE TESTS")
 print("=" * 70)
 
-case1 = load_json(PROJECT_ROOT / "data/case_templates/review_case_01.json")
+case1 = load_json(PROJECT_ROOT / "datasets/case_templates/review_case_01.json")
 pc1 = PatientContext.model_validate(case1["request"]["patient_context"])
 cd1 = [CandidateDrug.model_validate(d) for d in case1["request"]["candidate_drugs"]]
 r1 = review_engine.review(pc1, cd1)
 record("rule: high risk warfarin+ibuprofen", r1.risk_level == "high" and r1.block_decision)
 record("rule: DDI evidence", any(e.category == "drug_interaction" for e in r1.evidence))
 
-case2 = load_json(PROJECT_ROOT / "data/case_templates/review_case_02.json")
+case2 = load_json(PROJECT_ROOT / "datasets/case_templates/review_case_02.json")
 pc2 = PatientContext.model_validate(case2["request"]["patient_context"])
 cd2 = [CandidateDrug.model_validate(d) for d in case2["request"]["candidate_drugs"]]
 r2 = review_engine.review(pc2, cd2)
 record("rule: allergy missing clarify", r2.need_clarification and "allergies" in r2.clarification_targets)
 
-case3 = load_json(PROJECT_ROOT / "data/case_templates/review_case_03.json")
+case3 = load_json(PROJECT_ROOT / "datasets/case_templates/review_case_03.json")
 pc3 = PatientContext.model_validate(case3["request"]["patient_context"])
 cd3 = [CandidateDrug.model_validate(d) for d in case3["request"]["candidate_drugs"]]
 r3 = review_engine.review(pc3, cd3)
 record("rule: pregnancy clarify", "pregnancy_status" in r3.clarification_targets)
 
-cl1 = load_json(PROJECT_ROOT / "data/case_templates/clarify_case_01.json")
+cl1 = load_json(PROJECT_ROOT / "datasets/case_templates/clarify_case_01.json")
 cl_out1 = clarify_engine.clarify(
     PatientContext.model_validate(cl1["request"]["patient_context"]),
     [CandidateDrug.model_validate(d) for d in cl1["request"]["candidate_drugs"]],
@@ -73,7 +73,7 @@ cl_out1 = clarify_engine.clarify(
 )
 record("clarify: questions", cl_out1.status == "need_user_input" and len(cl_out1.questions) >= 2)
 
-cl2 = load_json(PROJECT_ROOT / "data/case_templates/clarify_case_02.json")
+cl2 = load_json(PROJECT_ROOT / "datasets/case_templates/clarify_case_02.json")
 cl_out2 = clarify_engine.clarify(
     PatientContext.model_validate(cl2["request"]["patient_context"]),
     [CandidateDrug.model_validate(d) for d in cl2["request"]["candidate_drugs"]],
@@ -119,7 +119,7 @@ else:
     ma3 = orchestrator.run(pc3, cd3, unable_to_answer=True)
     record("agent: conservative path", ma3.clarify_output is not None)
 
-    consult_case = load_json(PROJECT_ROOT / "data/case_templates/consult_case_01.json")
+    consult_case = load_json(PROJECT_ROOT / "datasets/case_templates/consult_case_01.json")
     consult_pc = PatientContext.model_validate(consult_case["request"]["patient_context"])
     consult_cd = [CandidateDrug.model_validate(d) for d in consult_case["request"]["candidate_drugs"]]
     ma4 = orchestrator.run(consult_pc, consult_cd)
@@ -143,7 +143,7 @@ else:
     record("case: agent opinions", len(replayed.agent_opinions) >= 4)
     record("case: arbitration", replayed.arbitration is not None)
 
-    save_json(replayed.model_dump(), PROJECT_ROOT / "data/case_templates/complete_case_log.json")
+    save_json(replayed.model_dump(), PROJECT_ROOT / "datasets/case_templates/complete_case_log.json")
 
     print("\n" + "=" * 70)
     print("MULTI-ROUND DEBATE TESTS")
@@ -188,7 +188,7 @@ from src.schemas import (
 
 _test_db_dir = tempfile.mkdtemp(prefix="medsafe_catalog_test_")
 _test_db = Path(_test_db_dir) / "test_formulary.db"
-_sample_csv = PROJECT_ROOT / "data/hospital/formulary_sample.csv"
+_sample_csv = PROJECT_ROOT / "datasets/hospital/formulary_sample.csv"
 
 try:
     import_result = FormularyCsvImporter(_test_db).import_csv(_sample_csv, sync_version="test_v1")

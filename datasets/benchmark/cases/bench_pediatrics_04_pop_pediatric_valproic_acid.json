@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_pediatrics_04_pop_pediatric_valproic_acid",
+  "department": "pediatrics",
+  "description": "儿科用药安全：2 岁以下使用丙戊酸肝毒性风险显著增加。",
+  "difficulty": "hard",
+  "tags": [
+    "pediatrics",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50033,
+      "gender": "M",
+      "age": 1,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "儿科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "valproic acid",
+        "ingredient": "valproic acid",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_pediatric_valproic_acid",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

@@ -15,7 +15,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Analyze mined_ddi_scores.jsonl")
     parser.add_argument(
         "--scores",
-        default="data/knowledge/mined_ddi_scores.jsonl",
+        default="datasets/knowledge/mined_ddi_scores.jsonl",
         help="Path to scores JSONL",
     )
     parser.add_argument("--top", type=int, default=20, help="Show top-N pairs")

@@ -72,7 +72,7 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         local_dir="models/totalsegmentator",
         task="organ",
         organs=("multi_organ",),
-        datasets=("mimic", "kits19"),
+        datasets=("chest_ct", "kits19"),
     ),
     "vista3d": SegModelSpec(
         model_id="vista3d",
@@ -83,7 +83,7 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         local_dir="models/vista3d",
         task="organ",
         organs=("brain", "liver", "lung"),
-        datasets=("mimic", "brats2024", "kits19"),
+        datasets=("chest_ct", "brats2024", "kits19"),
     ),
     "sam_med3d": SegModelSpec(
         model_id="sam_med3d",
@@ -94,7 +94,7 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         local_dir="models/SAM-Med3D",
         task="interactive",
         organs=("interactive",),
-        datasets=("mimic", "brats2024", "kits19"),
+        datasets=("chest_ct", "brats2024", "kits19"),
     ),
     "sam2d": SegModelSpec(
         model_id="sam2d",
@@ -105,7 +105,7 @@ MODEL_REGISTRY: dict[ModelId, SegModelSpec] = {
         local_dir="models/SAM2D",
         task="interactive",
         organs=("interactive",),
-        datasets=("mimic", "mimic_cxr", "brats2024", "kits19"),
+        datasets=("chest_ct", "mimic_cxr", "brats2024", "kits19"),
     ),
 }
 

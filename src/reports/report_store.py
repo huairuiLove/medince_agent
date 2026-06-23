@@ -5,14 +5,14 @@ import hashlib
 from pathlib import Path
 
 from src.auth.ownership import ReportAccessError
-from src.config import resolve_path
+from src.config import datasets_path, resolve_path
 from src.schemas import ClinicalReport, ReportParagraph, ReportSupplement
 from src.utils import ensure_dir, load_json, make_case_id, save_json, utc_now_iso
 
 
 class ReportStore:
     def __init__(self, report_dir: str | Path | None = None) -> None:
-        self.report_dir = Path(report_dir) if report_dir else resolve_path("data/reports")
+        self.report_dir = Path(report_dir) if report_dir else datasets_path("reports")
         ensure_dir(self.report_dir)
 
     def _user_patient_dir(self, user_id: str, patient_id: str) -> Path:

@@ -174,7 +174,9 @@ export interface HealthResponse {
   status: string
   version: string
   uptime_seconds: number
+  llm_configured?: boolean
   llm_provider: string
+  vision_llm_configured?: boolean
 }
 
 export interface AgentInfo {
@@ -330,11 +332,21 @@ export interface UserProfile {
   department?: DepartmentInfo | null
 }
 
+export interface AgentSkillInfo {
+  skill_id: string
+  title: string
+  description?: string
+  builtin?: boolean
+  enabled?: boolean
+}
+
 export interface AgentConfigInfo {
   agent_id: string
   agent_name: string
   role: string
   enabled?: boolean
+  available_skills?: AgentSkillInfo[]
+  enabled_skills?: string[]
 }
 
 export interface DoctorWorkspace {
@@ -365,10 +377,37 @@ export interface CpoeReviewAlert {
   overridable?: boolean
 }
 
+export interface CpoePatientSnapshot {
+  patient_id?: string
+  age?: number | null
+  gender?: string
+  weight_kg?: number | null
+  egfr?: number | null
+  allergies?: string[]
+  conditions?: string[]
+  pregnancy_status?: string
+  lactation_status?: string
+}
+
+export interface CpoeMedicationOrder {
+  order_id: string
+  hospital_drug_id?: string
+  display_name?: string
+  ingredient?: string
+  dose?: string
+  route?: string
+  frequency?: string
+  status?: string
+}
+
 export interface CpoeMedicationReviewResponse {
+  encounter_id?: string
   overall_status: 'passed' | 'warning' | 'blocked'
   requires_pharmacist_review: boolean
   alerts: CpoeReviewAlert[]
+  unresolved_drugs?: string[]
+  review_output?: ReviewOutput
+  formulary_drug_count?: number
 }
 
 export interface AlertDecision {
@@ -424,4 +463,83 @@ export interface PharmacyStats {
   override_rate: number
   high_risk_override_rate: number
   top_override_drugs: { drug_name: string; count: number }[]
+}
+
+export interface HospitalDrug {
+  hospital_drug_id: string
+  generic_name_cn: string
+  generic_name_en: string
+  trade_name_cn: string
+  strength: string
+  dosage_form: string
+  route: string
+  atc_code: string
+  rxnorm_rxcui: string
+  insurance_code?: string
+  manufacturer: string
+  in_formulary: boolean
+  in_stock: boolean
+  high_alert: boolean
+  antibiotic_level: string
+  narcotic_class: string
+  restricted_dept: string
+  alternatives?: string[]
+  canonical_key?: string
+  sync_version?: string
+  display_name?: string
+}
+
+export interface DrugCatalogStats {
+  db_path?: string
+  total_drugs: number
+  in_formulary: number
+  in_stock: number
+  last_sync?: Record<string, unknown> | null
+}
+
+export interface AtcTreeNode {
+  code: string
+  level: number
+  name_cn: string
+  name_en: string
+  drug_count: number
+  children: AtcTreeNode[]
+}
+
+export interface DrugSpecialFilter {
+  id: string
+  name_cn: string
+  name_en: string
+}
+
+export interface DrugSearchModelStatus {
+  backend?: string
+  provider?: string
+  model?: string
+  model_dir?: string
+  base_url?: string
+  model_present: boolean
+  index_built: boolean
+  indexed_drugs: number
+  load_error?: string | null
+  download_command?: string
+}
+
+export interface DrugInteractionInfo {
+  drug: string
+  severity: string
+  effect?: string
+  recommendation?: string
+}
+
+export interface DrugInfoResponse {
+  name: string
+  category?: string
+  rx_type?: string
+  brand_names?: string[]
+  description?: string
+  interactions?: DrugInteractionInfo[]
+  contraindications?: unknown[]
+  food_interactions?: unknown[]
+  error?: string
 }

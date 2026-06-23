@@ -26,12 +26,12 @@ class MimicStore:
 
     def raw_dir(self) -> Path:
         cfg = load_config()
-        rel = cfg.get("data", {}).get("raw_dir", "data/mimic-iii-clinical-database-1.4")
+        rel = cfg.get("data", {}).get("raw_dir", "datasets/mimic-iii-clinical-database-1.4")
         return resolve_path(rel)
 
     def contexts_path(self) -> Path:
         cfg = load_config()
-        processed = resolve_path(cfg.get("data", {}).get("processed_dir", "data/processed"))
+        processed = resolve_path(cfg.get("data", {}).get("processed_dir", "datasets/processed"))
         return processed / "mimiciii_patient_contexts.json"
 
     def raw_table_status(self) -> dict[str, bool]:

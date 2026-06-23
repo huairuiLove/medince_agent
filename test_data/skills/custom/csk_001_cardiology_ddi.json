@@ -1,0 +1,7 @@
+{
+  "skill_id": "csk_001",
+  "agent_id": "clinical_pharmacist",
+  "title": "心内科 DDI 补充审查",
+  "created_at": "2026-06-23T00:00:00Z",
+  "description": "医生自定义 skill 样例 — 针对 ACS/房颤抗栓三联审查"
+}

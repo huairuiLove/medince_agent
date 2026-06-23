@@ -39,7 +39,7 @@ class ChatConfig:
         self.timeout: int = int(chat.get("timeout") or deepseek.get("timeout") or 120)
         self.max_retries: int = int(chat.get("max_retries", 2))
         self.fallback_enabled: bool = chat.get("fallback_enabled", True)
-        kg_rel = chat.get("knowledge_graph", "data/knowledge/drug_kg.json")
+        kg_rel = chat.get("knowledge_graph", "datasets/knowledge/drug_kg.json")
         self.knowledge_graph_path: Path = resolve_path(kg_rel)
 
     @property

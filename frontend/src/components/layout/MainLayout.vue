@@ -13,6 +13,7 @@ const allLinks = [
   { to: '/consult', label: '多智能体会诊' },
   { to: '/chat', label: '智能问答' },
   { to: '/rule-review', label: '规则审查' },
+  { to: '/cpoe', label: 'CPOE 审查' },
   { to: '/drugs', label: '药品库' },
   { to: '/cases', label: '病例回放' },
   { to: '/agents', label: '智能体' },

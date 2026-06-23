@@ -63,7 +63,7 @@ class DdiClassifier:
         cfg = get_config().get("safety_models", {}).get("ddi_bert", {})
         self.model_dir = Path(resolve_path(model_dir or cfg.get("model_dir", "models/ddi_bert")))
         self.smiles = smiles_lookup or SmilesLookup(
-            resolve_path(cfg.get("smiles_path", "data/knowledge/drug_smiles.json"))
+            resolve_path(cfg.get("smiles_path", "datasets/knowledge/drug_smiles.json"))
         )
         self.high_threshold = float(cfg.get("high_threshold", high_threshold))
         self.medium_threshold = float(cfg.get("medium_threshold", medium_threshold))

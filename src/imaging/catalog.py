@@ -1,9 +1,9 @@
-"""Catalog of visual imaging studies from mimic (CT), mimic_cxr (XR), and brats2024 (MRI)."""
+"""Catalog of visual imaging studies: mimic_cxr (XR), chest_ct / kits19 (CT), brats2024 (MRI)."""
 from __future__ import annotations
 
 from pathlib import Path
 
-from src.config import project_root, resolve_path
+from src.config import datasets_path, project_root, resolve_path
 from src.imaging.cxr_manifest import (
     is_mimic_cxr_jpg_patient,
     is_mimic_cxr_jpg_study,
@@ -20,11 +20,13 @@ from src.utils import ensure_dir
 
 class ImagingCatalog:
     def __init__(self) -> None:
-        self.mimic_dir = resolve_path("data/mimic")
-        self.mimic_cxr_dir = resolve_path("data/mimic_cxr")
-        self.brats_dir = resolve_path("data/brats2024")
-        self.kits19_dir = resolve_path("data/kits19")
+        self.mimic_dir = datasets_path("mimic")
+        self.mimic_cxr_dir = datasets_path("mimic_cxr")
+        self.brats_dir = datasets_path("brats2024")
+        self.kits19_dir = datasets_path("kits19")
+        self.chest_ct_dir = datasets_path("chest_ct")
         self.cache_dir = resolve_path("data/imaging_cache/catalog")
+        self._preview_slices = 4
         self._cxr_manifest = load_manifest()
         ensure_dir(self.cache_dir)
 
@@ -44,7 +46,65 @@ class ImagingCatalog:
             studies.extend(self._scan_brats())
         if source in (None, "", "kits19"):
             studies.extend(self._scan_kits19())
+        if source in (None, "", "chest_ct"):
+            studies.extend(self._scan_chest_ct())
         return studies
+
+    def _volume_previews(self, volume: Path, cache_subdir: str) -> list[str]:
+        slices = list_volume_slices(volume)[: self._preview_slices]
+        out_dir = self.cache_dir / cache_subdir
+        cached: list[str] = []
+        for idx in slices:
+            out = out_dir / f"{volume.stem}_z{idx:04d}.png"
+            if out.is_file() and out.stat().st_size > 1000:
+                cached.append(self._rel(out))
+            else:
+                cached = []
+                break
+        if len(cached) == len(slices):
+            return cached
+        pngs: list[str] = []
+        for idx in slices:
+            png = export_slice_png(volume, slice_index=idx, out_dir=out_dir)
+            pngs.append(self._rel(png))
+        return pngs
+
+    def _scan_volume_dir(
+        self,
+        root: Path,
+        *,
+        source: str,
+        modality: str,
+        study_prefix: str,
+        title_fmt: str,
+        collection: str = "",
+    ) -> list[ImagingStudyItem]:
+        items: list[ImagingStudyItem] = []
+        if not root.exists():
+            return items
+        for case_dir in sorted(root.iterdir()):
+            if not case_dir.is_dir() or case_dir.name.startswith("."):
+                continue
+            volume = case_dir / "imaging.nii.gz"
+            if not volume.is_file():
+                volume = next((p for p in case_dir.glob("*.nii.gz") if "seg" not in p.name.lower()), None)
+            if volume is None:
+                continue
+            pngs = self._volume_previews(volume, case_dir.name)
+            items.append(
+                ImagingStudyItem(
+                    study_id=f"{study_prefix}_{case_dir.name}",
+                    patient_id=case_dir.name,
+                    modality=modality,
+                    source=source,
+                    title=title_fmt.format(case=case_dir.name),
+                    image_paths=pngs,
+                    volume_path=self._rel(volume),
+                    slice_count=len(pngs),
+                    collection=collection,
+                )
+            )
+        return items
 
     def _scan_mimic(self) -> list[ImagingStudyItem]:
         items: list[ImagingStudyItem] = []
@@ -151,35 +211,24 @@ class ImagingCatalog:
         return items
 
     def _scan_kits19(self) -> list[ImagingStudyItem]:
-        items: list[ImagingStudyItem] = []
-        if not self.kits19_dir.exists():
-            return items
-        for case_dir in sorted(self.kits19_dir.iterdir()):
-            if not case_dir.is_dir() or case_dir.name.startswith("."):
-                continue
-            volume = case_dir / "imaging.nii.gz"
-            if not volume.is_file():
-                volume = next((p for p in case_dir.glob("*.nii.gz") if "seg" not in p.name.lower()), None)
-            if volume is None:
-                continue
-            pngs: list[str] = []
-            for idx in list_volume_slices(volume)[:8]:
-                png = export_slice_png(volume, slice_index=idx, out_dir=self.cache_dir / case_dir.name)
-                pngs.append(self._rel(png))
-            items.append(
-                ImagingStudyItem(
-                    study_id=f"kits19_{case_dir.name}",
-                    patient_id=case_dir.name,
-                    modality="CT",
-                    source="kits19",
-                    title=f"KiTS19 Renal CT {case_dir.name}",
-                    image_paths=pngs,
-                    volume_path=self._rel(volume),
-                    slice_count=len(pngs),
-                    collection="KiTS19",
-                )
-            )
-        return items
+        return self._scan_volume_dir(
+            self.kits19_dir,
+            source="kits19",
+            modality="CT",
+            study_prefix="kits19",
+            title_fmt="肾脏 CT · KiTS19 {case}",
+            collection="KiTS19",
+        )
+
+    def _scan_chest_ct(self) -> list[ImagingStudyItem]:
+        return self._scan_volume_dir(
+            self.chest_ct_dir,
+            source="chest_ct",
+            modality="CT",
+            study_prefix="chest_ct",
+            title_fmt="胸部/肺 CT · {case}",
+            collection="MONAI-COPD",
+        )
 
     def _scan_brats(self) -> list[ImagingStudyItem]:
         items: list[ImagingStudyItem] = []
@@ -192,20 +241,18 @@ class ImagingCatalog:
             if not volumes:
                 continue
             primary = next((p for p in volumes if "t1c" in p.name.lower()), volumes[0])
-            pngs: list[str] = []
-            for idx in list_volume_slices(primary)[:8]:
-                png = export_slice_png(primary, slice_index=idx, out_dir=self.cache_dir / case_dir.name)
-                pngs.append(self._rel(png))
+            pngs = self._volume_previews(primary, case_dir.name)
             items.append(
                 ImagingStudyItem(
                     study_id=f"brats_{case_dir.name}",
                     patient_id=case_dir.name,
                     modality="MRI",
                     source="brats2024",
-                    title=f"BraTS MRI {case_dir.name}",
+                    title=f"脑 MRI · BraTS {case_dir.name}",
                     image_paths=pngs,
                     volume_path=self._rel(primary),
                     slice_count=len(pngs),
+                    collection="BraTS",
                 )
             )
         return items

@@ -39,21 +39,21 @@ def main() -> None:
     parser.add_argument("--manual-kb", default=str(DEFAULT_KB_PATH), help="Curated minimal rules JSON")
     parser.add_argument(
         "--output",
-        default="data/knowledge/expanded_drug_safety_rules.json",
+        default="datasets/knowledge/expanded_drug_safety_rules.json",
         help="Merged knowledge base output",
     )
     parser.add_argument(
         "--mined-only",
-        default="data/knowledge/mined_ddi_rules.json",
+        default="datasets/knowledge/mined_ddi_rules.json",
         help="Raw mined DDI rules (no manual merge)",
     )
     parser.add_argument(
         "--scores-jsonl",
-        default="data/knowledge/mined_ddi_scores.jsonl",
+        default="datasets/knowledge/mined_ddi_scores.jsonl",
         help="All positive pair scores for audit",
     )
-    parser.add_argument("--inn-map", default="data/knowledge/drug_inn_map.json")
-    parser.add_argument("--formulary", default="data/hospital/formulary_demo.csv")
+    parser.add_argument("--inn-map", default="datasets/knowledge/drug_inn_map.json")
+    parser.add_argument("--formulary", default="datasets/hospital/formulary_demo.csv")
     parser.add_argument(
         "--max-drugs",
         type=int,
@@ -77,7 +77,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--exclusions",
-        default="data/knowledge/ddi_mining_exclusions.json",
+        default="datasets/knowledge/ddi_mining_exclusions.json",
         help="Pair/drug exclusion list for mining",
     )
     parser.add_argument(

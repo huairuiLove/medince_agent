@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_anesthesiology_02_ddi_opioid_benzo_diazepam_fentanyl",
+  "department": "anesthesiology",
+  "description": "麻醉科用药安全：阿片类与苯二氮卓联用可致严重呼吸抑制（FDA 黑框警告）。",
+  "difficulty": "hard",
+  "tags": [
+    "anesthesiology",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50046,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "麻醉科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "diazepam",
+          "ingredient": "diazepam",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "fentanyl",
+        "ingredient": "fentanyl",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_opioid_benzo_diazepam_fentanyl",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

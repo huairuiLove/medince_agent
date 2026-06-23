@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_radiology_04_pop_renal_rivaroxaban",
+  "department": "radiology",
+  "description": "放射科用药安全：eGFR<15 时利伐沙班禁用。",
+  "difficulty": "hard",
+  "tags": [
+    "radiology",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50009,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "放射科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 10.0,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "rivaroxaban",
+        "ingredient": "rivaroxaban",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_renal_rivaroxaban",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

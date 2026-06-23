@@ -327,7 +327,7 @@ def generate_mimic_patient_contexts(*, max_samples: int = 2000, skip_notes: bool
     if raw_dir is None:
         raise FileNotFoundError(
             "MIMIC-III CSV not found. Expected PATIENTS.csv + ADMISSIONS.csv under "
-            "data/mimic-iii-clinical-database-1.4/ or data/raw/mimiciii/."
+            "datasets/mimic-iii-clinical-database-1.4/ or datasets/raw/mimiciii/."
         )
 
     processed_dir = PROJECT_ROOT / "data" / "processed"

@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
   const navRoutes = computed(() => {
     const routes = department.value?.nav_routes
     if (routes?.length) return routes
-    return ['/', '/imaging', '/consult', '/chat', '/rule-review', '/drugs', '/cases', '/agents', '/settings']
+    return ['/', '/imaging', '/consult', '/chat', '/rule-review', '/cpoe', '/drugs', '/cases', '/agents', '/settings']
   })
 
   function setToken(value: string | null) {

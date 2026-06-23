@@ -57,7 +57,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Warm SMILES cache via PubChem")
     parser.add_argument(
         "--formulary",
-        default="data/hospital/formulary_demo.csv",
+        default="datasets/hospital/formulary_demo.csv",
         help="Hospital formulary CSV",
     )
     parser.add_argument("--dry-run", action="store_true", help="List names only")

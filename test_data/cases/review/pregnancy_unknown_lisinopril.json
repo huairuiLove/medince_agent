@@ -1,0 +1,40 @@
+{
+  "case_id": "test_review_03",
+  "description": "妊娠状态未知 + 赖诺普利候选",
+  "category": "review",
+  "tags": ["pregnancy", "clarify", "acei"],
+  "request": {
+    "patient_context": {
+      "subject_id": 90003,
+      "hadm_id": 91003,
+      "gender": "F",
+      "age": 28,
+      "admission_type": "URGENT",
+      "chief_complaint": "头晕头痛",
+      "symptoms_or_complaints": ["头晕", "头痛"],
+      "diagnoses": [{ "icd9_code": "401.9", "name": "高血压" }],
+      "current_medications": [],
+      "allergies": [],
+      "pregnancy_status": "unknown",
+      "missing_fields": ["allergies", "current_medications", "pregnancy_status"]
+    },
+    "candidate_drugs": [
+      {
+        "name": "lisinopril",
+        "ingredient": "lisinopril",
+        "dose": "10mg",
+        "route": "PO",
+        "frequency": "qd",
+        "indication": "高血压",
+        "source": "candidate"
+      }
+    ],
+    "persist": false
+  },
+  "expected": {
+    "risk_level": "unknown",
+    "block_decision": true,
+    "need_clarification": true,
+    "clarification_targets_include": ["pregnancy_status"]
+  }
+}

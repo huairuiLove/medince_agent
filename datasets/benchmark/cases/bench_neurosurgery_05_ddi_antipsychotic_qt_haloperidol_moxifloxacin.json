@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_neurosurgery_05_ddi_antipsychotic_qt_haloperidol_moxifloxacin",
+  "department": "neurosurgery",
+  "description": "神经外科用药安全：抗精神病药与 QT 延长药物联用可致尖端扭转室速。",
+  "difficulty": "hard",
+  "tags": [
+    "neurosurgery",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50004,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "神经外科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "haloperidol",
+          "ingredient": "haloperidol",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "moxifloxacin",
+        "ingredient": "moxifloxacin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_antipsychotic_qt_haloperidol_moxifloxacin",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

@@ -29,13 +29,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY pyproject.toml config.yaml .env.example ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
-COPY data/knowledge/ ./data/knowledge/
-COPY data/case_templates/ ./data/case_templates/
-COPY data/hospital/ ./data/hospital/
-COPY data/departments/ ./data/departments/
-COPY data/agents/ ./data/agents/
+COPY data/scripts/ ./data/scripts/
+COPY datasets/knowledge/ ./datasets/knowledge/
+COPY datasets/case_templates/ ./datasets/case_templates/
+COPY datasets/hospital/ ./datasets/hospital/
+COPY datasets/departments/ ./datasets/departments/
+COPY datasets/agents/ ./datasets/agents/
 
-RUN mkdir -p data/cases data/processed data/pharmacy data/auth logs
+RUN mkdir -p datasets/cases datasets/processed data/pharmacy data/auth data/hospital data/imaging_cache logs
 
 EXPOSE 8000
 

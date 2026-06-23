@@ -9,6 +9,7 @@ const router = createRouter({
     { path: '/consult', name: 'consult', component: () => import('@/views/ConsultView.vue') },
     { path: '/chat', name: 'chat', component: () => import('@/views/ChatView.vue') },
     { path: '/rule-review', name: 'rule-review', component: () => import('@/views/RuleReviewView.vue') },
+    { path: '/cpoe', name: 'cpoe', component: () => import('@/views/CpoeReviewView.vue') },
     { path: '/drugs', name: 'drugs', component: () => import('@/views/DrugDatabaseView.vue') },
     { path: '/cases', name: 'cases', component: () => import('@/views/CasesView.vue') },
     { path: '/cases/:id', name: 'case-detail', component: () => import('@/views/CaseDetailView.vue') },

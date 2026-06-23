@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_general_internal_06_ddi_clarithromycin_simvastatin_muscle",
+  "department": "general_internal",
+  "description": "普通内科用药安全：克拉霉素与辛伐他汀联用可显著增加肌病和横纹肌溶解风险。",
+  "difficulty": "hard",
+  "tags": [
+    "general_internal",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50029,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "普通内科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "clarithromycin",
+          "ingredient": "clarithromycin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "simvastatin",
+        "ingredient": "simvastatin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_clarithromycin_simvastatin_muscle",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

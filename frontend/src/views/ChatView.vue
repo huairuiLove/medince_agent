@@ -82,6 +82,21 @@ async function send() {
       }),
     })
 
+    if (!response.ok) {
+      let detail = response.statusText
+      try {
+        const err = await response.json()
+        detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail ?? err)
+      } catch {
+        detail = await response.text().catch(() => detail)
+      }
+      const hint =
+        response.status === 503
+          ? `LLM 未配置或不可用（503）：${detail}。请在 config.yaml 配置 chat.api_key 后重启后端。`
+          : `请求失败（HTTP ${response.status}）：${detail}`
+      throw new Error(hint)
+    }
+
     const reader = response.body?.getReader()
     if (!reader) throw new Error('No response body')
 

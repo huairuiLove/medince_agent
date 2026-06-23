@@ -1,0 +1,40 @@
+{
+  "case_id": "test_review_04",
+  "description": "重复成分：对乙酰氨基酚叠加",
+  "category": "review",
+  "tags": ["duplicate", "medium", "acetaminophen"],
+  "request": {
+    "patient_context": {
+      "subject_id": 90004,
+      "hadm_id": 91004,
+      "gender": "F",
+      "age": 55,
+      "admission_type": "ELECTIVE",
+      "chief_complaint": "关节痛",
+      "current_medications": [
+        { "name": "tylenol", "ingredient": "acetaminophen", "dose": "500mg", "route": "PO", "frequency": "qid" }
+      ],
+      "allergies": [],
+      "pregnancy_status": "not_applicable",
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "对乙酰氨基酚",
+        "ingredient": "acetaminophen",
+        "dose": "500mg",
+        "route": "PO",
+        "frequency": "qid",
+        "indication": "止痛",
+        "source": "candidate"
+      }
+    ],
+    "persist": false
+  },
+  "expected": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "should_hit_dup": true,
+    "hit_rules": ["dup_acetaminophen"]
+  }
+}

@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from src.config import resolve_path
+from src.config import datasets_path
 
 
 _ATC_LABELS: dict[str, Any] | None = None
@@ -18,7 +18,7 @@ def _load_labels() -> dict[str, Any]:
     global _ATC_LABELS
     if _ATC_LABELS is not None:
         return _ATC_LABELS
-    path = resolve_path("data/knowledge/atc_classification.json")
+    path = datasets_path("knowledge/atc_classification.json")
     if path.exists():
         with path.open(encoding="utf-8") as fh:
             _ATC_LABELS = json.load(fh)

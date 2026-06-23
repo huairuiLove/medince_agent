@@ -3,7 +3,11 @@ import type {
   AlertDecisionAction,
   CaseLog,
   CaseTemplate,
+  ClarifyOutput,
   ClinicalReport,
+  CpoeMedicationOrder,
+  CpoeMedicationReviewResponse,
+  CpoePatientSnapshot,
   DepartmentInfo,
   DoctorWorkspace,
   HealthResponse,
@@ -21,7 +25,13 @@ import type {
   SegModelInfo,
   SegmentResultItem,
   SegmentRunRecord,
+  AtcTreeNode,
+  DrugCatalogStats,
+  DrugInfoResponse,
   DrugItem,
+  DrugSearchModelStatus,
+  DrugSpecialFilter,
+  HospitalDrug,
   TokenResponse,
   VolumeAxis,
   VolumeMeta,
@@ -186,6 +196,32 @@ export const medsafeApi = {
       body: JSON.stringify(body),
     }),
 
+  clarify: (body: {
+    patient_context: PatientContext
+    candidate_drugs: DrugItem[]
+    review_output: ReviewOutput
+    user_answers?: Record<string, string>
+    unable_to_answer?: boolean
+    case_id?: string | null
+    persist?: boolean
+  }) =>
+    request<{ case_id?: string | null; clarify_output: ClarifyOutput }>('/api/v1/clarify', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  cpoeMedicationReview: (body: {
+    encounter_id?: string
+    patient: CpoePatientSnapshot
+    orders: CpoeMedicationOrder[]
+    existing_medications?: DrugItem[]
+    review_mode?: string
+  }) =>
+    request<CpoeMedicationReviewResponse>('/api/v1/cpoe/medication-review', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   ruleReview: (patient_context: PatientContext, candidate_drugs: DrugItem[]) =>
     request<{ review_output: ReviewOutput; retrieved_evidence: unknown[] }>('/api/v1/review', {
       method: 'POST',
@@ -317,4 +353,55 @@ export const medsafeApi = {
     request<{ templates: CaseTemplate[] }>('/api/v1/case-templates'),
 
   getCaseTemplate: (id: string) => request<CaseTemplate>(`/api/v1/case-templates/${id}`),
+
+  getDrugCatalogStats: () => request<DrugCatalogStats>('/api/v1/drug-catalog/stats'),
+
+  getDrugClassification: (maxLevel = 4) =>
+    request<{ max_level: number; tree: AtcTreeNode[]; special_filters: DrugSpecialFilter[] }>(
+      `/api/v1/drug-catalog/classification?max_level=${maxLevel}`,
+    ),
+
+  browseDrugCatalog: (params: {
+    atc_prefix?: string
+    filter_id?: string
+    limit?: number
+    offset?: number
+  }) => {
+    const q = new URLSearchParams()
+    if (params.atc_prefix) q.set('atc_prefix', params.atc_prefix)
+    if (params.filter_id) q.set('filter_id', params.filter_id)
+    if (params.limit != null) q.set('limit', String(params.limit))
+    if (params.offset != null) q.set('offset', String(params.offset))
+    const suffix = q.toString() ? `?${q}` : ''
+    return request<{ results: HospitalDrug[]; total: number; offset: number; limit: number }>(
+      `/api/v1/drug-catalog/browse${suffix}`,
+    )
+  },
+
+  searchDrugCatalog: (q: string, limit = 20, mode: 'keyword' | 'semantic' = 'semantic') => {
+    const params = new URLSearchParams({ q, limit: String(limit), mode })
+    return request<{ query: string; mode: string; count: number; results: HospitalDrug[] }>(
+      `/api/v1/drug-catalog/search?${params}`,
+    )
+  },
+
+  getDrugSearchModelStatus: () =>
+    request<DrugSearchModelStatus>('/api/v1/drug-catalog/search-model/status'),
+
+  rebuildDrugSearchIndex: () =>
+    request<DrugSearchModelStatus>('/api/v1/drug-catalog/search-model/rebuild', { method: 'POST' }),
+
+  getDrugById: (hospitalDrugId: string) =>
+    request<HospitalDrug>(`/api/v1/drug-catalog/drugs/${encodeURIComponent(hospitalDrugId)}`),
+
+  getDrugAlternatives: (hospitalDrugId: string) =>
+    request<{ hospital_drug_id: string; count: number; alternatives: HospitalDrug[] }>(
+      `/api/v1/drug-catalog/drugs/${encodeURIComponent(hospitalDrugId)}/alternatives`,
+    ),
+
+  getDrugInfo: (drugName: string) =>
+    request<DrugInfoResponse>('/api/v1/drug/info', {
+      method: 'POST',
+      body: JSON.stringify({ drug_name: drugName }),
+    }),
 }

@@ -8,8 +8,8 @@ from pathlib import Path
 from src.config import resolve_path
 from src.utils import load_json, normalize_text
 
-DEFAULT_INN_MAP = "data/knowledge/drug_inn_map.json"
-DEFAULT_FORMULARY = "data/hospital/formulary_demo.csv"
+DEFAULT_INN_MAP = "datasets/knowledge/drug_inn_map.json"
+DEFAULT_FORMULARY = "datasets/hospital/formulary_demo.csv"
 
 
 def _primary_canonical(english_name: str) -> str:

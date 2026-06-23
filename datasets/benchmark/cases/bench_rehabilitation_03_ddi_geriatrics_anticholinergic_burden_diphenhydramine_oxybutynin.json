@@ -1,0 +1,63 @@
+{
+  "case_id": "bench_rehabilitation_03_ddi_geriatrics_anticholinergic_burden_diphenhydramine_oxybutynin",
+  "department": "rehabilitation",
+  "description": "康复医学科用药安全：多种抗胆碱能药联用增加老年患者抗胆碱能负荷。",
+  "difficulty": "medium",
+  "tags": [
+    "rehabilitation",
+    "drug_interaction"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50063,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "康复医学科用药安全"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "diphenhydramine",
+          "ingredient": "diphenhydramine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 90,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "oxybutynin",
+        "ingredient": "oxybutynin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_geriatrics_anticholinergic_burden_diphenhydramine_oxybutynin",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": true
+  }
+}

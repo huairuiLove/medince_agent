@@ -1,0 +1,16 @@
+{
+  "description": "最小 agent 集 — 仅药师 + 内科，用于快速 smoke test",
+  "agents": [
+    { "agent_id": "clinical_pharmacist", "enabled": true },
+    { "agent_id": "internal_medicine", "enabled": true },
+    { "agent_id": "allergy_specialist", "enabled": false },
+    { "agent_id": "pharmacy_inventory", "enabled": false },
+    { "agent_id": "specialist", "enabled": false }
+  ],
+  "skills": [
+    { "agent_id": "clinical_pharmacist", "skill_id": "base", "enabled": true },
+    { "agent_id": "clinical_pharmacist", "skill_id": "ddi_review", "enabled": true },
+    { "agent_id": "internal_medicine", "skill_id": "base", "enabled": true },
+    { "agent_id": "internal_medicine", "skill_id": "indication_match", "enabled": true }
+  ]
+}

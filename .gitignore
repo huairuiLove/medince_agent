@@ -2,34 +2,43 @@
 models/**
 !models/.gitkeep
 
-# ── Runtime / patient / imaging data ──
-data/brats2024/*
-!data/brats2024/.gitkeep
-data/mimic/*
-!data/mimic/.gitkeep
-data/mimic_cxr/*
-!data/mimic_cxr/.gitkeep
-data/kits19/*
-!data/kits19/.gitkeep
-data/external/*
-!data/external/.gitkeep
-data/cases/*
-!data/cases/.gitkeep
-data/reports/
+# ── Datasets (large / local imaging & clinical files) ──
+datasets/brats2024/*
+!datasets/brats2024/.gitkeep
+datasets/mimic/*
+!datasets/mimic/.gitkeep
+datasets/mimic_cxr/*
+!datasets/mimic_cxr/.gitkeep
+datasets/kits19/*
+!datasets/kits19/.gitkeep
+datasets/chest_ct/*
+!datasets/chest_ct/.gitkeep
+datasets/external/*
+!datasets/external/.gitkeep
+datasets/cases/*
+!datasets/cases/.gitkeep
+datasets/reports/
+datasets/processed/*
+!datasets/processed/.gitkeep
+datasets/raw/
+datasets/mimic-iii-clinical-database-1.4/
+datasets/mimic-iii-clinical-database-1.4.zip
+datasets/TWOSIDES.csv
+datasets/twosides.csv
+datasets/Breast Cancer Multi-Modal Fusion Dataset/
+datasets/Breast Cancer Multi-Modal Fusion Dataset.zip
+datasets/knowledge/smiles_cache.db
+datasets/knowledge/mined_ddi_scores.jsonl
+
+# ── Runtime under data/ (DBs, cache, scripts only) ──
 data/imaging_cache/
-data/processed/*
-!data/processed/.gitkeep
-data/raw/
-data/mimic-iii-clinical-database-1.4/
-data/mimic-iii-clinical-database-1.4.zip
 data/hospital/*.db
 data/hospital/cache/
-data/local_fallback.db
-data/knowledge/smiles_cache.db
-data/knowledge/mined_ddi_scores.jsonl
-data/TWOSIDES.csv
-data/twosides.csv
+data/pharmacy/*.db
 data/auth/*.db
+data/knowledge/smiles_cache.db
+data/local_fallback.db
+data/integration_test_results.json
 
 # ── Secrets ──
 .env

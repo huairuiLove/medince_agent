@@ -1,0 +1,29 @@
+{
+  "description": "默认医生 skill 偏好 — 与 registry.yaml default_skills 对齐",
+  "agents": [
+    { "agent_id": "clinical_pharmacist", "enabled": true },
+    { "agent_id": "internal_medicine", "enabled": true },
+    { "agent_id": "allergy_specialist", "enabled": true },
+    { "agent_id": "pharmacy_inventory", "enabled": true },
+    { "agent_id": "specialist", "enabled": false }
+  ],
+  "skills": [
+    { "agent_id": "clinical_pharmacist", "skill_id": "base", "enabled": true },
+    { "agent_id": "clinical_pharmacist", "skill_id": "ddi_review", "enabled": true },
+    { "agent_id": "clinical_pharmacist", "skill_id": "dose_review", "enabled": true },
+    { "agent_id": "clinical_pharmacist", "skill_id": "duplicate_review", "enabled": false },
+    { "agent_id": "internal_medicine", "skill_id": "base", "enabled": true },
+    { "agent_id": "internal_medicine", "skill_id": "indication_match", "enabled": true },
+    { "agent_id": "internal_medicine", "skill_id": "comorbidity", "enabled": false },
+    { "agent_id": "allergy_specialist", "skill_id": "base", "enabled": true },
+    { "agent_id": "allergy_specialist", "skill_id": "cross_allergy", "enabled": true },
+    { "agent_id": "allergy_specialist", "skill_id": "adr_history", "enabled": false },
+    { "agent_id": "pharmacy_inventory", "skill_id": "base", "enabled": true },
+    { "agent_id": "pharmacy_inventory", "skill_id": "formulary_check", "enabled": true },
+    { "agent_id": "pharmacy_inventory", "skill_id": "stock_alternative", "enabled": false },
+    { "agent_id": "specialist", "skill_id": "base", "enabled": true },
+    { "agent_id": "specialist", "skill_id": "pregnancy", "enabled": true },
+    { "agent_id": "specialist", "skill_id": "anticoagulation", "enabled": true },
+    { "agent_id": "specialist", "skill_id": "geriatric", "enabled": false }
+  ]
+}

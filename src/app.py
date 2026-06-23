@@ -282,11 +282,17 @@ async def llm_not_configured_handler(_request: Request, exc: LLMNotConfiguredErr
 @app.get("/health", tags=["Health"])
 def health() -> dict:
     catalog_stats = DRUG_CATALOG.stats()
+    cfg = load_config()
+    llm_cfg = cfg.get("llm", {})
+    llm_provider = str(llm_cfg.get("provider", "") or "").strip()
+    if not llm_provider:
+        llm_provider = "configured" if is_llm_configured() else "未配置"
     return {
         "status": "ok",
         "version": VERSION,
         "uptime_seconds": round(time.time() - _SERVER_START, 1),
         "llm_configured": is_llm_configured(),
+        "llm_provider": llm_provider,
         "vision_llm_configured": is_vision_llm_configured(),
         "drug_catalog": {
             "loaded": DRUG_CATALOG.is_loaded(),
@@ -533,6 +539,36 @@ def drug_catalog_lookup(hospital_drug_id: str) -> dict:
     return record.to_dict()
 
 
+@app.get("/api/v1/drug-catalog/drugs/{hospital_drug_id}/alternatives", tags=["CPOE"])
+def drug_catalog_alternatives(hospital_drug_id: str) -> dict:
+    alts = DRUG_CATALOG.list_alternatives(hospital_drug_id)
+    return {
+        "hospital_drug_id": hospital_drug_id,
+        "count": len(alts),
+        "alternatives": [a.to_dict() for a in alts],
+    }
+
+
+@app.get("/api/v1/drug-catalog/browse", tags=["CPOE"])
+def drug_catalog_browse(
+    atc_prefix: str = "",
+    filter_id: str = "",
+    limit: int = 50,
+    offset: int = 0,
+) -> dict:
+    return DRUG_CATALOG.browse(
+        atc_prefix=atc_prefix,
+        filter_id=filter_id,
+        limit=min(limit, 200),
+        offset=offset,
+    )
+
+
+@app.get("/api/v1/drug-catalog/classification", tags=["CPOE"])
+def drug_catalog_classification(max_level: int = 4) -> dict:
+    return DRUG_CATALOG.classification_tree(max_level=max_level)
+
+
 @app.get("/api/v1/drug-catalog/search-model/status", tags=["CPOE"])
 def drug_catalog_search_model_status() -> dict:
     return DRUG_CATALOG.search_model_status()
@@ -567,7 +603,7 @@ def drug_catalog_sync(req: FormularySyncRequest, request: Request) -> FormularyS
     from src.drug_catalog.csv_import import FormularyCsvImporter
 
     cfg = load_config()
-    csv_rel = req.csv_path or cfg.get("drug_catalog", {}).get("formulary_path", "data/hospital/formulary_sample.csv")
+    csv_rel = req.csv_path or cfg.get("drug_catalog", {}).get("formulary_path", "datasets/hospital/formulary_sample.csv")
     csv_path = resolve_path(csv_rel)
     if not csv_path.exists():
         raise HTTPException(status_code=404, detail=f"CSV not found: {csv_rel}")

@@ -5,7 +5,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.config import resolve_path
+from src.config import datasets_path, resolve_path
 from src.utils import load_json
 
 
@@ -37,7 +37,7 @@ class DepartmentSpec:
         }
 
 
-CATALOG_PATH = resolve_path("data/departments/catalog.json")
+CATALOG_PATH = datasets_path("departments/catalog.json")
 
 
 def _parse_dept(raw: dict) -> DepartmentSpec:

@@ -1,0 +1,55 @@
+{
+  "case_id": "bench_urology_05_pop_renal_metformin",
+  "department": "urology",
+  "description": "泌尿外科用药安全：eGFR<30 时二甲双胍禁用，乳酸酸中毒风险增加。",
+  "difficulty": "hard",
+  "tags": [
+    "urology",
+    "special_population"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 50044,
+      "gender": "M",
+      "age": 65,
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "泌尿外科用药安全"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "egfr": 25.0,
+      "missing_fields": []
+    },
+    "candidate_drugs": [
+      {
+        "name": "metformin",
+        "ingredient": "metformin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_renal_metformin",
+        "category": "special_population",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false
+  }
+}

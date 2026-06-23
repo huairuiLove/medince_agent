@@ -79,7 +79,7 @@ def generate_report(*, output: Path = OUTPUT) -> str:
     compare_report = _latest_report("benchmark_compare_all_")
 
     if not rule_report or not cpoe_report or not compare_report:
-        raise FileNotFoundError("Missing benchmark reports under data/benchmark/reports/")
+        raise FileNotFoundError("Missing benchmark reports under datasets/benchmark/reports/")
 
     rule_data = load_json(rule_report)
     cpoe_data = load_json(cpoe_report)
@@ -93,7 +93,7 @@ def generate_report(*, output: Path = OUTPUT) -> str:
         "",
         f"> 生成时间：{now}  ",
         f"> 知识库：`hospital_production_v4.json`  ",
-        f"> Benchmark 报告目录：`data/benchmark/reports/`",
+        f"> Benchmark 报告目录：`datasets/benchmark/reports/`",
         "",
         "## 1. 知识库终态",
         "",

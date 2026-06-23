@@ -1,0 +1,43 @@
+{
+  "description": "病例测试数据清单 — 覆盖 review / clarify / consult / rule 四类场景",
+  "version": "1.0",
+  "categories": {
+    "review": {
+      "description": "用药审查 API 测试",
+      "cases": [
+        { "id": "T01", "file": "review/warfarin_ibuprofen_ddi.json", "tags": ["ddi", "high", "block"] },
+        { "id": "T02", "file": "review/allergy_missing_amoxicillin.json", "tags": ["clarify", "allergy"] },
+        { "id": "T03", "file": "review/pregnancy_unknown_lisinopril.json", "tags": ["pregnancy", "clarify"] },
+        { "id": "T04", "file": "review/duplicate_acetaminophen.json", "tags": ["duplicate", "medium"] }
+      ]
+    },
+    "clarify": {
+      "description": "追问与保守降级测试",
+      "cases": [
+        { "id": "T05", "file": "clarify/missing_allergy_pregnancy.json", "tags": ["need_user_input"] },
+        { "id": "T06", "file": "clarify/conservative_fallback_warfarin.json", "tags": ["conservative_fallback"] }
+      ]
+    },
+    "consult": {
+      "description": "完整会诊流程测试",
+      "cases": [
+        { "id": "T07", "file": "consult/migraine_hypertension.json", "tags": ["full_pipeline"] },
+        { "id": "T08", "file": "consult/elderly_polypharmacy.json", "tags": ["geriatric", "specialist"] }
+      ]
+    },
+    "rule": {
+      "description": "规则引擎离线测试（无需 LLM）",
+      "cases": [
+        { "id": "R01", "file": "rule/ddi_warfarin_ibuprofen.json", "tags": ["rule", "ddi"] },
+        { "id": "R02", "file": "rule/allergy_penicillin_amoxicillin.json", "tags": ["rule", "allergy"] },
+        { "id": "R03", "file": "rule/pregnancy_lisinopril.json", "tags": ["rule", "population"] },
+        { "id": "R04", "file": "rule/chinese_drug_alias.json", "tags": ["rule", "terminology"] }
+      ]
+    }
+  },
+  "skill_config_mapping": [
+    { "case_ids": ["T01", "T08", "R01"], "skill_config": "../skills/configs/cardiology_focused_prefs.json" },
+    { "case_ids": ["T02", "T03", "T05", "R02", "R03"], "skill_config": "../skills/configs/default_skill_prefs.json" },
+    { "case_ids": ["T04", "R04"], "skill_config": "../skills/configs/minimal_agent_set.json" }
+  ]
+}

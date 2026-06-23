@@ -1,0 +1,888 @@
+{
+  "case_id": "case_e20d3b8ab0dc",
+  "created_at": "2026-06-23T03:52:48+00:00",
+  "updated_at": "2026-06-23T03:52:48+00:00",
+  "status": "complete",
+  "raw_input_text": "",
+  "patient_context": {
+    "subject_id": 10006,
+    "hadm_id": 20006,
+    "gender": "F",
+    "age": 35,
+    "admission_type": "EMERGENCY",
+    "source_text": "",
+    "chief_complaint": "剧烈头痛伴视力模糊",
+    "history_present_illness": "",
+    "symptoms_or_complaints": [
+      "头痛",
+      "视力模糊",
+      "恶心"
+    ],
+    "past_medical_history": [
+      "高血压"
+    ],
+    "diagnoses": [
+      {
+        "icd9_code": "401.9",
+        "name": "高血压"
+      },
+      {
+        "icd9_code": "346.9",
+        "name": "偏头痛"
+      }
+    ],
+    "current_medications": [
+      {
+        "name": "propranolol",
+        "ingredient": "propranolol",
+        "dose": "40mg",
+        "route": "PO",
+        "frequency": "bid",
+        "hospital_drug_id": ""
+      }
+    ],
+    "allergies": [
+      "penicillin"
+    ],
+    "pregnancy_status": "unknown",
+    "lactation_status": "unknown",
+    "weight_kg": null,
+    "egfr": null,
+    "missing_fields": [
+      "pregnancy_status"
+    ]
+  },
+  "candidate_drugs": [
+    {
+      "name": "lisinopril",
+      "ingredient": "lisinopril",
+      "dose": "10mg",
+      "route": "PO",
+      "frequency": "qd",
+      "hospital_drug_id": "",
+      "indication": "高血压",
+      "source": "candidate"
+    },
+    {
+      "name": "ibuprofen",
+      "ingredient": "ibuprofen",
+      "dose": "200mg",
+      "route": "PO",
+      "frequency": "prn",
+      "hospital_drug_id": "",
+      "indication": "头痛",
+      "source": "candidate"
+    }
+  ],
+  "extract_output": null,
+  "review_output": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "risk_reasons": [
+      "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。"
+    ],
+    "alternative_suggestions": [
+      "优先查阅药品说明书或药学咨询。"
+    ],
+    "need_clarification": true,
+    "clarification_targets": [
+      "pregnancy_status",
+      "current_medications"
+    ],
+    "evidence": [
+      {
+        "rule_id": "ddi_model_ibuprofen_propranolol",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "summary": "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。",
+        "mechanism": "Bio_ClinicalBERT SMILES 药对分类",
+        "implicated_drugs": [
+          "ibuprofen",
+          "propranolol"
+        ],
+        "recommendation": "建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+        "alternatives": [
+          "优先查阅药品说明书或药学咨询。"
+        ],
+        "clarification_fields": [
+          "current_medications"
+        ],
+        "source": "ddi_bert_model"
+      }
+    ],
+    "final_recommendation": "当前信息不足，建议先补充关键字段后再继续用药审查；在未补全前应采用保守策略。"
+  },
+  "agent_opinions": [
+    {
+      "agent_id": "allergy_specialist",
+      "agent_name": "过敏专员",
+      "role": "过敏史与交叉过敏审查",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "妊娠状态未知，使用lisinopril（ACEI）存在致畸风险，属于绝对禁忌，需排除妊娠后方可考虑。",
+        "ibuprofen与propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加不良反应风险。",
+        "患者当前血压、眼底检查、尿蛋白等靶器官损伤评估结果缺失，无法评估高血压控制情况及用药安全性。",
+        "头痛性质、持续时间、有无先兆等偏头痛特征缺失，影响ibuprofen对症治疗的适宜性判断。",
+        "患者有青霉素过敏史，但两种候选药物均无交叉过敏风险，过敏史不构成直接阻断理由。"
+      ],
+      "alternatives": [
+        "若排除妊娠且血压控制不佳，可考虑使用其他降压药如氨氯地平或氯沙坦（需确认无禁忌）。",
+        "若偏头痛诊断明确且无禁忌，可考虑使用曲普坦类药物（如舒马普坦）或对乙酰氨基酚替代ibuprofen。",
+        "建议完善妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+      ],
+      "need_clarification": true,
+      "clarification_targets": [
+        "pregnancy_status",
+        "lactation_status",
+        "当前血压具体数值及控制情况",
+        "头痛性质、持续时间、有无先兆等偏头痛特征",
+        "眼底检查结果",
+        "尿蛋白检测结果"
+      ],
+      "confidence": 0.85,
+      "evidence_cited": [
+        "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+        "ACEI类药物在妊娠期使用有致畸风险，妊娠状态未知时禁用。",
+        "患者有青霉素过敏史，但lisinopril和ibuprofen均无交叉过敏风险。"
+      ],
+      "summary": "患者为35岁女性，因头痛伴视力模糊急诊入院，诊断高血压和偏头痛，当前服用普萘洛尔。候选药物lisinopril（降压）和ibuprofen（止痛）均存在重大安全风险：lisinopril在妊娠状态未知下致畸风险高，ibuprofen与普萘洛尔存在中等概率DDI。所有5位专家一致建议阻断，但共识依赖于关键信息（妊娠状态、血压控制、靶器官评估）的补充。建议完善妊娠试验及相关检查后重新评估用药方案。",
+      "debate_round": 3
+    },
+    {
+      "agent_id": "clinical_pharmacist",
+      "agent_name": "临床药师",
+      "role": "药物相互作用、剂量、重复用药审查",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "妊娠状态未知：ACEI类药物（lisinopril）在妊娠期有致畸风险，需明确排除妊娠后方可使用。",
+        "DDI风险：ibuprofen与propranolol存在中等概率相互作用（64%），可能降低propranolol降压效果，增加高血压失控风险。",
+        "临床信息不足：缺乏当前血压值、眼底检查、尿蛋白等靶器官损伤评估，无法安全评估高血压治疗方案。",
+        "症状重叠：头痛性质、先兆等偏头痛特征缺失，影响药物选择（如ibuprofen可能诱发或加重偏头痛）。"
+      ],
+      "alternatives": [
+        "明确妊娠状态（β-hCG检测）和哺乳状态。",
+        "若妊娠阴性且非哺乳期：可考虑使用拉贝洛尔或硝苯地平替代lisinopril控制高血压。",
+        "针对头痛：可考虑对乙酰氨基酚（注意肝功能）或曲普坦类药物（需排除禁忌症）。",
+        "完善血压监测、眼底检查、尿蛋白定量，评估高血压靶器官损伤。"
+      ],
+      "need_clarification": true,
+      "clarification_targets": [
+        "pregnancy_status",
+        "lactation_status",
+        "current_blood_pressure",
+        "headache_characteristics（如先兆、持续时间、触发因素）",
+        "fundoscopic_examination_results",
+        "urine_protein_level"
+      ],
+      "confidence": 0.85,
+      "evidence_cited": [
+        "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+        "ACEI类药物妊娠期致畸风险（FDA妊娠类别D）。",
+        "高血压合并偏头痛的诊疗指南：需优先控制血压，避免使用可能诱发头痛的药物。"
+      ],
+      "summary": "患者35岁女性，因剧烈头痛伴视力模糊急诊入院，既往高血压、偏头痛病史，当前服用propranolol。候选药物lisinopril（ACEI）和ibuprofen（NSAID）均存在重大安全风险：妊娠状态未知下使用lisinopril有致畸风险；ibuprofen与propranolol存在DDI（概率64%），可能影响血压控制。此外，临床信息严重不足（血压值、眼底、尿蛋白、头痛特征缺失），无法进行安全用药决策。建议立即明确妊娠状态，完善相关检查，并考虑替代药物（如拉贝洛尔、对乙酰氨基酚）。",
+      "debate_round": 3
+    },
+    {
+      "agent_id": "internal_medicine",
+      "agent_name": "内科主治",
+      "role": "适应证与疾病-药物匹配审查",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "妊娠状态未知：lisinopril（ACEI类）在妊娠期有明确的致畸风险（FDA妊娠分级D/X），在确认妊娠阴性前应绝对禁用。",
+        "临床信息严重不足：缺乏当前血压数值、眼底检查、尿蛋白等靶器官损伤评估，无法判断高血压急症或子痫前期可能，影响用药决策。",
+        "DDI风险：ibuprofen与propranolol存在中等概率相互作用（DDI模型预测概率64%），可能降低propranolol降压效果或增加肾损伤风险。",
+        "偏头痛诊断不明确：缺乏头痛性质、持续时间、先兆等特征，无法确认偏头痛诊断，ibuprofen用于非特异性头痛可能掩盖病情。",
+        "过敏史：青霉素过敏，但两种候选药物均非青霉素类，无交叉过敏风险。"
+      ],
+      "alternatives": [
+        "立即检测妊娠试验（尿或血hCG），明确妊娠状态。",
+        "完善血压监测、眼底检查、尿蛋白/肾功能评估，排除高血压急症或子痫前期。",
+        "若妊娠阴性且血压控制不佳：可考虑换用拉贝洛尔或硝苯地平（妊娠期相对安全）。",
+        "若偏头痛确诊且妊娠阴性：可考虑曲普坦类药物（如舒马普坦）或对乙酰氨基酚（避免NSAIDs与propranolol的DDI）。",
+        "若头痛为高血压所致：优先控制血压，而非使用镇痛药。"
+      ],
+      "need_clarification": true,
+      "clarification_targets": [
+        "pregnancy_status",
+        "lactation_status",
+        "当前血压数值及控制情况",
+        "头痛性质、持续时间、有无先兆",
+        "眼底检查结果",
+        "尿蛋白/肾功能检查结果"
+      ],
+      "confidence": 0.85,
+      "evidence_cited": [
+        "rule_evidence: ddi_model_ibuprofen_propranolol (DDI模型预测ibuprofen与propranolol相互作用概率64%，风险等级medium，建议人工复核)",
+        "FDA妊娠分级：ACEI类药物（lisinopril）在妊娠期有致畸风险，妊娠期禁用",
+        "临床指南：高血压急症需紧急降压，避免使用NSAIDs（可能升高血压、加重肾损伤）",
+        "偏头痛诊断标准（ICHD-3）：需明确头痛特征及先兆表现"
+      ],
+      "summary": "患者35岁女性，因剧烈头痛伴视力模糊急诊就诊，既往高血压、偏头痛病史，当前服用propranolol。候选药物lisinopril（ACEI）和ibuprofen（NSAID）均存在重大安全风险：妊娠状态未知下lisinopril有致畸风险；ibuprofen与propranolol存在DDI（模型预测概率64%），且可能掩盖高血压急症。临床信息严重不足（缺血压、眼底、尿蛋白、头痛特征），无法安全用药。建议立即完善妊娠试验及靶器官评估，再根据结果选择替代方案。",
+      "debate_round": 3
+    },
+    {
+      "agent_id": "pharmacy_inventory",
+      "agent_name": "药房库管",
+      "role": "库存、院内可开品种与替代方案",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "候选药物lisinopril（ACEI类）在妊娠状态未知的情况下存在致畸风险，需明确排除妊娠后方可使用。",
+        "候选药物ibuprofen与患者当前用药propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加肾损伤风险。",
+        "患者临床信息严重不足：缺乏血压具体数值、头痛特征（如先兆、持续时间）、眼底及尿蛋白等靶器官评估结果，无法准确评估高血压控制情况及偏头痛类型。",
+        "妊娠状态和哺乳状态均缺失，直接影响两种候选药物的安全性判断。"
+      ],
+      "alternatives": [
+        "对于高血压：可考虑使用拉贝洛尔（labetalol）或硝苯地平（nifedipine），两者在妊娠期相对安全，且与propranolol无明确相互作用。",
+        "对于头痛：可考虑对乙酰氨基酚（acetaminophen）作为一线镇痛选择，避免与propranolol的潜在相互作用。",
+        "建议完成妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+      ],
+      "need_clarification": true,
+      "clarification_targets": [
+        "妊娠状态（需hCG检测结果）",
+        "哺乳状态",
+        "当前血压具体数值及控制情况",
+        "头痛性质、持续时间、有无先兆等偏头痛特征",
+        "眼底检查结果（排除高血压视网膜病变）",
+        "尿蛋白定量（评估肾损伤）"
+      ],
+      "confidence": 0.85,
+      "evidence_cited": [
+        "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+        "ACEI类药物在妊娠期有明确致畸风险（FDA妊娠分级D级），妊娠状态未知时禁用。",
+        "患者诊断为高血压（401.9）和偏头痛（346.9），但缺乏关键临床参数（血压、头痛特征、靶器官评估），无法制定安全有效的治疗方案。"
+      ],
+      "summary": "基于药房库管视角，两种候选药物均存在重大安全风险：lisinopril因妊娠状态未知有致畸风险，ibuprofen与propranolol存在中等概率相互作用。在关键信息（妊娠状态、血压、靶器官评估）缺失的情况下，建议阻断当前用药方案，并推荐拉贝洛尔/硝苯地平（降压）和对乙酰氨基酚（镇痛）作为替代，同时要求补充妊娠试验及相关检查。",
+      "debate_round": 3
+    },
+    {
+      "agent_id": "specialist",
+      "agent_name": "专科医生",
+      "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+      "risk_level": "high",
+      "block_decision": true,
+      "reasons": [
+        "妊娠状态未知：lisinopril（ACEI）在妊娠期有明确的致畸风险（胎儿肾发育异常、羊水过少等），在确认非妊娠前应视为绝对禁忌。",
+        "哺乳期状态未知：lisinopril 可分泌入乳汁，对哺乳期婴儿安全性数据不足，需明确哺乳状态。",
+        "临床信息严重不足：缺乏当前血压数值、眼底检查、尿蛋白等靶器官损伤评估，无法判断高血压急症或子痫前期可能，影响用药决策。",
+        "DDI 风险：ibuprofen 与 propranolol 存在相互作用（DDI 模型预测概率 64%），可能降低 propranolol 降压效果或增加不良反应风险。",
+        "ibuprofen 在妊娠晚期（尤其 30 周后）可导致胎儿动脉导管早闭和羊水过少，在妊娠状态未知下应谨慎。",
+        "偏头痛诊断不明确：缺乏头痛性质、持续时间、先兆等特征，无法排除继发性头痛（如高血压脑病、颅内病变），需进一步检查。"
+      ],
+      "alternatives": [
+        "若妊娠排除且血压控制不佳：可考虑使用拉贝洛尔、硝苯地平或甲基多巴（妊娠期相对安全）。",
+        "若妊娠排除且需镇痛：可考虑对乙酰氨基酚（首选）或曲普坦类药物（如舒马普坦，需排除心血管禁忌）。",
+        "若哺乳期：可考虑拉贝洛尔或硝苯地平（哺乳期相对安全），镇痛首选对乙酰氨基酚。",
+        "建议完善检查：妊娠试验、血压监测、眼底检查、尿蛋白/肌酐比、头颅影像学（如 CT/MRI）以排除继发性头痛。"
+      ],
+      "need_clarification": true,
+      "clarification_targets": [
+        "pregnancy_status",
+        "lactation_status",
+        "当前血压数值及控制情况",
+        "头痛性质、持续时间、有无先兆、触发因素",
+        "眼底检查结果（有无视乳头水肿、出血）",
+        "尿蛋白定量或尿蛋白/肌酐比",
+        "肾功能（血肌酐、eGFR）",
+        "既往偏头痛诊断依据及发作频率"
+      ],
+      "confidence": 0.85,
+      "evidence_cited": [
+        "ddi_model_ibuprofen_propranolol：DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%），建议人工复核。",
+        "ACEI 妊娠期禁忌：FDA 妊娠分级 D（妊娠中晚期）和 C（早期），致畸风险明确。",
+        "NSAIDs 妊娠晚期禁忌：FDA 妊娠分级 D（30 周后），可导致胎儿动脉导管早闭。",
+        "高血压急症管理指南：需紧急降压并评估靶器官损伤，首选静脉药物（如拉贝洛尔、硝普钠），口服药物不适用。"
+      ],
+      "summary": "患者为 35 岁女性，因剧烈头痛伴视力模糊急诊就诊，有高血压病史，当前服用普萘洛尔。候选药物包括赖诺普利（ACEI）和布洛芬（NSAID）。由于妊娠状态和哺乳状态均未知，且临床信息严重不足（缺乏血压、眼底、尿蛋白等关键数据），两种候选药物均存在重大安全风险：赖诺普利有致畸风险，布洛芬有胎儿动脉导管早闭风险，且布洛芬与普萘洛尔存在 DDI 相互作用。因此，建议阻断两种候选药物，并紧急完善妊娠试验、血压监测、眼底检查、尿蛋白及头颅影像学检查。在明确妊娠/哺乳状态及排除继发性头痛前，不应使用上述药物。替代方案包括拉贝洛尔、硝苯地平或对乙酰氨基酚（根据妊娠/哺乳状态选择）。",
+      "debate_round": 3
+    }
+  ],
+  "arbitration": {
+    "consensus_risk_level": "high",
+    "consensus_block_decision": true,
+    "agent_opinions": [
+      {
+        "agent_id": "allergy_specialist",
+        "agent_name": "过敏专员",
+        "role": "过敏史与交叉过敏审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "妊娠状态未知，使用lisinopril（ACEI）存在致畸风险，属于绝对禁忌，需排除妊娠后方可考虑。",
+          "ibuprofen与propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加不良反应风险。",
+          "患者当前血压、眼底检查、尿蛋白等靶器官损伤评估结果缺失，无法评估高血压控制情况及用药安全性。",
+          "头痛性质、持续时间、有无先兆等偏头痛特征缺失，影响ibuprofen对症治疗的适宜性判断。",
+          "患者有青霉素过敏史，但两种候选药物均无交叉过敏风险，过敏史不构成直接阻断理由。"
+        ],
+        "alternatives": [
+          "若排除妊娠且血压控制不佳，可考虑使用其他降压药如氨氯地平或氯沙坦（需确认无禁忌）。",
+          "若偏头痛诊断明确且无禁忌，可考虑使用曲普坦类药物（如舒马普坦）或对乙酰氨基酚替代ibuprofen。",
+          "建议完善妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status",
+          "lactation_status",
+          "当前血压具体数值及控制情况",
+          "头痛性质、持续时间、有无先兆等偏头痛特征",
+          "眼底检查结果",
+          "尿蛋白检测结果"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [
+          "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+          "ACEI类药物在妊娠期使用有致畸风险，妊娠状态未知时禁用。",
+          "患者有青霉素过敏史，但lisinopril和ibuprofen均无交叉过敏风险。"
+        ],
+        "summary": "患者为35岁女性，因头痛伴视力模糊急诊入院，诊断高血压和偏头痛，当前服用普萘洛尔。候选药物lisinopril（降压）和ibuprofen（止痛）均存在重大安全风险：lisinopril在妊娠状态未知下致畸风险高，ibuprofen与普萘洛尔存在中等概率DDI。所有5位专家一致建议阻断，但共识依赖于关键信息（妊娠状态、血压控制、靶器官评估）的补充。建议完善妊娠试验及相关检查后重新评估用药方案。",
+        "debate_round": 3
+      },
+      {
+        "agent_id": "clinical_pharmacist",
+        "agent_name": "临床药师",
+        "role": "药物相互作用、剂量、重复用药审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "妊娠状态未知：ACEI类药物（lisinopril）在妊娠期有致畸风险，需明确排除妊娠后方可使用。",
+          "DDI风险：ibuprofen与propranolol存在中等概率相互作用（64%），可能降低propranolol降压效果，增加高血压失控风险。",
+          "临床信息不足：缺乏当前血压值、眼底检查、尿蛋白等靶器官损伤评估，无法安全评估高血压治疗方案。",
+          "症状重叠：头痛性质、先兆等偏头痛特征缺失，影响药物选择（如ibuprofen可能诱发或加重偏头痛）。"
+        ],
+        "alternatives": [
+          "明确妊娠状态（β-hCG检测）和哺乳状态。",
+          "若妊娠阴性且非哺乳期：可考虑使用拉贝洛尔或硝苯地平替代lisinopril控制高血压。",
+          "针对头痛：可考虑对乙酰氨基酚（注意肝功能）或曲普坦类药物（需排除禁忌症）。",
+          "完善血压监测、眼底检查、尿蛋白定量，评估高血压靶器官损伤。"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status",
+          "lactation_status",
+          "current_blood_pressure",
+          "headache_characteristics（如先兆、持续时间、触发因素）",
+          "fundoscopic_examination_results",
+          "urine_protein_level"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [
+          "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+          "ACEI类药物妊娠期致畸风险（FDA妊娠类别D）。",
+          "高血压合并偏头痛的诊疗指南：需优先控制血压，避免使用可能诱发头痛的药物。"
+        ],
+        "summary": "患者35岁女性，因剧烈头痛伴视力模糊急诊入院，既往高血压、偏头痛病史，当前服用propranolol。候选药物lisinopril（ACEI）和ibuprofen（NSAID）均存在重大安全风险：妊娠状态未知下使用lisinopril有致畸风险；ibuprofen与propranolol存在DDI（概率64%），可能影响血压控制。此外，临床信息严重不足（血压值、眼底、尿蛋白、头痛特征缺失），无法进行安全用药决策。建议立即明确妊娠状态，完善相关检查，并考虑替代药物（如拉贝洛尔、对乙酰氨基酚）。",
+        "debate_round": 3
+      },
+      {
+        "agent_id": "internal_medicine",
+        "agent_name": "内科主治",
+        "role": "适应证与疾病-药物匹配审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "妊娠状态未知：lisinopril（ACEI类）在妊娠期有明确的致畸风险（FDA妊娠分级D/X），在确认妊娠阴性前应绝对禁用。",
+          "临床信息严重不足：缺乏当前血压数值、眼底检查、尿蛋白等靶器官损伤评估，无法判断高血压急症或子痫前期可能，影响用药决策。",
+          "DDI风险：ibuprofen与propranolol存在中等概率相互作用（DDI模型预测概率64%），可能降低propranolol降压效果或增加肾损伤风险。",
+          "偏头痛诊断不明确：缺乏头痛性质、持续时间、先兆等特征，无法确认偏头痛诊断，ibuprofen用于非特异性头痛可能掩盖病情。",
+          "过敏史：青霉素过敏，但两种候选药物均非青霉素类，无交叉过敏风险。"
+        ],
+        "alternatives": [
+          "立即检测妊娠试验（尿或血hCG），明确妊娠状态。",
+          "完善血压监测、眼底检查、尿蛋白/肾功能评估，排除高血压急症或子痫前期。",
+          "若妊娠阴性且血压控制不佳：可考虑换用拉贝洛尔或硝苯地平（妊娠期相对安全）。",
+          "若偏头痛确诊且妊娠阴性：可考虑曲普坦类药物（如舒马普坦）或对乙酰氨基酚（避免NSAIDs与propranolol的DDI）。",
+          "若头痛为高血压所致：优先控制血压，而非使用镇痛药。"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status",
+          "lactation_status",
+          "当前血压数值及控制情况",
+          "头痛性质、持续时间、有无先兆",
+          "眼底检查结果",
+          "尿蛋白/肾功能检查结果"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [
+          "rule_evidence: ddi_model_ibuprofen_propranolol (DDI模型预测ibuprofen与propranolol相互作用概率64%，风险等级medium，建议人工复核)",
+          "FDA妊娠分级：ACEI类药物（lisinopril）在妊娠期有致畸风险，妊娠期禁用",
+          "临床指南：高血压急症需紧急降压，避免使用NSAIDs（可能升高血压、加重肾损伤）",
+          "偏头痛诊断标准（ICHD-3）：需明确头痛特征及先兆表现"
+        ],
+        "summary": "患者35岁女性，因剧烈头痛伴视力模糊急诊就诊，既往高血压、偏头痛病史，当前服用propranolol。候选药物lisinopril（ACEI）和ibuprofen（NSAID）均存在重大安全风险：妊娠状态未知下lisinopril有致畸风险；ibuprofen与propranolol存在DDI（模型预测概率64%），且可能掩盖高血压急症。临床信息严重不足（缺血压、眼底、尿蛋白、头痛特征），无法安全用药。建议立即完善妊娠试验及靶器官评估，再根据结果选择替代方案。",
+        "debate_round": 3
+      },
+      {
+        "agent_id": "pharmacy_inventory",
+        "agent_name": "药房库管",
+        "role": "库存、院内可开品种与替代方案",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "候选药物lisinopril（ACEI类）在妊娠状态未知的情况下存在致畸风险，需明确排除妊娠后方可使用。",
+          "候选药物ibuprofen与患者当前用药propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加肾损伤风险。",
+          "患者临床信息严重不足：缺乏血压具体数值、头痛特征（如先兆、持续时间）、眼底及尿蛋白等靶器官评估结果，无法准确评估高血压控制情况及偏头痛类型。",
+          "妊娠状态和哺乳状态均缺失，直接影响两种候选药物的安全性判断。"
+        ],
+        "alternatives": [
+          "对于高血压：可考虑使用拉贝洛尔（labetalol）或硝苯地平（nifedipine），两者在妊娠期相对安全，且与propranolol无明确相互作用。",
+          "对于头痛：可考虑对乙酰氨基酚（acetaminophen）作为一线镇痛选择，避免与propranolol的潜在相互作用。",
+          "建议完成妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "妊娠状态（需hCG检测结果）",
+          "哺乳状态",
+          "当前血压具体数值及控制情况",
+          "头痛性质、持续时间、有无先兆等偏头痛特征",
+          "眼底检查结果（排除高血压视网膜病变）",
+          "尿蛋白定量（评估肾损伤）"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [
+          "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+          "ACEI类药物在妊娠期有明确致畸风险（FDA妊娠分级D级），妊娠状态未知时禁用。",
+          "患者诊断为高血压（401.9）和偏头痛（346.9），但缺乏关键临床参数（血压、头痛特征、靶器官评估），无法制定安全有效的治疗方案。"
+        ],
+        "summary": "基于药房库管视角，两种候选药物均存在重大安全风险：lisinopril因妊娠状态未知有致畸风险，ibuprofen与propranolol存在中等概率相互作用。在关键信息（妊娠状态、血压、靶器官评估）缺失的情况下，建议阻断当前用药方案，并推荐拉贝洛尔/硝苯地平（降压）和对乙酰氨基酚（镇痛）作为替代，同时要求补充妊娠试验及相关检查。",
+        "debate_round": 3
+      },
+      {
+        "agent_id": "specialist",
+        "agent_name": "专科医生",
+        "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "妊娠状态未知：lisinopril（ACEI）在妊娠期有明确的致畸风险（胎儿肾发育异常、羊水过少等），在确认非妊娠前应视为绝对禁忌。",
+          "哺乳期状态未知：lisinopril 可分泌入乳汁，对哺乳期婴儿安全性数据不足，需明确哺乳状态。",
+          "临床信息严重不足：缺乏当前血压数值、眼底检查、尿蛋白等靶器官损伤评估，无法判断高血压急症或子痫前期可能，影响用药决策。",
+          "DDI 风险：ibuprofen 与 propranolol 存在相互作用（DDI 模型预测概率 64%），可能降低 propranolol 降压效果或增加不良反应风险。",
+          "ibuprofen 在妊娠晚期（尤其 30 周后）可导致胎儿动脉导管早闭和羊水过少，在妊娠状态未知下应谨慎。",
+          "偏头痛诊断不明确：缺乏头痛性质、持续时间、先兆等特征，无法排除继发性头痛（如高血压脑病、颅内病变），需进一步检查。"
+        ],
+        "alternatives": [
+          "若妊娠排除且血压控制不佳：可考虑使用拉贝洛尔、硝苯地平或甲基多巴（妊娠期相对安全）。",
+          "若妊娠排除且需镇痛：可考虑对乙酰氨基酚（首选）或曲普坦类药物（如舒马普坦，需排除心血管禁忌）。",
+          "若哺乳期：可考虑拉贝洛尔或硝苯地平（哺乳期相对安全），镇痛首选对乙酰氨基酚。",
+          "建议完善检查：妊娠试验、血压监测、眼底检查、尿蛋白/肌酐比、头颅影像学（如 CT/MRI）以排除继发性头痛。"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status",
+          "lactation_status",
+          "当前血压数值及控制情况",
+          "头痛性质、持续时间、有无先兆、触发因素",
+          "眼底检查结果（有无视乳头水肿、出血）",
+          "尿蛋白定量或尿蛋白/肌酐比",
+          "肾功能（血肌酐、eGFR）",
+          "既往偏头痛诊断依据及发作频率"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [
+          "ddi_model_ibuprofen_propranolol：DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%），建议人工复核。",
+          "ACEI 妊娠期禁忌：FDA 妊娠分级 D（妊娠中晚期）和 C（早期），致畸风险明确。",
+          "NSAIDs 妊娠晚期禁忌：FDA 妊娠分级 D（30 周后），可导致胎儿动脉导管早闭。",
+          "高血压急症管理指南：需紧急降压并评估靶器官损伤，首选静脉药物（如拉贝洛尔、硝普钠），口服药物不适用。"
+        ],
+        "summary": "患者为 35 岁女性，因剧烈头痛伴视力模糊急诊就诊，有高血压病史，当前服用普萘洛尔。候选药物包括赖诺普利（ACEI）和布洛芬（NSAID）。由于妊娠状态和哺乳状态均未知，且临床信息严重不足（缺乏血压、眼底、尿蛋白等关键数据），两种候选药物均存在重大安全风险：赖诺普利有致畸风险，布洛芬有胎儿动脉导管早闭风险，且布洛芬与普萘洛尔存在 DDI 相互作用。因此，建议阻断两种候选药物，并紧急完善妊娠试验、血压监测、眼底检查、尿蛋白及头颅影像学检查。在明确妊娠/哺乳状态及排除继发性头痛前，不应使用上述药物。替代方案包括拉贝洛尔、硝苯地平或对乙酰氨基酚（根据妊娠/哺乳状态选择）。",
+        "debate_round": 3
+      }
+    ],
+    "dissenting_opinions": [
+      {
+        "agent_id": "allergy_specialist",
+        "agent_name": "过敏专员",
+        "role": "过敏史与交叉过敏审查",
+        "risk_level": "high",
+        "block_decision": true,
+        "reasons": [
+          "妊娠状态未知，使用lisinopril（ACEI）存在致畸风险，属于绝对禁忌，需排除妊娠后方可考虑。",
+          "ibuprofen与propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加不良反应风险。",
+          "患者当前血压、眼底检查、尿蛋白等靶器官损伤评估结果缺失，无法评估高血压控制情况及用药安全性。",
+          "头痛性质、持续时间、有无先兆等偏头痛特征缺失，影响ibuprofen对症治疗的适宜性判断。",
+          "患者有青霉素过敏史，但两种候选药物均无交叉过敏风险，过敏史不构成直接阻断理由。"
+        ],
+        "alternatives": [
+          "若排除妊娠且血压控制不佳，可考虑使用其他降压药如氨氯地平或氯沙坦（需确认无禁忌）。",
+          "若偏头痛诊断明确且无禁忌，可考虑使用曲普坦类药物（如舒马普坦）或对乙酰氨基酚替代ibuprofen。",
+          "建议完善妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+        ],
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status",
+          "lactation_status",
+          "当前血压具体数值及控制情况",
+          "头痛性质、持续时间、有无先兆等偏头痛特征",
+          "眼底检查结果",
+          "尿蛋白检测结果"
+        ],
+        "confidence": 0.85,
+        "evidence_cited": [
+          "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+          "ACEI类药物在妊娠期使用有致畸风险，妊娠状态未知时禁用。",
+          "患者有青霉素过敏史，但lisinopril和ibuprofen均无交叉过敏风险。"
+        ],
+        "summary": "患者为35岁女性，因头痛伴视力模糊急诊入院，诊断高血压和偏头痛，当前服用普萘洛尔。候选药物lisinopril（降压）和ibuprofen（止痛）均存在重大安全风险：lisinopril在妊娠状态未知下致畸风险高，ibuprofen与普萘洛尔存在中等概率DDI。所有5位专家一致建议阻断，但共识依赖于关键信息（妊娠状态、血压控制、靶器官评估）的补充。建议完善妊娠试验及相关检查后重新评估用药方案。",
+        "debate_round": 3
+      }
+    ],
+    "conflict_detected": true,
+    "arbitration_notes": "经过三轮辩论，所有5位专家（过敏专员、临床药师、内科主治、药房库管、专科医生）最终达成一致，均给出高风险等级和阻断决策。核心依据为：1) 患者妊娠状态未知，使用ACEI类药物（lisinopril）存在明确致畸风险（FDA妊娠分级D级），属于绝对禁忌；2) 布洛芬与患者当前用药普萘洛尔存在中等概率的药物相互作用（DDI模型预测概率64%），可能降低降压效果或增加不良反应风险；3) 患者临床信息严重不足（缺乏血压值、眼底检查、尿蛋白等关键数据），无法排除高血压急症或子痫前期等危重情况。第一轮辩论中存在显著分歧（3位专家倾向允许，2位专家主张阻断），但随着系统DDI规则被所有专家明确引用和讨论，以及安全优先原则的强化，分歧完全消除。规则引擎标记为high的风险（此处指妊娠状态未知下使用ACEI的致畸风险，虽非直接由规则引擎标记，但所有专家一致认定为高风险）不可被覆盖。；辩论未达共识，已标记人工复核。",
+    "final_recommendation": "阻断当前候选药物方案（lisinopril 和 ibuprofen）。在明确妊娠状态、哺乳状态、当前血压、头痛特征、眼底检查及尿蛋白等关键信息前，不应使用上述药物。建议优先完成妊娠试验、血压监测、眼底检查及尿蛋白检测，并根据结果选择替代方案，如拉贝洛尔或硝苯地平控制血压，对乙酰氨基酚或曲普坦类药物治疗头痛。",
+    "need_clarification": true,
+    "clarification_targets": [
+      "pregnancy_status",
+      "current_medications",
+      "lactation_status",
+      "当前血压具体数值及控制情况",
+      "头痛性质、持续时间、有无先兆等偏头痛特征",
+      "眼底检查结果",
+      "尿蛋白检测结果",
+      "current_blood_pressure",
+      "headache_characteristics（如先兆、持续时间、触发因素）",
+      "fundoscopic_examination_results",
+      "urine_protein_level",
+      "当前血压数值及控制情况",
+      "头痛性质、持续时间、有无先兆",
+      "尿蛋白/肾功能检查结果",
+      "妊娠状态（需hCG检测结果）",
+      "哺乳状态",
+      "眼底检查结果（排除高血压视网膜病变）",
+      "尿蛋白定量（评估肾损伤）",
+      "头痛性质、持续时间、有无先兆、触发因素",
+      "眼底检查结果（有无视乳头水肿、出血）",
+      "尿蛋白定量或尿蛋白/肌酐比",
+      "肾功能（血肌酐、eGFR）",
+      "既往偏头痛诊断依据及发作频率"
+    ],
+    "rule_evidence": [
+      {
+        "rule_id": "ddi_model_ibuprofen_propranolol",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "summary": "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。",
+        "mechanism": "Bio_ClinicalBERT SMILES 药对分类",
+        "implicated_drugs": [
+          "ibuprofen",
+          "propranolol"
+        ],
+        "recommendation": "建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+        "alternatives": [
+          "优先查阅药品说明书或药学咨询。"
+        ],
+        "clarification_fields": [
+          "current_medications"
+        ],
+        "source": "ddi_bert_model"
+      }
+    ]
+  },
+  "clarify_output": null,
+  "final_recommendation": "在明确妊娠、哺乳状态及血压、头痛特征、眼底和尿蛋白结果前，建议暂不使用lisinopril和ibuprofen。可考虑使用对乙酰氨基酚缓解头痛，并尽快完成相关检查。",
+  "events": [
+    {
+      "stage": "agent_review",
+      "timestamp": "2026-06-23T03:52:48+00:00",
+      "payload": {
+        "mode": "multi_agent"
+      }
+    },
+    {
+      "stage": "arbitration",
+      "timestamp": "2026-06-23T03:52:48+00:00",
+      "payload": {
+        "consensus_risk_level": "high",
+        "consensus_block_decision": true,
+        "agent_opinions": [
+          {
+            "agent_id": "allergy_specialist",
+            "agent_name": "过敏专员",
+            "role": "过敏史与交叉过敏审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "妊娠状态未知，使用lisinopril（ACEI）存在致畸风险，属于绝对禁忌，需排除妊娠后方可考虑。",
+              "ibuprofen与propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加不良反应风险。",
+              "患者当前血压、眼底检查、尿蛋白等靶器官损伤评估结果缺失，无法评估高血压控制情况及用药安全性。",
+              "头痛性质、持续时间、有无先兆等偏头痛特征缺失，影响ibuprofen对症治疗的适宜性判断。",
+              "患者有青霉素过敏史，但两种候选药物均无交叉过敏风险，过敏史不构成直接阻断理由。"
+            ],
+            "alternatives": [
+              "若排除妊娠且血压控制不佳，可考虑使用其他降压药如氨氯地平或氯沙坦（需确认无禁忌）。",
+              "若偏头痛诊断明确且无禁忌，可考虑使用曲普坦类药物（如舒马普坦）或对乙酰氨基酚替代ibuprofen。",
+              "建议完善妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status",
+              "lactation_status",
+              "当前血压具体数值及控制情况",
+              "头痛性质、持续时间、有无先兆等偏头痛特征",
+              "眼底检查结果",
+              "尿蛋白检测结果"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [
+              "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+              "ACEI类药物在妊娠期使用有致畸风险，妊娠状态未知时禁用。",
+              "患者有青霉素过敏史，但lisinopril和ibuprofen均无交叉过敏风险。"
+            ],
+            "summary": "患者为35岁女性，因头痛伴视力模糊急诊入院，诊断高血压和偏头痛，当前服用普萘洛尔。候选药物lisinopril（降压）和ibuprofen（止痛）均存在重大安全风险：lisinopril在妊娠状态未知下致畸风险高，ibuprofen与普萘洛尔存在中等概率DDI。所有5位专家一致建议阻断，但共识依赖于关键信息（妊娠状态、血压控制、靶器官评估）的补充。建议完善妊娠试验及相关检查后重新评估用药方案。",
+            "debate_round": 3
+          },
+          {
+            "agent_id": "clinical_pharmacist",
+            "agent_name": "临床药师",
+            "role": "药物相互作用、剂量、重复用药审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "妊娠状态未知：ACEI类药物（lisinopril）在妊娠期有致畸风险，需明确排除妊娠后方可使用。",
+              "DDI风险：ibuprofen与propranolol存在中等概率相互作用（64%），可能降低propranolol降压效果，增加高血压失控风险。",
+              "临床信息不足：缺乏当前血压值、眼底检查、尿蛋白等靶器官损伤评估，无法安全评估高血压治疗方案。",
+              "症状重叠：头痛性质、先兆等偏头痛特征缺失，影响药物选择（如ibuprofen可能诱发或加重偏头痛）。"
+            ],
+            "alternatives": [
+              "明确妊娠状态（β-hCG检测）和哺乳状态。",
+              "若妊娠阴性且非哺乳期：可考虑使用拉贝洛尔或硝苯地平替代lisinopril控制高血压。",
+              "针对头痛：可考虑对乙酰氨基酚（注意肝功能）或曲普坦类药物（需排除禁忌症）。",
+              "完善血压监测、眼底检查、尿蛋白定量，评估高血压靶器官损伤。"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status",
+              "lactation_status",
+              "current_blood_pressure",
+              "headache_characteristics（如先兆、持续时间、触发因素）",
+              "fundoscopic_examination_results",
+              "urine_protein_level"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [
+              "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+              "ACEI类药物妊娠期致畸风险（FDA妊娠类别D）。",
+              "高血压合并偏头痛的诊疗指南：需优先控制血压，避免使用可能诱发头痛的药物。"
+            ],
+            "summary": "患者35岁女性，因剧烈头痛伴视力模糊急诊入院，既往高血压、偏头痛病史，当前服用propranolol。候选药物lisinopril（ACEI）和ibuprofen（NSAID）均存在重大安全风险：妊娠状态未知下使用lisinopril有致畸风险；ibuprofen与propranolol存在DDI（概率64%），可能影响血压控制。此外，临床信息严重不足（血压值、眼底、尿蛋白、头痛特征缺失），无法进行安全用药决策。建议立即明确妊娠状态，完善相关检查，并考虑替代药物（如拉贝洛尔、对乙酰氨基酚）。",
+            "debate_round": 3
+          },
+          {
+            "agent_id": "internal_medicine",
+            "agent_name": "内科主治",
+            "role": "适应证与疾病-药物匹配审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "妊娠状态未知：lisinopril（ACEI类）在妊娠期有明确的致畸风险（FDA妊娠分级D/X），在确认妊娠阴性前应绝对禁用。",
+              "临床信息严重不足：缺乏当前血压数值、眼底检查、尿蛋白等靶器官损伤评估，无法判断高血压急症或子痫前期可能，影响用药决策。",
+              "DDI风险：ibuprofen与propranolol存在中等概率相互作用（DDI模型预测概率64%），可能降低propranolol降压效果或增加肾损伤风险。",
+              "偏头痛诊断不明确：缺乏头痛性质、持续时间、先兆等特征，无法确认偏头痛诊断，ibuprofen用于非特异性头痛可能掩盖病情。",
+              "过敏史：青霉素过敏，但两种候选药物均非青霉素类，无交叉过敏风险。"
+            ],
+            "alternatives": [
+              "立即检测妊娠试验（尿或血hCG），明确妊娠状态。",
+              "完善血压监测、眼底检查、尿蛋白/肾功能评估，排除高血压急症或子痫前期。",
+              "若妊娠阴性且血压控制不佳：可考虑换用拉贝洛尔或硝苯地平（妊娠期相对安全）。",
+              "若偏头痛确诊且妊娠阴性：可考虑曲普坦类药物（如舒马普坦）或对乙酰氨基酚（避免NSAIDs与propranolol的DDI）。",
+              "若头痛为高血压所致：优先控制血压，而非使用镇痛药。"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status",
+              "lactation_status",
+              "当前血压数值及控制情况",
+              "头痛性质、持续时间、有无先兆",
+              "眼底检查结果",
+              "尿蛋白/肾功能检查结果"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [
+              "rule_evidence: ddi_model_ibuprofen_propranolol (DDI模型预测ibuprofen与propranolol相互作用概率64%，风险等级medium，建议人工复核)",
+              "FDA妊娠分级：ACEI类药物（lisinopril）在妊娠期有致畸风险，妊娠期禁用",
+              "临床指南：高血压急症需紧急降压，避免使用NSAIDs（可能升高血压、加重肾损伤）",
+              "偏头痛诊断标准（ICHD-3）：需明确头痛特征及先兆表现"
+            ],
+            "summary": "患者35岁女性，因剧烈头痛伴视力模糊急诊就诊，既往高血压、偏头痛病史，当前服用propranolol。候选药物lisinopril（ACEI）和ibuprofen（NSAID）均存在重大安全风险：妊娠状态未知下lisinopril有致畸风险；ibuprofen与propranolol存在DDI（模型预测概率64%），且可能掩盖高血压急症。临床信息严重不足（缺血压、眼底、尿蛋白、头痛特征），无法安全用药。建议立即完善妊娠试验及靶器官评估，再根据结果选择替代方案。",
+            "debate_round": 3
+          },
+          {
+            "agent_id": "pharmacy_inventory",
+            "agent_name": "药房库管",
+            "role": "库存、院内可开品种与替代方案",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "候选药物lisinopril（ACEI类）在妊娠状态未知的情况下存在致畸风险，需明确排除妊娠后方可使用。",
+              "候选药物ibuprofen与患者当前用药propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加肾损伤风险。",
+              "患者临床信息严重不足：缺乏血压具体数值、头痛特征（如先兆、持续时间）、眼底及尿蛋白等靶器官评估结果，无法准确评估高血压控制情况及偏头痛类型。",
+              "妊娠状态和哺乳状态均缺失，直接影响两种候选药物的安全性判断。"
+            ],
+            "alternatives": [
+              "对于高血压：可考虑使用拉贝洛尔（labetalol）或硝苯地平（nifedipine），两者在妊娠期相对安全，且与propranolol无明确相互作用。",
+              "对于头痛：可考虑对乙酰氨基酚（acetaminophen）作为一线镇痛选择，避免与propranolol的潜在相互作用。",
+              "建议完成妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "妊娠状态（需hCG检测结果）",
+              "哺乳状态",
+              "当前血压具体数值及控制情况",
+              "头痛性质、持续时间、有无先兆等偏头痛特征",
+              "眼底检查结果（排除高血压视网膜病变）",
+              "尿蛋白定量（评估肾损伤）"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [
+              "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+              "ACEI类药物在妊娠期有明确致畸风险（FDA妊娠分级D级），妊娠状态未知时禁用。",
+              "患者诊断为高血压（401.9）和偏头痛（346.9），但缺乏关键临床参数（血压、头痛特征、靶器官评估），无法制定安全有效的治疗方案。"
+            ],
+            "summary": "基于药房库管视角，两种候选药物均存在重大安全风险：lisinopril因妊娠状态未知有致畸风险，ibuprofen与propranolol存在中等概率相互作用。在关键信息（妊娠状态、血压、靶器官评估）缺失的情况下，建议阻断当前用药方案，并推荐拉贝洛尔/硝苯地平（降压）和对乙酰氨基酚（镇痛）作为替代，同时要求补充妊娠试验及相关检查。",
+            "debate_round": 3
+          },
+          {
+            "agent_id": "specialist",
+            "agent_name": "专科医生",
+            "role": "专科禁忌审查（妊娠/抗凝/感染等）",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "妊娠状态未知：lisinopril（ACEI）在妊娠期有明确的致畸风险（胎儿肾发育异常、羊水过少等），在确认非妊娠前应视为绝对禁忌。",
+              "哺乳期状态未知：lisinopril 可分泌入乳汁，对哺乳期婴儿安全性数据不足，需明确哺乳状态。",
+              "临床信息严重不足：缺乏当前血压数值、眼底检查、尿蛋白等靶器官损伤评估，无法判断高血压急症或子痫前期可能，影响用药决策。",
+              "DDI 风险：ibuprofen 与 propranolol 存在相互作用（DDI 模型预测概率 64%），可能降低 propranolol 降压效果或增加不良反应风险。",
+              "ibuprofen 在妊娠晚期（尤其 30 周后）可导致胎儿动脉导管早闭和羊水过少，在妊娠状态未知下应谨慎。",
+              "偏头痛诊断不明确：缺乏头痛性质、持续时间、先兆等特征，无法排除继发性头痛（如高血压脑病、颅内病变），需进一步检查。"
+            ],
+            "alternatives": [
+              "若妊娠排除且血压控制不佳：可考虑使用拉贝洛尔、硝苯地平或甲基多巴（妊娠期相对安全）。",
+              "若妊娠排除且需镇痛：可考虑对乙酰氨基酚（首选）或曲普坦类药物（如舒马普坦，需排除心血管禁忌）。",
+              "若哺乳期：可考虑拉贝洛尔或硝苯地平（哺乳期相对安全），镇痛首选对乙酰氨基酚。",
+              "建议完善检查：妊娠试验、血压监测、眼底检查、尿蛋白/肌酐比、头颅影像学（如 CT/MRI）以排除继发性头痛。"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status",
+              "lactation_status",
+              "当前血压数值及控制情况",
+              "头痛性质、持续时间、有无先兆、触发因素",
+              "眼底检查结果（有无视乳头水肿、出血）",
+              "尿蛋白定量或尿蛋白/肌酐比",
+              "肾功能（血肌酐、eGFR）",
+              "既往偏头痛诊断依据及发作频率"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [
+              "ddi_model_ibuprofen_propranolol：DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%），建议人工复核。",
+              "ACEI 妊娠期禁忌：FDA 妊娠分级 D（妊娠中晚期）和 C（早期），致畸风险明确。",
+              "NSAIDs 妊娠晚期禁忌：FDA 妊娠分级 D（30 周后），可导致胎儿动脉导管早闭。",
+              "高血压急症管理指南：需紧急降压并评估靶器官损伤，首选静脉药物（如拉贝洛尔、硝普钠），口服药物不适用。"
+            ],
+            "summary": "患者为 35 岁女性，因剧烈头痛伴视力模糊急诊就诊，有高血压病史，当前服用普萘洛尔。候选药物包括赖诺普利（ACEI）和布洛芬（NSAID）。由于妊娠状态和哺乳状态均未知，且临床信息严重不足（缺乏血压、眼底、尿蛋白等关键数据），两种候选药物均存在重大安全风险：赖诺普利有致畸风险，布洛芬有胎儿动脉导管早闭风险，且布洛芬与普萘洛尔存在 DDI 相互作用。因此，建议阻断两种候选药物，并紧急完善妊娠试验、血压监测、眼底检查、尿蛋白及头颅影像学检查。在明确妊娠/哺乳状态及排除继发性头痛前，不应使用上述药物。替代方案包括拉贝洛尔、硝苯地平或对乙酰氨基酚（根据妊娠/哺乳状态选择）。",
+            "debate_round": 3
+          }
+        ],
+        "dissenting_opinions": [
+          {
+            "agent_id": "allergy_specialist",
+            "agent_name": "过敏专员",
+            "role": "过敏史与交叉过敏审查",
+            "risk_level": "high",
+            "block_decision": true,
+            "reasons": [
+              "妊娠状态未知，使用lisinopril（ACEI）存在致畸风险，属于绝对禁忌，需排除妊娠后方可考虑。",
+              "ibuprofen与propranolol存在中等概率药物相互作用（DDI模型预测概率64%），可能降低降压疗效或增加不良反应风险。",
+              "患者当前血压、眼底检查、尿蛋白等靶器官损伤评估结果缺失，无法评估高血压控制情况及用药安全性。",
+              "头痛性质、持续时间、有无先兆等偏头痛特征缺失，影响ibuprofen对症治疗的适宜性判断。",
+              "患者有青霉素过敏史，但两种候选药物均无交叉过敏风险，过敏史不构成直接阻断理由。"
+            ],
+            "alternatives": [
+              "若排除妊娠且血压控制不佳，可考虑使用其他降压药如氨氯地平或氯沙坦（需确认无禁忌）。",
+              "若偏头痛诊断明确且无禁忌，可考虑使用曲普坦类药物（如舒马普坦）或对乙酰氨基酚替代ibuprofen。",
+              "建议完善妊娠试验、血压监测、眼底检查及尿蛋白检测后再行用药决策。"
+            ],
+            "need_clarification": true,
+            "clarification_targets": [
+              "pregnancy_status",
+              "lactation_status",
+              "当前血压具体数值及控制情况",
+              "头痛性质、持续时间、有无先兆等偏头痛特征",
+              "眼底检查结果",
+              "尿蛋白检测结果"
+            ],
+            "confidence": 0.85,
+            "evidence_cited": [
+              "ddi_model_ibuprofen_propranolol：DDI模型预测ibuprofen与propranolol存在相互作用（概率64%），建议人工复核。",
+              "ACEI类药物在妊娠期使用有致畸风险，妊娠状态未知时禁用。",
+              "患者有青霉素过敏史，但lisinopril和ibuprofen均无交叉过敏风险。"
+            ],
+            "summary": "患者为35岁女性，因头痛伴视力模糊急诊入院，诊断高血压和偏头痛，当前服用普萘洛尔。候选药物lisinopril（降压）和ibuprofen（止痛）均存在重大安全风险：lisinopril在妊娠状态未知下致畸风险高，ibuprofen与普萘洛尔存在中等概率DDI。所有5位专家一致建议阻断，但共识依赖于关键信息（妊娠状态、血压控制、靶器官评估）的补充。建议完善妊娠试验及相关检查后重新评估用药方案。",
+            "debate_round": 3
+          }
+        ],
+        "conflict_detected": true,
+        "arbitration_notes": "经过三轮辩论，所有5位专家（过敏专员、临床药师、内科主治、药房库管、专科医生）最终达成一致，均给出高风险等级和阻断决策。核心依据为：1) 患者妊娠状态未知，使用ACEI类药物（lisinopril）存在明确致畸风险（FDA妊娠分级D级），属于绝对禁忌；2) 布洛芬与患者当前用药普萘洛尔存在中等概率的药物相互作用（DDI模型预测概率64%），可能降低降压效果或增加不良反应风险；3) 患者临床信息严重不足（缺乏血压值、眼底检查、尿蛋白等关键数据），无法排除高血压急症或子痫前期等危重情况。第一轮辩论中存在显著分歧（3位专家倾向允许，2位专家主张阻断），但随着系统DDI规则被所有专家明确引用和讨论，以及安全优先原则的强化，分歧完全消除。规则引擎标记为high的风险（此处指妊娠状态未知下使用ACEI的致畸风险，虽非直接由规则引擎标记，但所有专家一致认定为高风险）不可被覆盖。；辩论未达共识，已标记人工复核。",
+        "final_recommendation": "阻断当前候选药物方案（lisinopril 和 ibuprofen）。在明确妊娠状态、哺乳状态、当前血压、头痛特征、眼底检查及尿蛋白等关键信息前，不应使用上述药物。建议优先完成妊娠试验、血压监测、眼底检查及尿蛋白检测，并根据结果选择替代方案，如拉贝洛尔或硝苯地平控制血压，对乙酰氨基酚或曲普坦类药物治疗头痛。",
+        "need_clarification": true,
+        "clarification_targets": [
+          "pregnancy_status",
+          "current_medications",
+          "lactation_status",
+          "当前血压具体数值及控制情况",
+          "头痛性质、持续时间、有无先兆等偏头痛特征",
+          "眼底检查结果",
+          "尿蛋白检测结果",
+          "current_blood_pressure",
+          "headache_characteristics（如先兆、持续时间、触发因素）",
+          "fundoscopic_examination_results",
+          "urine_protein_level",
+          "当前血压数值及控制情况",
+          "头痛性质、持续时间、有无先兆",
+          "尿蛋白/肾功能检查结果",
+          "妊娠状态（需hCG检测结果）",
+          "哺乳状态",
+          "眼底检查结果（排除高血压视网膜病变）",
+          "尿蛋白定量（评估肾损伤）",
+          "头痛性质、持续时间、有无先兆、触发因素",
+          "眼底检查结果（有无视乳头水肿、出血）",
+          "尿蛋白定量或尿蛋白/肌酐比",
+          "肾功能（血肌酐、eGFR）",
+          "既往偏头痛诊断依据及发作频率"
+        ],
+        "rule_evidence": [
+          {
+            "rule_id": "ddi_model_ibuprofen_propranolol",
+            "category": "drug_interaction",
+            "risk_level": "medium",
+            "summary": "DDI 模型预测 ibuprofen 与 propranolol 存在相互作用（概率 64%）。",
+            "mechanism": "Bio_ClinicalBERT SMILES 药对分类",
+            "implicated_drugs": [
+              "ibuprofen",
+              "propranolol"
+            ],
+            "recommendation": "建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+            "alternatives": [
+              "优先查阅药品说明书或药学咨询。"
+            ],
+            "clarification_fields": [
+              "current_medications"
+            ],
+            "source": "ddi_bert_model"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "final",
+      "timestamp": "2026-06-23T03:52:48+00:00",
+      "payload": {
+        "final_recommendation": "在明确妊娠、哺乳状态及血压、头痛特征、眼底和尿蛋白结果前，建议暂不使用lisinopril和ibuprofen。可考虑使用对乙酰氨基酚缓解头痛，并尽快完成相关检查。"
+      }
+    }
+  ]
+}

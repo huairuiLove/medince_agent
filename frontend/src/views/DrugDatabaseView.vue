@@ -302,7 +302,7 @@ onMounted(async () => {
       <div>
         <strong>语义检索已就绪</strong>
         <span class="muted">
-          {{ searchModel.model_id }} · 索引 {{ searchModel.indexed_drugs }} 条
+          {{ searchModel.model ?? '—' }} · 索引 {{ searchModel.indexed_drugs }} 条
         </span>
       </div>
       <button

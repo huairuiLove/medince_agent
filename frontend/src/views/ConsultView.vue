@@ -12,6 +12,9 @@ import RiskBadge from '@/components/common/RiskBadge.vue'
 
 const { loading, error, result, run, reset } = useMultiConsult()
 
+const clarifyLoading = ref(false)
+const clarifyError = ref('')
+
 const inputMode = ref<'text' | 'form'>('form')
 const clinicalText = ref('')
 const persist = ref(true)
@@ -87,6 +90,7 @@ async function submit() {
     error.value = '请至少添加一种候选用药'
     return
   }
+  clarifyError.value = ''
   const payload = {
     candidate_drugs: drugs.value,
     persist: persist.value,
@@ -95,6 +99,64 @@ async function submit() {
       : { patient_context: patient.value }),
   }
   await run(payload)
+}
+
+function patientFromExtract(extract: Record<string, unknown> | null | undefined): PatientContext {
+  const e = extract as {
+    age?: number
+    gender?: string
+    pregnancy_status?: string
+    allergies?: string[]
+    current_medications?: string[]
+    missing_fields?: string[]
+    symptoms_or_complaints?: string[]
+    diagnoses?: string[]
+  }
+  return {
+    gender: e.gender ?? 'unknown',
+    age: e.age ?? null,
+    pregnancy_status: e.pregnancy_status ?? 'unknown',
+    allergies: e.allergies ?? [],
+    current_medications: (e.current_medications ?? []).map(name => ({ name })),
+    missing_fields: e.missing_fields ?? [],
+    symptoms_or_complaints: e.symptoms_or_complaints ?? [],
+    diagnoses: (e.diagnoses ?? []).map(d => ({ name: typeof d === 'string' ? d : String(d) })),
+  }
+}
+
+function consultPatientContext(): PatientContext {
+  if (inputMode.value === 'form') return patient.value
+  if (result.value?.extract_output) {
+    return patientFromExtract(result.value.extract_output as Record<string, unknown>)
+  }
+  return emptyPatient()
+}
+
+async function submitClarify(payload: { answers: Record<string, string>; unable: boolean }) {
+  if (!result.value?.rule_output) return
+  clarifyLoading.value = true
+  clarifyError.value = ''
+  try {
+    const res = await medsafeApi.clarify({
+      patient_context: consultPatientContext(),
+      candidate_drugs: drugs.value,
+      review_output: result.value.rule_output,
+      user_answers: payload.answers,
+      unable_to_answer: payload.unable,
+      case_id: result.value.case_id,
+      persist: persist.value,
+    })
+    result.value = {
+      ...result.value,
+      case_id: res.case_id ?? result.value.case_id,
+      clarify_output: res.clarify_output,
+      final_recommendation: res.clarify_output.final_message || result.value.final_recommendation,
+    }
+  } catch (e) {
+    clarifyError.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    clarifyLoading.value = false
+  }
 }
 
 const arb = computed(() => result.value?.arbitration)
@@ -193,7 +255,13 @@ const arb = computed(() => result.value?.arbitration)
           <AgentOpinionCard v-for="o in result.agent_opinions" :key="o.agent_id" :opinion="o" />
         </div>
 
-        <ClarifyPanel :clarify="result.clarify_output" />
+        <ClarifyPanel
+          :clarify="result.clarify_output"
+          interactive
+          :loading="clarifyLoading"
+          @submit="submitClarify"
+        />
+        <p v-if="clarifyError" class="error">{{ clarifyError }}</p>
       </section>
 
       <section v-else-if="!loading" class="card placeholder">

@@ -63,7 +63,7 @@ def cmd_build_mimic(args: argparse.Namespace) -> None:
 
     raw_dir = resolve_mimic_raw_dir()
     if raw_dir is None:
-        print("MIMIC-III CSV not found under data/mimic-iii-clinical-database-1.4/")
+        print("MIMIC-III CSV not found under datasets/mimic-iii-clinical-database-1.4/")
         sys.exit(1)
     use_notes = not args.skip_notes and is_full_mimic_dataset(raw_dir)
     generate_mimic_patient_contexts(

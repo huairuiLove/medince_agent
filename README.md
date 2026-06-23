@@ -66,11 +66,11 @@ bash scripts/start.sh
 
 ### 3. 验证药库已加载
 
-API 启动时会自动导入 `data/hospital/formulary_demo.csv`（1120 条演示品种）。也可手动同步：
+API 启动时会自动导入 `datasets/hospital/formulary_demo.csv`（1120 条演示品种）。也可手动同步：
 
 ```bash
 source .venv/bin/activate
-python scripts/sync_formulary.py --csv data/hospital/formulary_demo.csv
+python scripts/sync_formulary.py --csv datasets/hospital/formulary_demo.csv
 curl -s http://localhost:8000/api/v1/drug-catalog/stats | python -m json.tool
 ```
 
@@ -82,7 +82,7 @@ MedSafe 支持 **PIS 药事系统 CSV 导出** 作为院目录数据源（试点
 
 ### CSV 格式
 
-模板见 `data/hospital/formulary_sample.csv`（最小样例）与 `data/hospital/formulary_demo.csv`（**1120 行演示库**）。
+模板见 `datasets/hospital/formulary_sample.csv`（最小样例）与 `datasets/hospital/formulary_demo.csv`（**1120 行演示库**）。
 
 | 必填列 | 说明 |
 |--------|------|
@@ -105,15 +105,15 @@ python scripts/sync_formulary.py --csv /path/to/hospital_export.csv
 # 或通过 API 热更新（无需重启）
 curl -X POST http://localhost:8000/api/v1/drug-catalog/sync \
   -H 'Content-Type: application/json' \
-  -d '{"csv_path": "data/hospital/formulary_demo.csv"}'
+  -d '{"csv_path": "datasets/hospital/formulary_demo.csv"}'
 ```
 
 [config.yaml](config.yaml) 相关项：
 
 ```yaml
 drug_catalog:
-  db_path: "data/hospital/formulary.db"
-  formulary_path: "data/hospital/formulary_demo.csv"
+  db_path: "datasets/hospital/formulary.db"
+  formulary_path: "datasets/hospital/formulary_demo.csv"
   auto_import_on_startup: true
 ```
 
@@ -152,7 +152,7 @@ python scripts/run_benchmark.py --mode compare --kb-v1 expanded_mined_v1 --kb-v2
 python scripts/generate_stage9_validation_report.py
 ```
 
-`config.yaml` 已指向 `data/knowledge/hospital_production_v4.json`。无 TWOSIDES 时可用 `python scripts/build_stage9_kb.py --without-twosides` 仅重建 curated 层（不含 FAERS 信号）。
+`config.yaml` 已指向 `datasets/knowledge/hospital_production_v4.json`。无 TWOSIDES 时可用 `python scripts/build_stage9_kb.py --without-twosides` 仅重建 curated 层（不含 FAERS 信号）。
 
 ---
 
@@ -191,7 +191,7 @@ pip install models/med7/en_core_med7_lg-1.1.0-py3-none-any.whl
 | Med7 | `models/med7/` | Extract 阶段补充 `current_medications` |
 | Bio_ClinicalBERT DDI | `models/ddi_bert/` | Review 阶段规则未命中时的 DDI 概率拦截 |
 
-**SMILES 覆盖（PubChem 自动补全）**：DDI 模型需要 SMILES 输入。本地 `drug_smiles.json` 覆盖常用 demo 药；其余药名通过 PubChem 查询并写入 `data/knowledge/smiles_cache.db`（离线可复用）。
+**SMILES 覆盖（PubChem 自动补全）**：DDI 模型需要 SMILES 输入。本地 `drug_smiles.json` 覆盖常用 demo 药；其余药名通过 PubChem 查询并写入 `datasets/knowledge/smiles_cache.db`（离线可复用）。
 
 ```bash
 # 预热：从 formulary + 规则库 + drug_kg 批量拉取 SMILES（约 455 个通用名，需联网）
@@ -204,10 +204,10 @@ python scripts/warm_smiles_cache.py --dry-run
 python scripts/mine_ddi_rules.py --max-drugs 150 --warm-smiles --update-config
 # 全量：--max-drugs 0 --batch-size 64（约 8.5 万对，CPU 较慢）
 # 阈值：config clinical_knowledge.mining_thresholds；分析：python scripts/analyze_ddi_scores.py
-# 假阳性：编辑 data/knowledge/ddi_mining_exclusions.json
+# 假阳性：编辑 datasets/knowledge/ddi_mining_exclusions.json
 ```
 
-中文通用名会先映射到英文 INN（`data/knowledge/drug_inn_map.json`，由预热脚本自动生成）。PubChem 可在 `config.yaml` → `safety_models.pubchem` 关闭（`enabled: false` 时仅使用静态 JSON + 本地缓存）。
+中文通用名会先映射到英文 INN（`datasets/knowledge/drug_inn_map.json`，由预热脚本自动生成）。PubChem 可在 `config.yaml` → `safety_models.pubchem` 关闭（`enabled: false` 时仅使用静态 JSON + 本地缓存）。
 
 配置见 `config.yaml` → `safety_models`（`high_threshold` / `medium_threshold` 可调）。`/health` 返回 `safety_models.med7` 与 `safety_models.ddi_bert` 加载状态（含 SMILES 缓存条目数）。
 
@@ -235,11 +235,11 @@ python scripts/download_models.py --all
 ### 2. 放置影像数据
 
 ```text
-data/mimic/{patient_id}/{study_id}/*.jpg      # MIMIC CT 切片
-data/brats2024/{case_id}/*.nii.gz             # BraTS MRI 体数据（不含 seg）
+datasets/mimic/{patient_id}/{study_id}/*.jpg      # MIMIC CT 切片
+datasets/brats2024/{case_id}/*.nii.gz             # BraTS MRI 体数据（不含 seg）
 ```
 
-目录结构见 `data/mimic/.gitkeep` 与 `data/brats2024/.gitkeep`。无数据时 `/imaging` 显示空列表，不影响用药功能。
+目录结构见 `datasets/mimic/.gitkeep` 与 `datasets/brats2024/.gitkeep`。无数据时 `/imaging` 显示空列表，不影响用药功能。
 
 ### 3. 验证分割链路
 
@@ -285,7 +285,7 @@ cp .env.example .env
 | `MEDSAFE_VISION_LLM__API_KEY` | 通义 DashScope Key（影像 VLM 必填） | 空 |
 | `MEDSAFE_DEEPSEEK__API_KEY` | 报告综合合成（必填） | 空 |
 | `MEDSAFE_AGENTS__RULE_STRICT` | 高风险规则不可被 LLM 覆盖 | `true` |
-| `MEDSAFE_DRUG_CATALOG__FORMULARY_PATH` | 院目录 CSV 路径 | `data/hospital/formulary_demo.csv` |
+| `MEDSAFE_DRUG_CATALOG__FORMULARY_PATH` | 院目录 CSV 路径 | `datasets/hospital/formulary_demo.csv` |
 | `MEDSAFE_DRUG_CATALOG__AUTO_IMPORT_ON_STARTUP` | 启动时自动导入空库 | `true` |
 | `MEDSAFE_SERVER__PORT` | API 端口 | `8000` |
 
@@ -432,13 +432,13 @@ medince_agent/
 确认 `bash scripts/start.sh` 仍在运行，且 http://localhost:8000/health 可访问。
 
 **药库为空 / CPOE 报 UNRESOLVED_DRUG**  
-执行 `python scripts/sync_formulary.py --csv data/hospital/formulary_demo.csv`，或确认 `config.yaml` 中 `drug_catalog.auto_import_on_startup: true`。
+执行 `python scripts/sync_formulary.py --csv datasets/hospital/formulary_demo.csv`，或确认 `config.yaml` 中 `drug_catalog.auto_import_on_startup: true`。
 
 **CPOE 演示华法林+布洛芬**  
 演示库中华法林为 `H-DEMO-00001`，布洛芬为 `H-DEMO-00006`（重新生成 CSV 后 ID 可能变化，以 `formulary_demo.csv` 为准）。
 
 **`/imaging` 无 study**  
-检查 `data/mimic/` 或 `data/brats2024/` 是否已放入数据（见 `.gitkeep` 说明）。
+检查 `datasets/mimic/` 或 `datasets/brats2024/` 是否已放入数据（见 `.gitkeep` 说明）。
 
 **分割报错或极慢**  
 确认已运行 `python scripts/download_models.py --all`；VISTA3D 3D 推理在 CPU 上首次需数分钟；16 GB 机器请只勾选 1~2 个模型。

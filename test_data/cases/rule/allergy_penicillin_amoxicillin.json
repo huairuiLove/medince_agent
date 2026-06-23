@@ -1,0 +1,21 @@
+{
+  "case_id": "test_rule_02",
+  "description": "规则引擎：青霉素过敏 + 阿莫西林",
+  "category": "rule",
+  "tags": ["rule", "allergy", "offline"],
+  "request": {
+    "patient_context": {
+      "gender": "F",
+      "age": 40,
+      "current_medications": [],
+      "allergies": ["penicillin", "青霉素"],
+      "pregnancy_status": "not_applicable"
+    },
+    "candidate_drugs": [{ "name": "amoxicillin", "dose": "500mg" }]
+  },
+  "expected": {
+    "risk_level": "high",
+    "block_decision": true,
+    "hit_rules": ["alg_penicillin_amoxicillin"]
+  }
+}

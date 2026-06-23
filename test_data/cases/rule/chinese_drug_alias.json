@@ -1,0 +1,21 @@
+{
+  "case_id": "test_rule_04",
+  "description": "规则引擎：中文药名归一化（华法林 + 布洛芬）",
+  "category": "rule",
+  "tags": ["rule", "terminology", "offline"],
+  "request": {
+    "patient_context": {
+      "gender": "M",
+      "age": 70,
+      "current_medications": [{ "name": "华法林", "dose": "2.5mg" }],
+      "allergies": [],
+      "pregnancy_status": "not_applicable"
+    },
+    "candidate_drugs": [{ "name": "布洛芬", "dose": "0.3g" }]
+  },
+  "expected": {
+    "risk_level": "high",
+    "block_decision": true,
+    "hit_rules": ["ddi_warfarin_ibuprofen_bleeding"]
+  }
+}

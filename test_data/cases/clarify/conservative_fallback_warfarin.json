@@ -1,0 +1,59 @@
+{
+  "case_id": "test_clarify_02",
+  "description": "保守降级：用户无法补充信息，华法林 + 布洛芬高风险",
+  "category": "clarify",
+  "tags": ["conservative_fallback", "warfarin", "ddi"],
+  "request": {
+    "patient_context": {
+      "subject_id": 90006,
+      "hadm_id": 91006,
+      "gender": "F",
+      "age": 31,
+      "admission_type": "EMERGENCY",
+      "chief_complaint": "严重腹痛",
+      "symptoms_or_complaints": ["腹痛", "恶心"],
+      "diagnoses": [{ "icd9_code": "789.0", "name": "腹痛待查" }],
+      "current_medications": [
+        { "name": "warfarin", "ingredient": "warfarin", "dose": "3mg", "route": "PO" }
+      ],
+      "allergies": [],
+      "pregnancy_status": "unknown",
+      "missing_fields": ["allergies", "pregnancy_status"]
+    },
+    "candidate_drugs": [
+      {
+        "name": "ibuprofen",
+        "ingredient": "ibuprofen",
+        "dose": "400mg",
+        "route": "PO",
+        "indication": "腹痛",
+        "source": "candidate"
+      }
+    ],
+    "review_output": {
+      "risk_level": "high",
+      "block_decision": true,
+      "risk_reasons": ["华法林与布洛芬联用增加严重出血风险。"],
+      "alternative_suggestions": ["可优先评估对乙酰氨基酚等替代止痛方案。"],
+      "need_clarification": true,
+      "clarification_targets": ["allergies", "pregnancy_status"],
+      "evidence": [
+        {
+          "rule_id": "ddi_warfarin_ibuprofen_bleeding",
+          "category": "drug_interaction",
+          "risk_level": "high",
+          "summary": "华法林与布洛芬联用增加严重出血风险。",
+          "implicated_drugs": ["ibuprofen", "warfarin"]
+        }
+      ],
+      "final_recommendation": "当前候选用药存在高风险，建议先阻断该方案。"
+    },
+    "unable_to_answer": true,
+    "persist": false
+  },
+  "expected": {
+    "status": "conservative_fallback",
+    "has_conservative_advice": true,
+    "has_disclaimer": true
+  }
+}

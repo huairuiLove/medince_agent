@@ -1,0 +1,55 @@
+{
+  "case_id": "test_consult_01",
+  "description": "完整会诊：偏头痛 + 高血压，跳过 extract",
+  "category": "consult",
+  "tags": ["full_pipeline", "hypertension"],
+  "request": {
+    "patient_context": {
+      "subject_id": 90007,
+      "hadm_id": 91007,
+      "gender": "F",
+      "age": 35,
+      "admission_type": "EMERGENCY",
+      "chief_complaint": "剧烈头痛伴视力模糊",
+      "symptoms_or_complaints": ["头痛", "视力模糊", "恶心"],
+      "past_medical_history": ["高血压"],
+      "diagnoses": [
+        { "icd9_code": "401.9", "name": "高血压" },
+        { "icd9_code": "346.9", "name": "偏头痛" }
+      ],
+      "current_medications": [
+        { "name": "propranolol", "ingredient": "propranolol", "dose": "40mg", "route": "PO", "frequency": "bid" }
+      ],
+      "allergies": ["penicillin"],
+      "pregnancy_status": "unknown",
+      "missing_fields": ["pregnancy_status"]
+    },
+    "candidate_drugs": [
+      {
+        "name": "lisinopril",
+        "ingredient": "lisinopril",
+        "dose": "10mg",
+        "route": "PO",
+        "frequency": "qd",
+        "indication": "高血压",
+        "source": "candidate"
+      },
+      {
+        "name": "ibuprofen",
+        "ingredient": "ibuprofen",
+        "dose": "200mg",
+        "route": "PO",
+        "frequency": "prn",
+        "indication": "头痛",
+        "source": "candidate"
+      }
+    ],
+    "unable_to_answer": false,
+    "persist": false
+  },
+  "expected": {
+    "should_perform_review": true,
+    "should_perform_clarify": true,
+    "should_have_final_recommendation": true
+  }
+}

@@ -357,7 +357,7 @@ def bootstrap_catalog_from_config() -> dict[str, Any] | None:
     if service.is_loaded():
         return ensure_semantic_index_if_needed()
 
-    csv_rel = catalog_cfg.get("formulary_path", "data/hospital/formulary_sample.csv")
+    csv_rel = catalog_cfg.get("formulary_path", "datasets/hospital/formulary_sample.csv")
     csv_path = resolve_path(csv_rel)
     if not csv_path.exists():
         return None

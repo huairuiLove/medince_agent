@@ -1,0 +1,24 @@
+{
+  "case_id": "test_rule_01",
+  "description": "规则引擎：华法林 + 布洛芬 DDI",
+  "category": "rule",
+  "tags": ["rule", "ddi", "offline"],
+  "request": {
+    "patient_context": {
+      "gender": "M",
+      "age": 67,
+      "current_medications": [
+        { "name": "warfarin", "dose": "5mg" },
+        { "name": "aspirin", "dose": "81mg" }
+      ],
+      "allergies": [],
+      "pregnancy_status": "not_applicable"
+    },
+    "candidate_drugs": [{ "name": "ibuprofen", "dose": "400mg", "indication": "止痛" }]
+  },
+  "expected": {
+    "risk_level": "high",
+    "block_decision": true,
+    "hit_rules": ["ddi_warfarin_ibuprofen_bleeding"]
+  }
+}

@@ -7,7 +7,7 @@ from src.schemas import CaseEvent, CaseLog
 from src.utils import ensure_dir, load_json, make_case_id, save_json, to_jsonable, utc_now_iso
 
 
-DEFAULT_CASE_DIR = Path(__file__).resolve().parent.parent / "data" / "cases"
+DEFAULT_CASE_DIR = Path(__file__).resolve().parent.parent / "datasets" / "cases"
 
 
 class CaseStore:

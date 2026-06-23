@@ -93,6 +93,22 @@ def project_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def datasets_dir_name() -> str:
+    return str(get_config().get("paths", {}).get("datasets_dir", "datasets"))
+
+
+def datasets_path(relative: str = "") -> Path:
+    """Resolve a path under the datasets root (static / reference data)."""
+    base = project_root() / datasets_dir_name()
+    return base / relative if relative else base
+
+
+def data_path(relative: str = "") -> Path:
+    """Resolve a path under data/ (runtime DBs, cache, processing scripts)."""
+    base = project_root() / "data"
+    return base / relative if relative else base
+
+
 def resolve_path(relative: str) -> Path:
     """Resolve a path relative to the project root."""
     return project_root() / relative

@@ -14,7 +14,7 @@ import type {
 } from '@/types'
 
 const studies = ref<ImagingStudy[]>([])
-const sourceFilter = ref<'all' | 'mimic_cxr' | 'brats2024' | 'mimic'>('all')
+const sourceFilter = ref<'all' | 'mimic_cxr' | 'chest_ct' | 'kits19' | 'brats2024'>('all')
 const models = ref<SegModelInfo[]>([])
 const selectedStudy = ref<ImagingStudy | null>(null)
 const selectedModels = ref<ModelId[]>(['sam2d'])
@@ -31,6 +31,8 @@ const segmentHistory = ref<SegmentRunRecord[]>([])
 const selectedOverlayKeys = ref<Set<string>>(new Set())
 const screenshots = ref<{ path: string; caption: string }[]>([])
 const report = ref<ClinicalReport | null>(null)
+const savedReports = ref<ClinicalReport[]>([])
+const reportsLoading = ref(false)
 const vlmAnalysis = ref<VlmAnalysis | null>(null)
 const vlmModel = ref('')
 const vlmConfigured = ref(true)
@@ -90,7 +92,7 @@ const targetOptions = computed(() => {
 function defaultModelsForStudy(s: ImagingStudy): ModelId[] {
   if (s.source === 'mimic_cxr') return ['cxr_lesion']
   if (s.source === 'brats2024') return ['brats_tumor']
-  if (s.source === 'kits19') return ['totalsegmentator', 'vista3d']
+  if (s.source === 'kits19' || s.source === 'chest_ct') return ['totalsegmentator', 'vista3d']
   return ['sam2d']
 }
 
@@ -98,6 +100,7 @@ function defaultTargetForStudy(s: ImagingStudy): string {
   if (s.source === 'mimic_cxr') return 'opacity'
   if (s.source === 'brats2024') return 'whole_tumor'
   if (s.source === 'kits19') return 'kidney'
+  if (s.source === 'chest_ct') return 'lung'
   return 'brain'
 }
 
@@ -220,14 +223,50 @@ function selectStudy(s: ImagingStudy) {
   selectedOverlayKeys.value = new Set()
   screenshots.value = []
   report.value = null
+  savedReports.value = []
   vlmAnalysis.value = null
   volumeMaskPath.value = null
+  qaAnswer.value = ''
+  qaQuestion.value = ''
   selectedModels.value = defaultModelsForStudy(s)
   organ.value = defaultTargetForStudy(s)
   clinicalText.value = s.report_text?.trim()
     ? s.report_text
     : `${s.title} — ${s.modality} 影像会诊`
   void loadSegmentHistory()
+  void loadPatientReports()
+}
+
+async function loadPatientReports() {
+  if (!selectedStudy.value) {
+    savedReports.value = []
+    return
+  }
+  reportsLoading.value = true
+  try {
+    const res = await medsafeApi.listPatientReports(selectedStudy.value.patient_id)
+    savedReports.value = res.reports.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    reportsLoading.value = false
+  }
+}
+
+async function loadSavedReport(reportId: string) {
+  if (!selectedStudy.value) return
+  loading.value = true
+  error.value = ''
+  qaAnswer.value = ''
+  try {
+    report.value = await medsafeApi.getReport(selectedStudy.value.patient_id, reportId)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    loading.value = false
+  }
 }
 
 function toggleModel(id: ModelId) {
@@ -353,6 +392,7 @@ async function generateReport() {
       run_medication_review: runMedicationReview.value,
       candidate_drugs: parseCandidateDrugs(candidateDrugText.value),
     })
+    await loadPatientReports()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -429,7 +469,7 @@ const sortedParagraphs = computed(() =>
         <h3>影像检查</h3>
         <div class="source-filter">
           <button
-            v-for="opt in ([['all', '全部'], ['mimic_cxr', '胸片 CXR'], ['kits19', '肾脏 CT'], ['mimic', 'CT'], ['brats2024', 'MRI']] as const)"
+            v-for="opt in ([['all', '全部'], ['mimic_cxr', '胸片 XR'], ['chest_ct', '胸部/肺 CT'], ['kits19', '肾脏 CT'], ['brats2024', '脑 MRI']] as const)"
             :key="opt[0]"
             type="button"
             class="mode-btn"
@@ -438,6 +478,10 @@ const sortedParagraphs = computed(() =>
           >{{ opt[1] }}</button>
         </div>
         <ul class="study-list">
+          <li v-if="!filteredStudies.length" class="empty-hint">
+            暂无该类型影像。运行：
+            <code>python data/scripts/fetch_demo_datasets.py --chest-ct --kits-cases 8 --monai-samples --nlmcxr-map 50</code>
+          </li>
           <li
             v-for="s in filteredStudies"
             :key="s.study_id"
@@ -579,6 +623,36 @@ const sortedParagraphs = computed(() =>
     </div>
 
     <section class="card report-panel">
+      <div v-if="selectedStudy" class="report-history">
+        <div class="history-head">
+          <h3>历史报告</h3>
+          <button
+            type="button"
+            class="btn-secondary btn-sm"
+            :disabled="reportsLoading"
+            @click="loadPatientReports"
+          >
+            {{ reportsLoading ? '加载中…' : '刷新' }}
+          </button>
+        </div>
+        <p v-if="reportsLoading" class="muted">正在加载 {{ selectedStudy.patient_id }} 的历史报告…</p>
+        <ul v-else-if="savedReports.length" class="history-list">
+          <li v-for="r in savedReports" :key="r.report_id">
+            <button
+              type="button"
+              class="history-item"
+              :class="{ active: report?.report_id === r.report_id }"
+              @click="loadSavedReport(r.report_id)"
+            >
+              <strong>{{ r.report_id.slice(0, 8) }}…</strong>
+              <span>{{ r.imaging_session_id || r.modalities.join(', ') }}</span>
+              <small>{{ new Date(r.created_at).toLocaleString() }}</small>
+            </button>
+          </li>
+        </ul>
+        <p v-else class="muted">该患者暂无已保存报告</p>
+      </div>
+
       <label class="label">病历 / 临床描述</label>
       <textarea v-model="clinicalText" class="textarea" rows="3" />
 
@@ -704,6 +778,8 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
 .study-list li.active { background: var(--primary-light); border-color: var(--primary); }
 .mod { display: inline-block; background: var(--primary); color: #fff; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; margin-right: 0.35rem; }
 .study-list small { display: block; color: var(--text-muted); font-size: 0.72rem; }
+.empty-hint { cursor: default !important; color: var(--text-muted); font-size: 0.8rem; line-height: 1.4; padding: 0.75rem !important; }
+.empty-hint code { font-size: 0.7rem; word-break: break-all; }
 .view-mode { display: flex; gap: 0.35rem; margin-bottom: 0.5rem; }
 .mode-btn {
   flex: 1;
@@ -744,4 +820,24 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
 .sup-item { background: var(--surface-2); padding: 0.65rem; border-radius: var(--radius); margin-bottom: 0.5rem; font-size: 0.88rem; }
 .qa-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
 .qa-ans { margin-top: 0.5rem; padding: 0.65rem; background: var(--primary-light); border-radius: var(--radius); font-size: 0.9rem; }
+.report-history { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.history-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.history-head h3 { font-size: 0.95rem; margin: 0; }
+.btn-sm { padding: 0.25rem 0.55rem; font-size: 0.78rem; }
+.history-list { list-style: none; display: flex; flex-direction: column; gap: 0.35rem; max-height: 160px; overflow-y: auto; }
+.history-item {
+  width: 100%;
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+.history-item:hover { border-color: var(--primary); }
+.history-item.active { background: var(--primary-light); border-color: var(--primary); }
+.history-item span { display: block; color: var(--text-muted); font-size: 0.78rem; }
+.history-item small { color: var(--text-muted); font-size: 0.72rem; }
+.muted { color: var(--text-muted); font-size: 0.85rem; }
 </style>

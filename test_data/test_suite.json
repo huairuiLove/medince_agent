@@ -1,0 +1,34 @@
+{
+  "description": "测试套件配置 — 关联 skill 偏好与病例场景",
+  "version": "1.0",
+  "suites": [
+    {
+      "name": "rule_offline_smoke",
+      "requires_llm": false,
+      "skill_config": "skills/configs/minimal_agent_set.json",
+      "cases": ["cases/rule/*.json"]
+    },
+    {
+      "name": "review_api_smoke",
+      "requires_llm": true,
+      "skill_config": "skills/configs/default_skill_prefs.json",
+      "cases": ["cases/review/*.json"]
+    },
+    {
+      "name": "cardiology_full",
+      "requires_llm": true,
+      "skill_config": "skills/configs/cardiology_focused_prefs.json",
+      "custom_skills": ["skills/custom/csk_001_cardiology_ddi.json"],
+      "cases": [
+        "cases/review/warfarin_ibuprofen_ddi.json",
+        "cases/consult/elderly_polypharmacy.json"
+      ]
+    },
+    {
+      "name": "clarify_flow",
+      "requires_llm": true,
+      "skill_config": "skills/configs/default_skill_prefs.json",
+      "cases": ["cases/clarify/*.json"]
+    }
+  ]
+}
