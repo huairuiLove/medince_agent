@@ -76,7 +76,11 @@ class DrugSemanticIndex:
         try:
             docs = [_drug_document(d) for d in drugs]
             self._drug_ids = [d.hospital_drug_id for d in drugs]
-            self._embeddings = self._encode(docs, kind="passage")
+            batch_size = max(1, int(resolve_embedding_config().get("batch_size", 32)))
+            chunks: list[np.ndarray] = []
+            for start in range(0, len(docs), batch_size):
+                chunks.append(self._encode(docs[start : start + batch_size], kind="passage"))
+            self._embeddings = np.vstack(chunks) if chunks else None
             self._load_error = None
             logger.info("Built drug semantic index: %d drugs", len(self._drug_ids))
         except Exception as exc:

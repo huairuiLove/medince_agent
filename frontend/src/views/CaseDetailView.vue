@@ -47,6 +47,23 @@ const events = computed(() => caseLog.value?.events ?? [])
       <p>{{ caseLog.final_recommendation }}</p>
     </div>
 
+    <div v-if="caseLog.vlm_analysis" class="card">
+      <h3>影像 VLM 分析</h3>
+      <div v-if="caseLog.vlm_analysis.imaging_findings" class="section">
+        <h4>影像学发现</h4>
+        <p>{{ caseLog.vlm_analysis.imaging_findings }}</p>
+      </div>
+      <div v-if="caseLog.vlm_analysis.clinical_analysis" class="section">
+        <h4>临床分析</h4>
+        <p>{{ caseLog.vlm_analysis.clinical_analysis }}</p>
+      </div>
+      <div v-if="caseLog.vlm_analysis.medication_recommendation" class="section">
+        <h4>用药建议</h4>
+        <p>{{ caseLog.vlm_analysis.medication_recommendation }}</p>
+      </div>
+      <p v-if="caseLog.imaging_report_id" class="meta">关联报告 ID: {{ caseLog.imaging_report_id }}</p>
+    </div>
+
     <RuleEvidencePanel v-if="caseLog.review_output" :evidence="caseLog.review_output.evidence" />
 
     <div v-if="caseLog.arbitration" class="card">
@@ -70,6 +87,8 @@ const events = computed(() => caseLog.value?.events ?? [])
 header { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.25rem; flex-wrap: wrap; }
 .dept { background: var(--primary-light); color: var(--primary-dark); padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.82rem; }
 .status { background: var(--surface-2); padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.82rem; }
+.section { margin-top: 0.75rem; }
+.section h4 { font-size: 0.92rem; margin-bottom: 0.35rem; color: var(--text-muted); }
 .meta { color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.5rem; }
 .timeline { margin-bottom: 1rem; }
 .events { display: flex; flex-wrap: wrap; gap: 0.5rem; }

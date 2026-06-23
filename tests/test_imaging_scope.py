@@ -33,8 +33,29 @@ def test_filter_studies_respiratory_only_cxr():
     assert out[0].source == "mimic_cxr"
 
 
-def test_filter_studies_empty_when_no_sources():
-    assert filter_studies([_study("mimic_cxr")], []) == []
+def test_path_allowed_mimic_abdominal_ct():
+    ct = "datasets/mimic/endocrine_ct_001/s001/imaging.nii.gz"
+    assert path_allowed_for_sources(ct, ["mimic"])
+    assert not path_allowed_for_sources(ct, ["mimic_cxr"])
+
+
+def test_filter_studies_mimic_abdominal_ct():
+    studies = [
+        ImagingStudyItem(
+            study_id="mimic_endocrine_ct_001_s001",
+            patient_id="endocrine_ct_001",
+            modality="CT",
+            source="mimic",
+            title="abd CT",
+            image_paths=["data/imaging_cache/catalog/x.png"],
+            volume_path="datasets/mimic/endocrine_ct_001/s001/imaging.nii.gz",
+            slice_count=4,
+        ),
+        _study("mimic_cxr", "cxr1"),
+    ]
+    out = filter_studies(studies, ["mimic"])
+    assert len(out) == 1
+    assert out[0].source == "mimic"
 
 
 def test_filter_models_uses_dept_defaults():
@@ -54,9 +75,18 @@ def test_path_allowed_for_sources():
         "096052b7-d256dc40-453a102b-fa7d01c6-1b22c6b4.jpg"
     )
     assert path_allowed_for_sources(cxr_jpg, ["mimic_cxr"])
-    assert path_allowed_for_sources(cxr_jpg, ["mimic"])
+    assert not path_allowed_for_sources(cxr_jpg, ["mimic"])
     assert not path_allowed_for_sources("data/imaging_cache/catalog/x.png", ["mimic_cxr"])
     assert not path_allowed_for_sources("data/imaging_cache/overlays/foo_overlay.png", ["mimic_cxr"])
+
+
+def test_overlay_stem_requires_exact_match_not_substring():
+    cxr_jpg = (
+        "datasets/mimic/p10000764/s57375967/"
+        "096052b7-d256dc40-453a102b-fa7d01c6-1b22c6b4.jpg"
+    )
+    assert path_allowed_for_sources(cxr_jpg, ["mimic_cxr"])
+    assert not path_allowed_for_sources("data/imaging_cache/overlays/100_overlay.png", ["mimic_cxr"])
 
 
 def test_cache_path_scoped_by_study():

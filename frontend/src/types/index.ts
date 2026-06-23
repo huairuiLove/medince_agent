@@ -159,6 +159,7 @@ export interface CaseLog {
   user_id?: string
   department?: string
   department_name_cn?: string
+  case_kind?: 'multi_agent' | 'imaging_vlm' | 'imaging_report'
   status: string
   created_at: string
   updated_at: string
@@ -169,6 +170,9 @@ export interface CaseLog {
   agent_opinions?: AgentOpinion[]
   arbitration?: ArbitrationResult
   clarify_output?: ClarifyOutput
+  vlm_analysis?: VlmAnalysis
+  imaging_report_id?: string
+  imaging_session_id?: string
   final_recommendation?: string
   events?: { stage: string; timestamp: string; payload: unknown }[]
 }
@@ -177,6 +181,7 @@ export interface CaseSummary {
   case_id: string
   department: string
   department_name_cn: string
+  case_kind?: 'multi_agent' | 'imaging_vlm' | 'imaging_report'
   status: string
   created_at: string
   updated_at: string

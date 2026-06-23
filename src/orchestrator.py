@@ -1,12 +1,8 @@
 """Multi-agent drug safety review orchestrator."""
 from __future__ import annotations
 
-from src.agents.allergy_specialist import AllergySpecialistAgent
 from src.agents.chief_reviewer import ChiefReviewerAgent
-from src.agents.clinical_pharmacist import ClinicalPharmacistAgent
 from src.agents.coordinator import CoordinatorAgent
-from src.agents.internal_medicine import InternalMedicineAgent
-from src.agents.pharmacy_inventory import PharmacyInventoryAgent
 from src.agents.department_specialist import DepartmentSpecialistAgent
 from src.agents.registry import get_agent_registry
 from src.agents.specialist_router import SpecialistAgent
@@ -58,11 +54,12 @@ class MultiAgentOrchestrator:
     def _ensure_agents(self) -> None:
         if self.pharmacist is not None:
             return
-        self.pharmacist = ClinicalPharmacistAgent(self.llm)
-        self.attending = InternalMedicineAgent(self.llm)
-        self.allergy = AllergySpecialistAgent(self.llm)
-        self.pharmacy = PharmacyInventoryAgent(self.llm)
-        self.specialist = SpecialistAgent(self.llm)
+        registry = get_agent_registry()
+        self.pharmacist = registry.create_agent("clinical_pharmacist", self.llm)
+        self.attending = registry.create_agent("internal_medicine", self.llm)
+        self.allergy = registry.create_agent("allergy_specialist", self.llm)
+        self.pharmacy = registry.create_agent("pharmacy_inventory", self.llm)
+        self.specialist = registry.create_agent("specialist", self.llm)
         self.chief = ChiefReviewerAgent(self.llm, rule_strict=self.rule_strict)
         self.coordinator = CoordinatorAgent(self.llm)
         self.debate_engine = DebateEngine(

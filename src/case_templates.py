@@ -200,6 +200,17 @@ def departments_missing_templates() -> list[str]:
     return [dept_id for dept_id in catalog_ids if dept_id not in covered]
 
 
+def departments_missing_primary_templates() -> list[str]:
+    """Departments without the canonical dept_{dept_id}_01 primary template."""
+    catalog_ids = sorted(_catalog_dept_ids())
+    primary = {
+        tpl.department
+        for tpl in list_case_templates()
+        if tpl.department and tpl.id == f"dept_{tpl.department}_01"
+    }
+    return [dept_id for dept_id in catalog_ids if dept_id not in primary]
+
+
 def get_case_template(template_id: str) -> CaseTemplate | None:
     for tpl in list_case_templates():
         if tpl.id == template_id:

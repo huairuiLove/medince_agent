@@ -97,7 +97,7 @@ from src.imaging.catalog import ImagingCatalog
 from src.imaging.memory_monitor import rss_mb
 from src.imaging.segment_service import SegmentService
 from src.imaging.segment_store import SegmentStore, make_image_key
-from src.imaging.volume_io import decode_base64_image, export_volume_slice, get_volume_meta, is_nifti
+from src.imaging.volume_io import decode_base64_image, export_volume_slice, get_volume_meta, is_nifti, resolve_vlm_image_paths
 from src.llm.vision_client import (
     BAILIAN_CONSOLE_URL,
     get_qwen_vlm_client,
@@ -165,7 +165,7 @@ async def lifespan(app: FastAPI):
 
     async def _build_semantic_index() -> None:
         try:
-            index_status = ensure_semantic_index_if_needed()
+            index_status = await asyncio.to_thread(ensure_semantic_index_if_needed)
             if index_status and index_status.get("index_built"):
                 logger.info(
                     "Drug semantic index ready",
@@ -229,6 +229,103 @@ SEGMENT_STORE = SegmentStore()
 REPORT_GENERATOR = ReportGenerator()
 REPORT_STORE = ReportStore()
 REPORT_QA = ReportQAService()
+
+
+def _department_for_user(user: UserProfile | None, patient_context: PatientContext | None = None) -> str:
+    if patient_context and (patient_context.department or "").strip():
+        return patient_context.department.strip()
+    if user and user.dept_id:
+        return user.dept_id
+    return ""
+
+
+def _patient_context_with_department(
+    patient_context: PatientContext,
+    user: UserProfile | None,
+) -> PatientContext:
+    dept = _department_for_user(user, patient_context)
+    if dept and not (patient_context.department or "").strip():
+        return patient_context.model_copy(update={"department": dept})
+    return patient_context
+
+
+def _vlm_final_recommendation(analysis: dict) -> str:
+    for key in ("medication_recommendation", "clinical_analysis", "imaging_findings"):
+        text = str(analysis.get(key) or "").strip()
+        if text:
+            return text
+    return str(analysis.get("reasoning") or "").strip() or "影像 VLM 查阅完成"
+
+
+def _patient_context_from_vlm(
+    *,
+    clinical_text: str,
+    analysis: dict,
+    department: str,
+) -> PatientContext:
+    diagnoses = analysis.get("diagnoses") or []
+    return PatientContext(
+        department=department,
+        source_text=clinical_text,
+        chief_complaint=str(analysis.get("chief_complaint") or ""),
+        symptoms_or_complaints=list(analysis.get("symptoms") or []),
+        allergies=list(analysis.get("allergies") or []),
+        diagnoses=[DiagnosisItem(name=str(d)) for d in diagnoses],
+    )
+
+
+def _persist_imaging_report_case(
+    report: ClinicalReport,
+    req: GenerateReportRequest,
+    user: UserProfile,
+) -> None:
+    meta = report.metadata or {}
+    vlm = meta.get("vlm_analysis")
+    vlm_dict = vlm if isinstance(vlm, dict) else {}
+    dept = _department_for_user(user, req.patient_context)
+    patient = req.patient_context
+    if patient is None:
+        patient = _patient_context_from_vlm(
+            clinical_text=req.clinical_text,
+            analysis=vlm_dict,
+            department=dept,
+        )
+    else:
+        patient = _patient_context_with_department(patient, user)
+
+    agent_opinions = meta.get("agent_opinions") or []
+    final = str(meta.get("final_recommendation") or "").strip()
+    if not final:
+        if agent_opinions and meta.get("arbitration"):
+            final = str(meta["arbitration"].get("final_recommendation") or "")
+        if not final:
+            final = _vlm_final_recommendation(vlm_dict)
+
+    patch: dict = {
+        "case_kind": "imaging_report",
+        "patient_context": patient.model_dump(),
+        "candidate_drugs": meta.get("candidate_drugs") or [],
+        "vlm_analysis": vlm_dict or None,
+        "imaging_report_id": report.report_id,
+        "imaging_session_id": report.imaging_session_id,
+        "raw_input_text": req.clinical_text,
+        "review_output": meta.get("rule_output"),
+        "agent_opinions": agent_opinions,
+        "debate": meta.get("debate"),
+        "safety_panel": meta.get("safety_panel"),
+        "arbitration": meta.get("arbitration"),
+        "final_recommendation": final,
+        "status": "complete",
+    }
+    CASE_STORE.upsert_case(
+        case_id=req.case_id,
+        patch=patch,
+        stage="imaging_report",
+        payload={"report_id": report.report_id, "modalities": report.modalities},
+        user_id=user.user_id,
+        department=dept,
+    )
+
 
 _SERVER_START = time.time()
 _REQUEST_COUNTS: dict[str, int] = {
@@ -659,7 +756,12 @@ def drug_catalog_search_model_rebuild() -> dict:
 
 @app.get("/api/v1/drug-catalog/search", tags=["CPOE"])
 def drug_catalog_search(q: str, limit: int = 20, mode: str = "semantic") -> dict:
-    results, effective_mode = DRUG_CATALOG.search(q, limit=min(limit, 100), mode=mode)
+    from src.llm.errors import DrugSearchModelNotReadyError
+
+    try:
+        results, effective_mode = DRUG_CATALOG.search(q, limit=min(limit, 100), mode=mode)
+    except DrugSearchModelNotReadyError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return {
         "query": q,
         "mode": effective_mode,
@@ -799,14 +901,14 @@ def multi_consult(
             raise HTTPException(status_code=422, detail="Failed to parse LLM extract output.")
         patient_context = build_patient_context_from_extraction(raw_text, extraction)
 
-    if user and not (patient_context.department or "").strip():
-        patient_context = patient_context.model_copy(update={"department": user.dept_id})
+    patient_context = _patient_context_with_department(patient_context, user)
 
     result = ORCHESTRATOR.run(patient_context, req.candidate_drugs, unable_to_answer=req.unable_to_answer)
 
-    if result.agent_opinions:
-        dept_id = (patient_context.department or "").strip() or (user.dept_id if user else "")
+    dept_id = _department_for_user(user, patient_context)
+    if result.agent_opinions or result.rule_output:
         patch: dict = {
+            "case_kind": "multi_agent",
             "patient_context": patient_context.model_dump(),
             "candidate_drugs": [d.model_dump() for d in req.candidate_drugs],
             "review_output": result.rule_output.model_dump(),
@@ -930,8 +1032,11 @@ def get_case(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     if user:
         case_dept = resolve_case_department(case.model_dump())
-        if case_dept and case_dept != user.dept_id:
-            raise HTTPException(status_code=403, detail="无权查看其他科室 Case")
+        if case_dept:
+            if case_dept != user.dept_id:
+                raise HTTPException(status_code=403, detail="无权查看其他科室 Case")
+        elif case.user_id and case.user_id != user.user_id:
+            raise HTTPException(status_code=403, detail="无权查看其他用户的 Case")
     return case
 
 
@@ -942,7 +1047,11 @@ def list_cases(
 ):
     if not user:
         return CaseListResponse(count=0, cases=[])
-    summaries = CASE_STORE.list_case_summaries(department=user.dept_id, limit=limit)
+    summaries = CASE_STORE.list_case_summaries(
+        department=user.dept_id,
+        user_id=user.user_id,
+        limit=limit,
+    )
     return CaseListResponse(count=len(summaries), cases=summaries)
 
 
@@ -1080,6 +1189,14 @@ def run_segmentation(
     if req.volume_path:
         _require_imaging_path(req.volume_path, user)
     visual = IMAGING_CATALOG.resolve_visual_only(req.image_path)
+    if req.volume_path and req.slice_index is not None:
+        from src.imaging.volume_io import export_volume_slice, is_nifti
+
+        vol_target = (resolve_path(".") / req.volume_path).resolve()
+        if is_nifti(vol_target):
+            axis = req.slice_axis if req.slice_axis in {"axial", "coronal", "sagittal"} else "axial"
+            slice_png = export_volume_slice(vol_target, axis=axis, slice_index=req.slice_index)
+            visual = _project_rel_path(slice_png)
     kwargs: dict = {"organ": req.organ}
     if req.volume_path:
         kwargs["volume_path"] = req.volume_path
@@ -1162,15 +1279,7 @@ def list_segment_runs(
 
 
 def _resolve_existing_visual_paths(paths: list[str]) -> list[str]:
-    root = resolve_path(".")
-    resolved: list[str] = []
-    for raw in paths:
-        if not raw:
-            continue
-        target = Path(raw) if Path(raw).is_absolute() else (root / raw).resolve()
-        if target.exists():
-            resolved.append(str(target))
-    return dedupe_paths(resolved)
+    return resolve_vlm_image_paths(paths)
 
 
 @app.get("/api/v1/imaging/vlm/config", tags=["Imaging"])
@@ -1250,7 +1359,33 @@ def analyze_with_vlm(
     source_used = [p for p in all_visual if p in source_paths]
     overlay_used = [p for p in all_visual if p in overlay_paths]
 
+    dept_id = user.dept_id
+    patient_context = _patient_context_from_vlm(
+        clinical_text=req.clinical_text,
+        analysis=analysis,
+        department=dept_id,
+    )
+    imaging_case = CASE_STORE.upsert_case(
+        patch={
+            "case_kind": "imaging_vlm",
+            "patient_context": patient_context.model_dump(),
+            "vlm_analysis": analysis,
+            "raw_input_text": req.clinical_text,
+            "final_recommendation": _vlm_final_recommendation(analysis),
+            "status": "complete",
+        },
+        stage="imaging_vlm",
+        payload={
+            "modality": req.primary_modality,
+            "images_used": rel_paths,
+            "model": client.model_name,
+        },
+        user_id=user.user_id,
+        department=dept_id,
+    )
+
     return VlmAnalyzeResponse(
+        case_id=imaging_case.case_id,
         analysis=analysis,
         images_used=rel_paths,
         model=client.model_name,
@@ -1285,7 +1420,9 @@ def generate_clinical_report(
         req.image_paths + req.overlay_paths + req.screenshot_paths,
         user,
     )
-    return REPORT_GENERATOR.generate(req, user_id=user.user_id)
+    report = REPORT_GENERATOR.generate(req, user_id=user.user_id)
+    _persist_imaging_report_case(report, req, user)
+    return report
 
 
 @app.get("/api/v1/imaging/report/{patient_id}", tags=["Imaging"])

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import VolumeMprViewer from '@/components/imaging/VolumeMprViewer.vue'
 import ImagingFileImage from '@/components/imaging/ImagingFileImage.vue'
 import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
@@ -48,6 +49,7 @@ const mprIndex = ref(0)
 const clinicalText = ref('')
 const organ = ref('brain')
 const loading = ref(false)
+const segmenting = ref(false)
 const error = ref('')
 const segmentResults = ref<SegmentResultItem[]>([])
 const segmentHistory = ref<SegmentRunRecord[]>([])
@@ -62,6 +64,7 @@ const vlmConfigured = ref(true)
 const vlmHint = ref('')
 const vlmImagesUsed = ref<string[]>([])
 const vlmDurationMs = ref(0)
+const vlmCaseId = ref<string | null>(null)
 const reportDurationMs = ref(0)
 const reportTask = ref<'vlm' | 'report' | null>(null)
 const taskElapsedMs = ref(0)
@@ -147,7 +150,8 @@ const targetOptions = computed(() => {
 function defaultModelsForStudy(s: ImagingStudy): ModelId[] {
   if (s.source === 'mimic_cxr') return ['cxr_lesion']
   if (s.source === 'brats2024') return ['brats_tumor']
-  if (s.source === 'kits19' || s.source === 'chest_ct') return ['totalsegmentator', 'vista3d']
+  if (s.source === 'kits19') return ['vista3d']
+  if (s.source === 'chest_ct') return ['totalsegmentator', 'vista3d']
   return ['sam2d']
 }
 
@@ -163,6 +167,20 @@ const currentImage = computed(() => {
   if (!selectedStudy.value?.image_paths.length) return ''
   const idx = Math.min(sliceIndex.value, selectedStudy.value.image_paths.length - 1)
   return selectedStudy.value.image_paths[idx]
+})
+
+function isVisualImagePath(path: string): boolean {
+  return /\.(png|jpe?g|webp|bmp)$/i.test(path)
+}
+
+/** Raster paths safe for Qwen VLM — never NIfTI volumes. */
+const vlmSourceImagePaths = computed(() => {
+  if (!includeSourceImage.value) return [] as string[]
+  if (viewMode.value === 'mpr' && selectedStudy.value?.volume_path) {
+    return [] as string[]
+  }
+  const p = currentImage.value
+  return p && isVisualImagePath(p) ? [p] : []
 })
 
 const currentSegmentImagePath = computed(() => {
@@ -263,15 +281,24 @@ watch(allowedSources, (sources) => {
   }
 }, { immediate: true })
 
+watch(
+  () => auth.department?.dept_id,
+  () => {
+    studies.value = []
+    selectedStudy.value = null
+    void loadStudies()
+    void medsafeApi.listSegmentModels().then(res => {
+      models.value = res.models
+    })
+  },
+)
+
 watch(sourceFilter, () => {
   void loadStudies()
 })
 
-watch([currentSegmentImagePath, mprAxis, mprIndex, sliceIndex, viewMode], () => {
-  if (selectedStudy.value) {
-    selectedOverlayKeys.value = new Set()
-    void loadSegmentHistory()
-  }
+watch([currentSegmentImagePath, viewMode], () => {
+  if (selectedStudy.value) void loadSegmentHistory()
 })
 
 function selectStudy(s: ImagingStudy) {
@@ -355,7 +382,7 @@ async function runSegmentation() {
   if (viewMode.value === 'gallery' && !currentImage.value) return
   if (viewMode.value === 'mpr' && !selectedStudy.value?.volume_path) return
 
-  loading.value = true
+  segmenting.value = true
   error.value = ''
   try {
     const imagePath = viewMode.value === 'mpr'
@@ -387,7 +414,7 @@ async function runSegmentation() {
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
-    loading.value = false
+    segmenting.value = false
   }
 }
 
@@ -465,6 +492,14 @@ async function generateReport() {
     error.value = '已启用用药审查，请填写候选药物，或先运行 VLM 查阅以自动带入推荐用药'
     return
   }
+  const hasVisual =
+    selectedOverlayPaths.value.length > 0
+    || screenshots.value.length > 0
+    || (includeSourceImage.value && Boolean(currentSegmentImagePath.value))
+  if (!hasVisual) {
+    error.value = '请先运行分割并勾选 overlay，或添加截图后再生成完整报告'
+    return
+  }
   loading.value = true
   error.value = ''
   startReportTask('report')
@@ -472,11 +507,12 @@ async function generateReport() {
   try {
     report.value = await medsafeApi.generateReport({
       patient_id: selectedStudy.value.patient_id,
+      case_id: vlmCaseId.value ?? undefined,
       clinical_text: clinicalText.value,
       primary_modality: selectedStudy.value.modality,
       modalities: [selectedStudy.value.modality],
       imaging_session_label: selectedStudy.value.study_id,
-      image_paths: includeSourceImage.value ? [currentSegmentImagePath.value].filter(Boolean) : [],
+      image_paths: vlmSourceImagePaths.value,
       overlay_paths: selectedOverlayPaths.value,
       screenshot_paths: screenshots.value.map(s => s.path),
       models_used: selectedModels.value,
@@ -484,8 +520,15 @@ async function generateReport() {
       include_source_image: includeSourceImage.value,
       run_medication_review: runMedicationReview.value,
       candidate_drugs: candidateDrugs,
+      patient_context: auth.profile?.dept_id
+        ? { department: auth.profile.dept_id, source_text: clinicalText.value }
+        : undefined,
     })
     reportDurationMs.value = Date.now() - started
+    const reviewErr = report.value.metadata?.medication_review_error
+    if (typeof reviewErr === 'string' && reviewErr) {
+      error.value = `报告已生成（VLM 部分完成），但用药审查未完成：${reviewErr}`
+    }
     await loadPatientReports()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -504,17 +547,20 @@ async function runVlmConsult() {
   loading.value = true
   error.value = ''
   vlmAnalysis.value = null
+  vlmCaseId.value = null
   startReportTask('vlm')
   const started = Date.now()
   try {
     const res = await medsafeApi.analyzeWithVlm({
       clinical_text: clinicalText.value,
       primary_modality: selectedStudy.value.modality,
+      image_paths: vlmSourceImagePaths.value,
       overlay_paths: selectedOverlayPaths.value,
       include_source_image: includeSourceImage.value,
       segmentation_summary: selectedSegmentSummary.value,
     })
     vlmAnalysis.value = res.analysis
+    vlmCaseId.value = res.case_id ?? null
     vlmModel.value = res.model
     vlmImagesUsed.value = res.images_used
     vlmDurationMs.value = res.duration_ms || Date.now() - started
@@ -580,8 +626,8 @@ const sortedParagraphs = computed(() =>
         <p v-else class="empty-hint">本科室未配置影像数据源，请联系管理员。</p>
         <ul class="study-list">
           <li v-if="!filteredStudies.length" class="empty-hint">
-            暂无该类型影像。运行：
-            <code>python scripts/fetch_demo_datasets.py --chest-ct --kits-cases 8 --monai-samples --nlmcxr-map 50</code>
+            暂无该类型影像。腹部 CT 演示：
+            <code>python scripts/fetch_demo_datasets.py --mimic-ct</code>
           </li>
           <li
             v-for="s in filteredStudies"
@@ -627,8 +673,8 @@ const sortedParagraphs = computed(() =>
           <option v-for="opt in targetOptions" :key="opt" :value="opt">{{ opt }}</option>
         </select>
 
-        <button class="btn-primary full" :disabled="loading || !selectedModels.length" @click="runSegmentation">
-          {{ viewMode === 'mpr' && hasVolume ? '运行 3D 分割' : '运行 2D 分割' }}
+        <button class="btn-primary full" :disabled="segmenting || loading || !selectedModels.length" @click="runSegmentation">
+          {{ segmenting ? '分割中（3D 较慢，请稍候）…' : (viewMode === 'mpr' && hasVolume ? '运行 3D 分割' : '运行 2D 分割') }}
         </button>
       </aside>
 
@@ -758,8 +804,13 @@ const sortedParagraphs = computed(() =>
       <textarea v-model="clinicalText" class="textarea" rows="3" />
 
       <label class="model-check include-src">
-        <input v-model="includeSourceImage" type="checkbox" />
-        <span>同时提交原图（overlay 已含底图，默认不勾选）</span>
+        <input v-model="includeSourceImage" type="checkbox" :disabled="viewMode === 'mpr' && Boolean(selectedStudy?.volume_path)" />
+        <span>
+          同时提交原图（overlay 已含底图，默认不勾选）
+          <small v-if="viewMode === 'mpr' && selectedStudy?.volume_path" class="hint-inline">
+            3D MPR 模式下请使用截图或仅提交 overlay
+          </small>
+        </span>
       </label>
 
       <label class="model-check include-src">
@@ -789,7 +840,7 @@ const sortedParagraphs = computed(() =>
         </button>
         <button
           class="btn-secondary"
-          :disabled="loading"
+          :disabled="loading || !selectedOverlayPaths.length && !screenshots.length"
           @click="generateReport"
         >
           <span v-if="reportTask === 'report'" class="spinner" />
@@ -821,6 +872,10 @@ const sortedParagraphs = computed(() =>
           · 提交 {{ vlmImagesUsed.length }} 张（overlay {{ selectedOverlayPaths.length
           }}{{ includeSourceImage ? ' + 原图' : '' }}）
           · 耗时 {{ formatElapsed(vlmDurationMs) }}
+          <span v-if="vlmCaseId">
+            · Case:
+            <RouterLink :to="`/cases/${vlmCaseId}`"><code>{{ vlmCaseId }}</code></RouterLink>
+          </span>
         </p>
         <ul v-if="vlmImagesUsed.length" class="used-images">
           <li v-for="p in vlmImagesUsed" :key="p">{{ p.split('/').slice(-2).join('/') }}</li>
@@ -858,6 +913,10 @@ const sortedParagraphs = computed(() =>
           {{ report.created_at }}
           <span v-if="reportDurationMs"> · 生成耗时 {{ formatElapsed(reportDurationMs) }}</span>
           <span v-if="report.metadata?.medication_review_ran === false" class="info-tag">未跑用药审查</span>
+          <span v-if="report.metadata?.medication_review_error" class="warn-tag">用药审查未完成</span>
+        </p>
+        <p v-if="report.metadata?.medication_review_error" class="err inline-err">
+          {{ report.metadata.medication_review_error }}
         </p>
 
         <RuleReviewSummary v-if="reportRuleOutput" :rule-output="reportRuleOutput" />
@@ -906,8 +965,11 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
   font-size: 0.88rem;
 }
 .info-tag { color: #1565c0; font-weight: 600; margin-left: 0.35rem; }
+.warn-tag { color: #e65100; font-weight: 600; margin-left: 0.35rem; }
+.inline-err { font-size: 0.85rem; margin: 0.35rem 0 0.75rem; }
 .used-images { font-size: 0.75rem; color: var(--text-muted); margin: 0 0 0.75rem 1.1rem; }
 .include-src { margin: 0.5rem 0 0.25rem; }
+.hint-inline { display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 0.15rem; }
 .grid-main { display: grid; grid-template-columns: 280px 1fr; gap: 1rem; margin-bottom: 1rem; }
 @media (max-width: 960px) { .grid-main { grid-template-columns: 1fr; } }
 .panel h3 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; margin: 0.75rem 0 0.5rem; }

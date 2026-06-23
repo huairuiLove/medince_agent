@@ -21,6 +21,40 @@ def resolve_case_department(data: dict) -> str:
     return ""
 
 
+def is_replayable_case(data: dict) -> bool:
+    kind = str(data.get("case_kind") or "").strip()
+    if kind in {"imaging_vlm", "imaging_report"}:
+        return True
+    if data.get("vlm_analysis"):
+        return True
+    if data.get("agent_opinions"):
+        return True
+    return False
+
+
+def case_visible_to_user(data: dict, *, department: str, user_id: str) -> bool:
+    dept_filter = (department or "").strip()
+    if not dept_filter:
+        return False
+    case_dept = resolve_case_department(data)
+    if case_dept == dept_filter:
+        return True
+    if not case_dept and user_id and str(data.get("user_id") or "") == user_id:
+        return True
+    return False
+
+
+def infer_case_kind(data: dict) -> str:
+    kind = str(data.get("case_kind") or "").strip()
+    if kind:
+        return kind
+    if data.get("imaging_report_id"):
+        return "imaging_report"
+    if data.get("vlm_analysis"):
+        return "imaging_vlm"
+    return "multi_agent"
+
+
 def department_name_cn(dept_id: str) -> str:
     dept_id = (dept_id or "").strip()
     if not dept_id:
@@ -93,8 +127,8 @@ class CaseStore:
         self,
         *,
         department: str,
+        user_id: str = "",
         limit: int = 50,
-        multi_agent_only: bool = True,
     ) -> list[CaseSummary]:
         dept_filter = (department or "").strip()
         if not dept_filter:
@@ -110,19 +144,21 @@ class CaseStore:
             except (OSError, ValueError, TypeError):
                 continue
 
-            case_dept = resolve_case_department(data)
-            if case_dept != dept_filter:
+            if not case_visible_to_user(data, department=dept_filter, user_id=user_id):
                 continue
 
-            agent_opinions = data.get("agent_opinions") or []
-            if multi_agent_only and not agent_opinions:
+            if not is_replayable_case(data):
                 continue
+
+            case_dept = resolve_case_department(data) or dept_filter
+            agent_opinions = data.get("agent_opinions") or []
 
             summaries.append(
                 CaseSummary(
                     case_id=str(data.get("case_id") or path.stem),
                     department=case_dept,
                     department_name_cn=str(data.get("department_name_cn") or "") or department_name_cn(case_dept),
+                    case_kind=infer_case_kind(data),  # type: ignore[arg-type]
                     status=str(data.get("status") or "in_progress"),
                     created_at=str(data.get("created_at") or ""),
                     updated_at=str(data.get("updated_at") or ""),
@@ -164,7 +200,9 @@ class CaseStore:
         if patch:
             data.update(to_jsonable(patch))
 
-        resolved_dept = resolve_case_department(data)
+        resolved_dept = (department or "").strip()
+        if not resolved_dept:
+            resolved_dept = resolve_case_department(data)
         if resolved_dept:
             data["department"] = resolved_dept
             data["department_name_cn"] = department_name_cn(resolved_dept)

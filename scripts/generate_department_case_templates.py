@@ -10,15 +10,30 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.case_templates import departments_missing_templates, list_case_templates
+from src.case_templates import (
+    departments_missing_primary_templates,
+    departments_missing_templates,
+    list_case_templates,
+)
 from src.config import datasets_path
 from src.review_engine import ReviewEngine
 from src.schemas import CandidateDrug, PatientContext
 from src.utils import load_json, save_json
 
 OUTPUT = datasets_path("case_templates/department_templates.json")
+BENCHMARK_TEMPLATES_OUTPUT = datasets_path("case_templates/department_benchmark_templates.json")
 STAGE11_OUTPUT = datasets_path("case_templates/stage11_clinical_cases.json")
 RULE_SAMPLES = datasets_path("case_templates/rule_review_samples.json")
+BENCHMARK_CASES_DIR = datasets_path("benchmark/cases")
+
+# Benchmark JSON uses short dept ids; catalog.json uses canonical dept_id.
+BENCH_DEPT_ALIAS: dict[str, str] = {
+    "obgyn": "obstetrics_gynecology",
+    "infectious": "infectious_disease",
+}
+
+# Negative-control templates (expected no high-risk hit) — skip min-evidence validation.
+NEGATIVE_TEMPLATE_IDS = frozenset({"dept_general_internal_safe_01"})
 
 _SUBJECT_BASE = 60_001
 _HADM_BASE = 70_001
@@ -342,25 +357,25 @@ DEPT_RICH_CASES: list[dict[str, Any]] = [
     },
     {
         "id": "dept_general_internal_01",
-        "title": "高血压联合用药（阴性对照）",
-        "description": "标准 CCB+ACEI 联合降压，信息完整，预期无高风险命中",
+        "title": "住院多病共存：华法林 + NSAIDs",
+        "description": "全科住院患者房颤抗凝基础上加用布洛芬，审查出血风险",
         "department": "general_internal",
         "patient": _patient(
             "general_internal",
             idx=9,
-            age=55,
+            age=68,
             gender="M",
-            admission_type="OUTPATIENT",
-            source_text="55岁男性，原发性高血压，氨氯地平控制欠佳，拟加用 ACEI 联合降压。",
-            chief_complaint="血压控制不佳",
-            history_present_illness="家庭血压 150/95 mmHg，无蛋白尿及血钾异常；eGFR 85。",
-            symptoms=[],
-            pmh=["高血压"],
-            diagnoses=[_dx("401.9", "原发性高血压")],
-            current_medications=[_med("amlodipine", dose="5 mg", frequency="qd")],
-            egfr=85.0,
+            admission_type="INPATIENT",
+            source_text="68岁男性，房颤、高血压多病共存住院，长期华法林；膝骨关节炎疼痛明显，拟短期布洛芬。",
+            chief_complaint="膝关节痛",
+            history_present_illness="INR 2.4，无活动性出血；膝 OA 影像学明确。",
+            symptoms=["膝关节痛", "活动受限"],
+            pmh=["房颤", "高血压", "骨关节炎"],
+            diagnoses=[_dx("427.31", "心房颤动"), _dx("401.9", "高血压"), _dx("715.96", "膝骨关节炎")],
+            current_medications=[_med("warfarin", dose="5 mg", frequency="qd")],
+            egfr=72.0,
         ),
-        "candidate_drugs": [_cand("lisinopril", dose="10 mg", frequency="qd", indication="高血压")],
+        "candidate_drugs": [_cand("ibuprofen", dose="400 mg", frequency="tid", indication="骨关节炎疼痛")],
     },
     {
         "id": "dept_nephrology_01",
@@ -707,8 +722,8 @@ DEPT_RICH_CASES: list[dict[str, Any]] = [
     },
     {
         "id": "dept_ent_01",
-        "title": "急性咽炎抗感染",
-        "description": "A 组链球菌咽炎，阿莫西林标准治疗（信息完整阴性对照）",
+        "title": "急性咽炎：青霉素过敏 + 阿莫西林",
+        "description": "链球菌咽炎候选阿莫西林，明确青霉素过敏史，应触发过敏禁忌",
         "department": "ent",
         "patient": _patient(
             "ent",
@@ -716,13 +731,14 @@ DEPT_RICH_CASES: list[dict[str, Any]] = [
             age=26,
             gender="F",
             admission_type="URGENT",
-            source_text="26岁女性，急性咽炎，链球菌快速检测阳性；无青霉素过敏，拟阿莫西林 7 天疗程。",
+            source_text="26岁女性，急性咽炎，链球菌快速检测阳性；既往青霉素过敏（皮疹），耳鼻喉科拟阿莫西林。",
             chief_complaint="咽痛发热 2 天",
             history_present_illness="咽部充血，扁桃体渗出；体温 37.8℃。",
             symptoms=["咽痛", "发热", "吞咽痛"],
-            pmh=[],
+            pmh=["青霉素过敏"],
             diagnoses=[_dx("462", "急性咽炎")],
             current_medications=[_med("loratadine", dose="10 mg", frequency="qd")],
+            allergies=["penicillin", "青霉素"],
         ),
         "candidate_drugs": [_cand("amoxicillin", dose="500 mg", frequency="tid", indication="急性咽炎")],
     },
@@ -751,7 +767,178 @@ DEPT_RICH_CASES: list[dict[str, Any]] = [
         ),
         "candidate_drugs": [_cand("clopidogrel", dose="75 mg", frequency="qd", indication="卒中二级预防")],
     },
+    {
+        "id": "dept_general_internal_safe_01",
+        "title": "高血压联合用药（阴性对照）",
+        "description": "标准 CCB+ACEI 联合降压，信息完整，预期无高风险命中",
+        "department": "general_internal",
+        "patient": _patient(
+            "general_internal",
+            idx=27,
+            age=55,
+            gender="M",
+            admission_type="OUTPATIENT",
+            source_text="55岁男性，原发性高血压，氨氯地平控制欠佳，拟加用 ACEI 联合降压。",
+            chief_complaint="血压控制不佳",
+            history_present_illness="家庭血压 150/95 mmHg，无蛋白尿及血钾异常；eGFR 85。",
+            symptoms=[],
+            pmh=["高血压"],
+            diagnoses=[_dx("401.9", "原发性高血压")],
+            current_medications=[_med("amlodipine", dose="5 mg", frequency="qd")],
+            egfr=85.0,
+        ),
+        "candidate_drugs": [_cand("lisinopril", dose="10 mg", frequency="qd", indication="高血压")],
+    },
+    {
+        "id": "dept_pharmacy_02",
+        "title": "高警示：胰岛素剂量审查",
+        "description": "临床药师会诊：2 型糖尿病住院患者胰岛素加量，审查低血糖风险",
+        "department": "pharmacy",
+        "patient": _patient(
+            "pharmacy",
+            idx=28,
+            age=58,
+            gender="F",
+            admission_type="INPATIENT",
+            source_text="58岁女性，2 型糖尿病入院调糖，已用基础胰岛素；因空腹血糖 12 mmol/L 拟加用格列本脲。",
+            chief_complaint="血糖控制不佳",
+            history_present_illness="HbA1c 9.1%，eGFR 88；无低血糖史。",
+            symptoms=["多饮", "乏力"],
+            pmh=["2 型糖尿病"],
+            diagnoses=[_dx("250.00", "2 型糖尿病")],
+            current_medications=[_med("insulin glargine", dose="20 U", route="SC", frequency="qd")],
+            egfr=88.0,
+        ),
+        "candidate_drugs": [_cand("glibenclamide", dose="5 mg", frequency="qd", indication="2 型糖尿病")],
+    },
+    {
+        "id": "dept_pharmacy_03",
+        "title": "高警示：甲氨蝶呤监测",
+        "description": "风湿科会诊：甲氨蝶呤每周方案，审查骨髓抑制与 DDI",
+        "department": "pharmacy",
+        "patient": _patient(
+            "pharmacy",
+            idx=29,
+            age=54,
+            gender="M",
+            admission_type="OUTPATIENT",
+            source_text="54岁男性，类风湿关节炎每周甲氨蝶呤；因上呼吸道感染拟加复方磺胺甲噁唑。",
+            chief_complaint="发热咳嗽",
+            history_present_illness="DAS28 3.8，肝肾功能正常；无磺胺过敏史。",
+            symptoms=["发热", "咳嗽"],
+            pmh=["类风湿关节炎"],
+            diagnoses=[_dx("714.0", "类风湿关节炎"), _dx("486", "上呼吸道感染")],
+            current_medications=[
+                _med("methotrexate", dose="15 mg", frequency="weekly"),
+                _med("folic acid", dose="5 mg", frequency="weekly"),
+            ],
+        ),
+        "candidate_drugs": [_cand("trimethoprim sulfamethoxazole", dose="960 mg", frequency="bid", indication="上呼吸道感染")],
+    },
 ]
+
+
+def _normalize_bench_department(raw: str, catalog_ids: frozenset[str]) -> str:
+    dept = BENCH_DEPT_ALIAS.get(raw.strip(), raw.strip())
+    return dept if dept in catalog_ids else ""
+
+
+def _enrich_benchmark_patient(pc: dict[str, Any], description: str, dept_id: str) -> dict[str, Any]:
+    out = dict(pc)
+    out["department"] = dept_id
+    if not out.get("admission_type"):
+        out["admission_type"] = "INPATIENT"
+    if not out.get("allergies"):
+        out["allergies"] = ["NKDA"]
+    if not out.get("missing_fields"):
+        out["missing_fields"] = []
+    if not out.get("lactation_status"):
+        out["lactation_status"] = "not_lactating"
+    if not out.get("pregnancy_status"):
+        out["pregnancy_status"] = "not_applicable"
+    if not str(out.get("source_text") or "").strip():
+        age = out.get("age")
+        gender = out.get("gender")
+        gender_cn = "男" if gender == "M" else "女" if gender == "F" else ""
+        age_part = f"{age}岁" if age else ""
+        out["source_text"] = f"{age_part}{gender_cn}性患者，{description.strip()}"
+    if not str(out.get("chief_complaint") or "").strip():
+        out["chief_complaint"] = description.strip()[:80]
+    out.setdefault("symptoms_or_complaints", [])
+    out.setdefault("past_medical_history", [])
+    out.setdefault("history_present_illness", "")
+    for med in out.get("current_medications", []):
+        if isinstance(med, dict):
+            med.setdefault("ingredient", med.get("name", ""))
+            med.setdefault("route", "PO")
+            med.setdefault("frequency", "qd")
+    return out
+
+
+def build_benchmark_template_cases() -> list[dict]:
+    """Import Stage 9/11 benchmark cases as loadable case templates (per-dept extras)."""
+    catalog = load_json(datasets_path("departments/catalog.json"))
+    catalog_ids = frozenset(
+        item["dept_id"] for item in catalog.get("departments", []) if item.get("dept_id")
+    )
+    primary_ids = {f"dept_{d}_01" for d in catalog_ids}
+    cases: list[dict] = []
+    seen: set[str] = set()
+
+    if not BENCHMARK_CASES_DIR.is_dir():
+        return cases
+
+    for path in sorted(BENCHMARK_CASES_DIR.glob("*.json")):
+        name = path.name
+        if name.startswith("negative_safe_"):
+            continue
+        data = load_json(path)
+        if not isinstance(data, dict):
+            continue
+        req = data.get("request")
+        if not isinstance(req, dict):
+            continue
+        pc_raw = req.get("patient_context")
+        if not isinstance(pc_raw, dict):
+            continue
+        dept_id = _normalize_bench_department(str(data.get("department") or ""), catalog_ids)
+        if not dept_id:
+            dept_id = _normalize_bench_department(str(pc_raw.get("department") or ""), catalog_ids)
+        if not dept_id:
+            continue
+
+        template_id = str(data.get("case_id") or data.get("id") or path.stem)
+        if template_id in seen or template_id in primary_ids:
+            continue
+        seen.add(template_id)
+
+        description = str(data.get("description") or template_id)
+        title = description.split("。")[0].split("：")[-1].strip() or template_id
+        patient = _enrich_benchmark_patient(pc_raw, description, dept_id)
+        candidates = list(req.get("candidate_drugs") or [])
+        for cand in candidates:
+            if isinstance(cand, dict):
+                cand.setdefault("ingredient", cand.get("name", ""))
+                cand.setdefault("route", "PO")
+                cand.setdefault("frequency", "qd")
+                cand.setdefault("source", "candidate")
+
+        cases.append(
+            {
+                "id": template_id,
+                "title": title[:120],
+                "description": description,
+                "department": dept_id,
+                "category": dept_id,
+                "request": {
+                    "patient_context": patient,
+                    "candidate_drugs": candidates,
+                    "persist": False,
+                },
+            }
+        )
+
+    return cases
 
 
 def _wrap_case(item: dict[str, Any]) -> dict[str, Any]:
@@ -772,25 +959,37 @@ def _wrap_case(item: dict[str, Any]) -> dict[str, Any]:
 def build_department_cases() -> list[dict]:
     catalog = load_json(datasets_path("departments/catalog.json"))
     dept_ids = [item["dept_id"] for item in catalog.get("departments", []) if item.get("dept_id")]
-    by_dept = {item["department"]: item for item in DEPT_RICH_CASES}
-    missing = [d for d in dept_ids if d not in by_dept]
+    by_dept_primary: dict[str, dict[str, Any]] = {}
+    extras: list[dict[str, Any]] = []
+    for item in DEPT_RICH_CASES:
+        dept = item["department"]
+        if dept in dept_ids and dept not in by_dept_primary:
+            by_dept_primary[dept] = item
+        else:
+            extras.append(item)
+    missing = [d for d in dept_ids if d not in by_dept_primary]
     if missing:
         raise SystemExit(f"Missing rich scenarios for: {', '.join(missing)}")
-    return [_wrap_case(by_dept[d]) for d in dept_ids]
+    ordered = [_wrap_case(by_dept_primary[d]) for d in dept_ids]
+    ordered.extend(_wrap_case(item) for item in extras)
+    return ordered
 
 
 def validate_templates(cases: list[dict], *, min_evidence: int = 0, label: str = "") -> None:
     engine = ReviewEngine()
     weak: list[str] = []
     for case in cases:
+        case_id = case.get("id") or case.get("case_id") or ""
+        if case_id in NEGATIVE_TEMPLATE_IDS:
+            continue
         req = case.get("request") or case
         pc = PatientContext.model_validate(req["patient_context"])
         cds = [CandidateDrug.model_validate(c) for c in req.get("candidate_drugs", [])]
         out = engine.review(pc, cds)
         if len(out.evidence) < min_evidence and not out.need_clarification:
-            weak.append(f"{case.get('id') or case.get('case_id')}: 0 证据且无澄清")
+            weak.append(f"{case_id}: 0 证据且无澄清")
         elif len(out.evidence) == 0 and out.need_clarification and "allergies" in out.clarification_targets and not pc.allergies:
-            weak.append(f"{case.get('id') or case.get('case_id')}: 仅因过敏缺失而澄清")
+            weak.append(f"{case_id}: 仅因过敏缺失而澄清")
     if weak and min_evidence > 0:
         print(f"Warning ({label}):", *weak, sep="\n  - ")
 
@@ -908,7 +1107,7 @@ def write_stage11_clinical_cases() -> None:
         "clinical_cardio_polypharmacy_01": "dept_cardiology_01",
         "clinical_neuro_epilepsy_01": "dept_neurology_01",
         "clinical_oncology_chemo_01": "dept_oncology_01",
-        "clinical_safe_htn_01": "dept_general_internal_01",
+        "clinical_safe_htn_01": "dept_general_internal_safe_01",
     }
     dept_cases = {c["id"]: c for c in build_department_cases()}
     stage11_cases = []
@@ -936,6 +1135,14 @@ def main() -> None:
     save_json(payload, OUTPUT)
     print(f"Wrote {len(cases)} department templates to {OUTPUT}")
 
+    bench_cases = build_benchmark_template_cases()
+    bench_payload = {
+        "description": "各科室扩展病例模板 — 由 benchmark 病例转换，补充科室规则场景库",
+        "cases": bench_cases,
+    }
+    save_json(bench_payload, BENCHMARK_TEMPLATES_OUTPUT)
+    print(f"Wrote {len(bench_cases)} benchmark-derived templates to {BENCHMARK_TEMPLATES_OUTPUT}")
+
     validate_templates(cases, min_evidence=1, label="department")
     enrich_rule_review_samples()
     print(f"Enriched {RULE_SAMPLES}")
@@ -945,6 +1152,9 @@ def main() -> None:
     missing = departments_missing_templates()
     if missing:
         raise SystemExit(f"Departments still missing templates: {', '.join(missing)}")
+    missing_primary = departments_missing_primary_templates()
+    if missing_primary:
+        raise SystemExit(f"Departments missing primary dept_*_01 template: {', '.join(missing_primary)}")
     print(f"Coverage OK: {len(list_case_templates())} templates total")
 
 

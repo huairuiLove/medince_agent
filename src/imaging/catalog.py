@@ -118,12 +118,35 @@ class ImagingCatalog:
             for study_dir in sorted(patient_dir.iterdir()):
                 if not study_dir.is_dir():
                     continue
+                cache_key = f"mimic_{patient_dir.name}_{study_dir.name}"
+                volume = study_dir / "imaging.nii.gz"
+                if not volume.is_file():
+                    volume = next(
+                        (p for p in study_dir.glob("*.nii.gz") if "seg" not in p.name.lower()),
+                        None,
+                    )
+                if volume is not None:
+                    pngs = self._volume_previews(volume, cache_key)
+                    items.append(
+                        ImagingStudyItem(
+                            study_id=cache_key,
+                            patient_id=patient_dir.name,
+                            modality="CT",
+                            source="mimic",
+                            title=f"腹部 CT · {patient_dir.name}/{study_dir.name}",
+                            image_paths=pngs,
+                            volume_path=self._rel(volume),
+                            slice_count=len(pngs),
+                            collection="MIMIC-CT-Demo",
+                        )
+                    )
+                    continue
                 images = sorted(str(self._rel(p)) for p in study_dir.glob("*.jpg"))
                 if not images:
                     continue
                 items.append(
                     ImagingStudyItem(
-                        study_id=f"mimic_{patient_dir.name}_{study_dir.name}",
+                        study_id=cache_key,
                         patient_id=patient_dir.name,
                         modality="CT",
                         source="mimic",

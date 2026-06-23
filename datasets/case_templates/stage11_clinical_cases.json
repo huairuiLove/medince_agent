@@ -245,8 +245,8 @@
       "category": "general_internal",
       "request": {
         "patient_context": {
-          "subject_id": 60010,
-          "hadm_id": 70010,
+          "subject_id": 60028,
+          "hadm_id": 70028,
           "age": 55,
           "gender": "M",
           "department": "general_internal",

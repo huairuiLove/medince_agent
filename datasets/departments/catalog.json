@@ -229,8 +229,17 @@
       "sort_order": 90,
       "imaging_sources": ["mimic"],
       "default_models": ["totalsegmentator"],
-      "recommended_datasets": [],
-      "vision_models": [],
+      "recommended_datasets": [
+        {
+          "id": "mimic_ct_demo",
+          "name": "MONAI 腹部 CT 示例",
+          "modality": "CT",
+          "notes": "python scripts/fetch_demo_datasets.py --mimic-ct；脾/胰/肾上腺区 TotalSegmentator"
+        }
+      ],
+      "vision_models": [
+        {"model_id": "totalsegmentator", "name": "TotalSegmentator", "task": "胰/肾上腺/甲状腺相关腹部器官"}
+      ],
       "description": "糖尿病/甲状腺等慢病用药与内分泌专科规则"
     },
     {

@@ -3,7 +3,7 @@ llm:
   api_key: ''
   base_url: https://api.deepseek.com/v1
   model: deepseek-chat
-  timeout: 60
+  timeout: 120
   temperature: 0.0
 agents:
   rule_strict: true

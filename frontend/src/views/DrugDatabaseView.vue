@@ -87,16 +87,21 @@ function toggleExpand(code: string) {
 }
 
 async function loadMeta() {
-  const [s, cls, model] = await Promise.all([
+  const [sRes, clsRes, modelRes] = await Promise.allSettled([
     medsafeApi.getDrugCatalogStats(),
     medsafeApi.getDrugClassification(4),
     medsafeApi.getDrugSearchModelStatus(),
   ])
-  stats.value = s
-  classification.value = cls.tree
-  specialFilters.value = cls.special_filters
-  searchModel.value = model
-  for (const root of cls.tree) expandedNodes.value.add(root.code)
+  if (sRes.status === 'fulfilled') stats.value = sRes.value
+  if (clsRes.status === 'fulfilled') {
+    classification.value = clsRes.value.tree
+    specialFilters.value = clsRes.value.special_filters
+    for (const root of clsRes.value.tree) expandedNodes.value.add(root.code)
+  }
+  if (modelRes.status === 'fulfilled') {
+    searchModel.value = modelRes.value
+    if (!modelReady.value) searchMode.value = 'keyword'
+  }
 }
 
 async function loadBrowse() {
@@ -126,9 +131,7 @@ async function runSearch() {
     return
   }
   if (semanticBlocked.value) {
-    error.value =
-      '语义检索模型未就绪。请先下载模型并重建索引，或切换为「关键词」模式。'
-    return
+    searchMode.value = 'keyword'
   }
   loading.value = true
   error.value = ''
@@ -241,8 +244,8 @@ onMounted(async () => {
     if (q) {
       searchQuery.value = q
       if (route.query.mode === 'keyword') searchMode.value = 'keyword'
-      if (!semanticBlocked.value || searchMode.value === 'keyword') await runSearch()
-      else error.value = '语义检索模型未就绪，请下载模型或改用关键词模式。'
+    if (semanticBlocked.value) searchMode.value = 'keyword'
+    if (!semanticBlocked.value || searchMode.value === 'keyword') await runSearch()
     } else if (filter) {
       activeFilter.value = filter
       await loadBrowse()
@@ -322,13 +325,12 @@ onMounted(async () => {
         type="search"
         placeholder="搜索通用名、商品名、英文 INN、院内码…"
         autocomplete="off"
-        :disabled="semanticBlocked"
       />
       <select v-model="searchMode" class="select mode-select">
         <option value="semantic">语义</option>
         <option value="keyword">关键词</option>
       </select>
-      <button class="btn-primary" type="button" :disabled="semanticBlocked && !!searchQuery.trim()" @click="runSearch">
+      <button class="btn-primary" type="button" @click="runSearch">
         搜索
       </button>
     </div>

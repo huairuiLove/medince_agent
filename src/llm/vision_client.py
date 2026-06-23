@@ -9,10 +9,12 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from PIL import Image
 
 from src.config import get_config
 from src.llm.errors import LLMNotConfiguredError, VisionLLMError
 from src.utils import extract_json_payload
+from src.imaging.volume_io import is_vlm_compatible_image
 
 
 BAILIAN_CONSOLE_URL = "https://bailian.console.aliyun.com/cn-beijing"
@@ -154,6 +156,11 @@ def _raise_vision_upstream_error(exc: Exception, *, model: str) -> None:
             )
         elif status == 429:
             hint = "百炼请求频率或配额已达上限，请稍后重试或升级套餐。"
+        elif detail and "illegal" in detail.lower():
+            hint = (
+                "提交的图片格式无效（可能混入了 NIfTI 体数据或非 PNG/JPEG 文件）。"
+                "请仅勾选分割 overlay，或在 2D 切片模式下勾选原图；3D MPR 请用截图。"
+            )
         else:
             hint = "请检查百炼服务状态、模型名称与网络连接。"
         raise VisionLLMError("Qwen VLM", detail, status_code=status, hint=hint) from exc
@@ -176,9 +183,21 @@ class OpenAIVisionClient(VisionLLMClient):
 
     def _encode_image(self, path: str) -> dict[str, Any]:
         p = Path(path)
+        if not p.is_file():
+            raise VisionLLMError("Qwen VLM", f"影像文件不存在：{path}")
+        try:
+            with Image.open(p) as img:
+                img.load()
+                fmt = (img.format or "PNG").upper()
+        except Exception as exc:
+            raise VisionLLMError(
+                "Qwen VLM",
+                f"无法读取影像文件 {p.name}：{exc}",
+                hint="请确认 overlay 为有效的 PNG/JPEG，3D 体数据需先分割生成 overlay。",
+            ) from exc
+        mime_map = {"JPEG": "jpeg", "PNG": "png", "WEBP": "webp", "BMP": "bmp", "GIF": "gif"}
+        mime = mime_map.get(fmt, "png")
         data = base64.b64encode(p.read_bytes()).decode("ascii")
-        suffix = p.suffix.lower().lstrip(".")
-        mime = "jpeg" if suffix in {"jpg", "jpeg"} else "png" if suffix == "png" else "jpeg"
         return {
             "type": "image_url",
             "image_url": {"url": f"data:image/{mime};base64,{data}"},
@@ -208,7 +227,7 @@ class OpenAIVisionClient(VisionLLMClient):
             }
         ]
         for img in images[:12]:
-            if Path(img).exists():
+            if is_vlm_compatible_image(img):
                 content.append(self._encode_image(img))
 
         if len(content) <= 1:

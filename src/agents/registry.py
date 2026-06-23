@@ -222,6 +222,9 @@ class AgentRegistry:
             agent_name=spec.agent_name,
             role=spec.role,
             system_prompt=prompt,
+            department=variables.get("department", ""),
+            common_indications=list(department_context.common_indications) if department_context else [],
+            priority_categories=list(department_context.priority_categories) if department_context else [],
         )
 
     def create_debate_agents(

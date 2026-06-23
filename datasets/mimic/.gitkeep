@@ -1,9 +1,13 @@
 # Official MIMIC-CXR-JPG layout (PhysioNet partial download):
-#   data/mimic/p{subject_id}/s{study_id}/*.jpg
-#   data/mimic/p{subject_id}/s{study_id}.txt   (radiology report)
+#   datasets/mimic/p{subject_id}/s{study_id}/*.jpg
+#   datasets/mimic/p{subject_id}/s{study_id}.txt   (radiology report)
 #
-# Example:
-#   data/mimic/p10000980/s54577367/*.jpg
+# Abdominal CT demo (source=mimic, for endocrinology / gastroenterology):
+#   datasets/mimic/endocrine_ct_001/s001/imaging.nii.gz
+#   Fetch: python scripts/fetch_demo_datasets.py --mimic-ct
+#
+# Example CXR:
+#   datasets/mimic/p10000980/s54577367/*.jpg
 #
 # Scanned as source=mimic_cxr, collection=MIMIC-CXR-JPG (not CT).
 # Rebuild manifest: python scripts/build_mimic_cxr_manifest.py

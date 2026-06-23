@@ -5,6 +5,7 @@ Sources:
   - MIMIC-III Demo (PhysioNet open access, ~13 MB)
   - Open-I NLMCXR chest X-rays (subset → datasets/mimic_cxr/)
   - KiTS19 imaging via HuggingFace (neheller/KiTS-Challenge-Imaging)
+  - MONAI abdominal CT sample → datasets/mimic/ (endocrinology / gastro demo)
   - MONAI BraTS sample + Open-I CXR (via fetch_imaging_samples)
 
 MIMIC-III full + MIMIC-CXR require separate PhysioNet credentialing (user handles).
@@ -33,6 +34,10 @@ MONAI_RELEASE = "https://github.com/Project-MONAI/MONAI-extra-test-data/releases
 CHEST_CT_SAMPLES = (
     ("copd_insp", f"{MONAI_RELEASE}/copd1_highres_INSP_STD_COPD_img.nii.gz"),
     ("copd_exp", f"{MONAI_RELEASE}/copd1_highres_EXP_STD_COPD_img.nii.gz"),
+)
+# Abdominal CT demos for source=mimic (endocrinology / gastroenterology / etc.)
+MIMIC_CT_SAMPLES = (
+    ("endocrine_ct_001", "s001", f"{MONAI_RELEASE}/spleen_test.nii.gz"),
 )
 
 # Known working Open-I direct PNG URLs (NLMCXR collection; many legacy paths return 404)
@@ -69,14 +74,14 @@ def extract_nlmcxr_to_mimic_cxr(archive_dir: Path, max_images: int, *, force: bo
     return count
 
 
-def _download_stream(url: str, dest: Path, *, force: bool = False) -> bool:
+def _download_stream(url: str, dest: Path, *, force: bool = False, timeout: float = 900.0) -> bool:
     ensure_dir(dest.parent)
     if dest.exists() and dest.stat().st_size > 1000 and not force:
         print(f"  exists -> {dest.relative_to(ROOT)}")
         return True
     print(f"  GET {url[:90]}...")
     headers = {"User-Agent": "MedSafe/1.0 (research demo)"}
-    with httpx.Client(timeout=600.0, follow_redirects=True, headers=headers) as client:
+    with httpx.Client(timeout=timeout, follow_redirects=True, headers=headers) as client:
         with client.stream("GET", url) as resp:
             resp.raise_for_status()
             with dest.open("wb") as handle:
@@ -195,6 +200,33 @@ def fetch_kits19_cases(case_count: int, *, force: bool = False) -> int:
     return downloaded
 
 
+def fetch_mimic_ct_samples(*, force: bool = False) -> int:
+    """Abdominal CT NIfTI under datasets/mimic/ (source=mimic, not chest XR)."""
+    print("=== MIMIC-style abdominal CT demos (MONAI public samples) ===")
+    base = ROOT / "datasets" / "mimic"
+    cache = ROOT / "data" / "imaging_cache" / "downloads"
+    ensure_dir(cache)
+    downloaded = 0
+    for patient_id, study_id, url in MIMIC_CT_SAMPLES:
+        case_dir = base / patient_id / study_id
+        imaging = case_dir / "imaging.nii.gz"
+        if imaging.exists() and imaging.stat().st_size > 1_000_000 and not force:
+            print(f"  exists -> {imaging.relative_to(ROOT)}")
+            downloaded += 1
+            continue
+        try:
+            cached = cache / Path(url).name
+            if not cached.exists() or cached.stat().st_size < 1_000_000 or force:
+                _download_stream(url, cached, force=force)
+            ensure_dir(case_dir)
+            shutil.copy2(cached, imaging)
+            print(f"  -> {imaging.relative_to(ROOT)} ({imaging.stat().st_size // 1024} KB)")
+            downloaded += 1
+        except Exception as exc:
+            print(f"  skip {patient_id}/{study_id}: {exc}")
+    return downloaded
+
+
 def fetch_chest_ct_samples(*, force: bool = False) -> int:
     """Public lung/chest CT NIfTI samples (MONAI COPD demo volumes)."""
     print("=== Chest / lung CT samples (MONAI COPD) ===")
@@ -237,6 +269,11 @@ def main() -> None:
     )
     parser.add_argument("--kits-cases", type=int, default=0, metavar="N", help="KiTS19 CT cases from HF")
     parser.add_argument("--chest-ct", action="store_true", help="MONAI COPD chest/lung CT samples")
+    parser.add_argument(
+        "--mimic-ct",
+        action="store_true",
+        help="Abdominal CT NIfTI under datasets/mimic/ (endocrinology / gastro demo)",
+    )
     parser.add_argument("--monai-samples", action="store_true", help="BraTS MONAI sample + CXR count")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
@@ -248,6 +285,7 @@ def main() -> None:
         args.nlmcxr_map = args.nlmcxr_map or 50
         args.kits_cases = args.kits_cases or 8
         args.chest_ct = True
+        args.mimic_ct = True
         args.monai_samples = True
 
     if not any(
@@ -257,6 +295,7 @@ def main() -> None:
             args.nlmcxr_archives,
             args.kits_cases,
             args.chest_ct,
+            args.mimic_ct,
             args.monai_samples,
             run_all,
         ]
@@ -295,6 +334,9 @@ def main() -> None:
     if args.chest_ct:
         summary["chest_ct_cases"] = fetch_chest_ct_samples(force=args.force)
 
+    if args.mimic_ct:
+        summary["mimic_ct_cases"] = fetch_mimic_ct_samples(force=args.force)
+
     if args.monai_samples:
         cxr_n, brats_n = fetch_monai_imaging_samples(force=args.force)
         summary["monai_cxr"] = cxr_n
@@ -308,7 +350,7 @@ def main() -> None:
     print("  datasets/chest_ct/      -> source=chest_ct (lung/chest CT NIfTI)")
     print("  datasets/kits19/        -> source=kits19 (renal CT NIfTI)")
     print("  datasets/brats2024/     -> source=brats2024 (brain MRI)")
-    print("  datasets/mimic/         -> MIMIC-CXR-JPG layout (scanned as mimic_cxr, not CT)")
+    print("  datasets/mimic/         -> source=mimic (abdominal CT NIfTI; CXR-JPG scanned as mimic_cxr)")
     print("  datasets/external/mimiciii-demo/ -> clinical tables for Extract / ICU demo")
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from src.imaging.volume_io import resolve_vlm_image_paths
 from src.llm.vision_client import get_deepseek_client, get_qwen_vlm_client
 from src.config import project_root
 from src.orchestrator import MultiAgentOrchestrator
@@ -38,7 +39,6 @@ class ReportGenerator:
 
     def generate(self, req: GenerateReportRequest, *, user_id: str) -> ClinicalReport:
         qwen_vlm = get_qwen_vlm_client()
-        deepseek = get_deepseek_client()
         image_paths = [_project_rel_path(p) for p in req.image_paths]
         screenshot_paths = [_project_rel_path(p) for p in req.screenshot_paths]
         overlay_paths = [_project_rel_path(p) for p in req.overlay_paths]
@@ -52,7 +52,15 @@ class ReportGenerator:
         else:
             all_visual = dedupe_paths(image_paths + screenshot_paths)
 
-        resolved_visual = _resolve_existing_visual_paths(all_visual)
+        resolved_visual = resolve_vlm_image_paths(all_visual)
+        if not resolved_visual:
+            from src.llm.errors import VisionLLMError
+
+            raise VisionLLMError(
+                "Qwen VLM",
+                "未找到可读取的影像文件",
+                hint="请先运行分割并勾选 overlay，或提交截图后再生成报告。",
+            )
 
         session_id = ReportStore.make_imaging_session_id(
             req.primary_modality,
@@ -70,40 +78,46 @@ class ReportGenerator:
         multi_agent = None
         deepseek_synthesis: dict[str, Any] = {}
         rule_output = None
+        med_review_error: str | None = None
         candidate_drugs = list(req.candidate_drugs)
         if req.run_medication_review and not candidate_drugs:
             candidate_drugs = self._drugs_from_vlm(vlm_analysis)
         run_med_review = req.run_medication_review and bool(candidate_drugs)
 
         if run_med_review:
-            patient_context = req.patient_context or PatientContext(
-                source_text=req.clinical_text,
-                chief_complaint=str(vlm_analysis.get("chief_complaint", "")),
-                symptoms_or_complaints=list(vlm_analysis.get("symptoms", []) or []),
-                diagnoses=[DiagnosisItem(name=str(d)) for d in vlm_analysis.get("diagnoses", [])],
-                allergies=list(vlm_analysis.get("allergies", []) or []),
-            )
-            dept_ctx = self.orchestrator._resolve_department_context(patient_context)
-            rule_output = self.orchestrator.review_engine.review(
-                patient_context,
-                candidate_drugs,
-                department=patient_context.department or None,
-                priority_categories=dept_ctx.priority_categories if dept_ctx else None,
-            )
-            multi_agent = self.orchestrator.run(
-                patient_context,
-                candidate_drugs,
-                skip_clarify=True,
-                rule_output=rule_output,
-            )
-            deepseek_synthesis = deepseek.synthesize_report(
-                clinical_text=req.clinical_text,
-                vlm_analysis=vlm_analysis,
-                agent_opinions=[o.model_dump() for o in multi_agent.agent_opinions],
-                arbitration=multi_agent.arbitration.model_dump(),
-                rule_output=multi_agent.rule_output.model_dump(),
-                chain_hint=str(vlm_analysis.get("reasoning", "")),
-            )
+            try:
+                patient_context = req.patient_context or PatientContext(
+                    source_text=req.clinical_text,
+                    chief_complaint=str(vlm_analysis.get("chief_complaint", "")),
+                    symptoms_or_complaints=list(vlm_analysis.get("symptoms", []) or []),
+                    diagnoses=[DiagnosisItem(name=str(d)) for d in vlm_analysis.get("diagnoses", [])],
+                    allergies=list(vlm_analysis.get("allergies", []) or []),
+                )
+                dept_ctx = self.orchestrator._resolve_department_context(patient_context)
+                rule_output = self.orchestrator.review_engine.review(
+                    patient_context,
+                    candidate_drugs,
+                    department=patient_context.department or None,
+                    priority_categories=dept_ctx.priority_categories if dept_ctx else None,
+                )
+                multi_agent = self.orchestrator.run(
+                    patient_context,
+                    candidate_drugs,
+                    skip_clarify=True,
+                    rule_output=rule_output,
+                )
+                deepseek = get_deepseek_client()
+                deepseek_synthesis = deepseek.synthesize_report(
+                    clinical_text=req.clinical_text,
+                    vlm_analysis=vlm_analysis,
+                    agent_opinions=[o.model_dump() for o in multi_agent.agent_opinions],
+                    arbitration=multi_agent.arbitration.model_dump(),
+                    rule_output=multi_agent.rule_output.model_dump(),
+                    chain_hint=str(vlm_analysis.get("reasoning", "")),
+                )
+            except Exception as exc:
+                med_review_error = str(exc)
+                run_med_review = multi_agent is not None
 
         paragraphs = self._build_paragraphs(
             req=req,
@@ -120,6 +134,37 @@ class ReportGenerator:
             run_med_review=run_med_review,
         )
 
+        metadata: dict[str, Any] = {
+            "models_used": req.models_used,
+            "vlm_model": qwen_vlm.model_name,
+            "segmentation_summary": req.segmentation_summary,
+            "medication_review_ran": run_med_review,
+            "medication_review_error": med_review_error,
+            "review_pipeline": (
+                ["vlm_recommendation", "rule_layer_0", "multi_agent_review"]
+                if run_med_review
+                else (["vlm_recommendation"] if req.run_medication_review else ["vlm_only"])
+            ),
+            "vlm_analysis": vlm_analysis,
+            "candidate_drugs": [d.model_dump() for d in candidate_drugs],
+            "rule_output": rule_output.model_dump() if rule_output else None,
+            "visual_images_submitted": len(all_visual),
+            "overlay_count": len(overlay_paths),
+        }
+        if multi_agent:
+            metadata["agent_opinions"] = [o.model_dump() for o in multi_agent.agent_opinions]
+            metadata["arbitration"] = multi_agent.arbitration.model_dump()
+            metadata["debate"] = multi_agent.debate.model_dump() if multi_agent.debate else None
+            metadata["safety_panel"] = (
+                multi_agent.safety_panel.model_dump() if multi_agent.safety_panel else None
+            )
+            metadata["final_recommendation"] = multi_agent.final_recommendation
+        if deepseek_synthesis:
+            try:
+                metadata["deepseek_model"] = get_deepseek_client().model_name
+            except Exception:
+                metadata["deepseek_model"] = None
+
         return self.store.create_or_replace_session_report(
             user_id=user_id,
             patient_id=req.patient_id,
@@ -130,21 +175,7 @@ class ReportGenerator:
             image_paths=image_paths,
             overlay_paths=overlay_paths,
             screenshot_paths=screenshot_paths,
-            metadata={
-                "models_used": req.models_used,
-                "vlm_model": qwen_vlm.model_name,
-                "deepseek_model": deepseek.model_name,
-                "segmentation_summary": req.segmentation_summary,
-                "medication_review_ran": run_med_review,
-                "review_pipeline": (
-                    ["vlm_recommendation", "rule_layer_0", "multi_agent_review"]
-                    if run_med_review
-                    else ["vlm_only"]
-                ),
-                "rule_output": rule_output.model_dump() if rule_output else None,
-                "visual_images_submitted": len(all_visual),
-                "overlay_count": len(overlay_paths),
-            },
+            metadata=metadata,
         )
 
     @staticmethod
@@ -385,18 +416,3 @@ def _project_rel_path(path: str | Path) -> str:
     except ValueError:
         return str(path)
 
-
-def _resolve_existing_visual_paths(paths: list[str]) -> list[str]:
-    root = project_root().resolve()
-    resolved: list[str] = []
-    for raw in paths:
-        if not raw:
-            continue
-        target = Path(raw)
-        if not target.is_absolute():
-            target = (root / raw).resolve()
-        else:
-            target = target.resolve()
-        if target.exists():
-            resolved.append(str(target))
-    return dedupe_paths(resolved)

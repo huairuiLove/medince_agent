@@ -61,6 +61,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       BASE
         ? `无法连接后端 ${BASE}，请确认 API 已启动且地址正确`
         : '无法连接后端，请运行 bash scripts/start.sh 启动完整项目'
+    if (e instanceof Error && e.name === 'AbortError') {
+      throw new Error('请求超时，报告生成可能需要数分钟，请稍后重试或关闭「用药审查」以缩短耗时')
+    }
     throw new Error(e instanceof Error && e.message === 'Failed to fetch' ? hint : `${hint}（${String(e)}）`)
   }
   if (!res.ok) {
@@ -72,6 +75,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(typeof err.detail === 'string' ? err.detail : JSON.stringify(err))
   }
   return res.json() as Promise<T>
+}
+
+/** Long-running API calls (report generate, multi-agent review). Default 10 min. */
+async function requestLong<T>(path: string, init?: RequestInit, timeoutMs = 600_000): Promise<T> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await request<T>(path, { ...init, signal: controller.signal })
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export function imagingFileUrl(path: string): string {
@@ -204,7 +218,7 @@ export const medsafeApi = {
     candidate_drugs: DrugItem[]
     persist?: boolean
   }) =>
-    request<MultiConsultResponse>('/api/v1/multi-consult', {
+    requestLong<MultiConsultResponse>('/api/v1/multi-consult', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -329,6 +343,7 @@ export const medsafeApi = {
     include_source_image?: boolean
   }) =>
     request<{
+      case_id?: string | null
       analysis: VlmAnalysis
       images_used: string[]
       model: string
@@ -357,6 +372,7 @@ export const medsafeApi = {
 
   generateReport: (body: {
     patient_id: string
+    case_id?: string | null
     clinical_text: string
     primary_modality: string
     modalities: string[]
@@ -369,8 +385,9 @@ export const medsafeApi = {
     include_source_image?: boolean
     run_medication_review?: boolean
     candidate_drugs?: DrugItem[]
+    patient_context?: PatientContext
   }) =>
-    request<ClinicalReport>('/api/v1/imaging/report/generate', {
+    requestLong<ClinicalReport>('/api/v1/imaging/report/generate', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

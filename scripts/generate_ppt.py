@@ -184,50 +184,65 @@ add_bg(slide)
 add_textbox(slide, Inches(0.6), Inches(0.3), Inches(12), Inches(0.7),
             "四层模型体系 & 协作关系", size=32, color=WHITE, bold=True)
 add_textbox(slide, Inches(0.6), Inches(0.9), Inches(12), Inches(0.4),
-            "每一层模型各司其职，通过 Orchestrator 统一调度", size=16, color=LIGHT_GRAY)
+            "每一层模型各司其职，通过 Orchestrator 统一调度，数据自上而下流转", size=16, color=LIGHT_GRAY)
+
+# ── Layout: badge (left) + content (right), full width ──
+badge_w = Inches(2.6)
+content_w = Inches(9.0)
+card_w = badge_w + content_w  # ~11.6 inches
+card_h = Inches(1.1)
+start_y = Inches(1.55)
+gap = Inches(0.12)
 
 layers = [
-    ("Layer 1: 主LLM — DeepSeek-Chat", ACCENT,
-     ["所有专家Agent的推理引擎",
-      "包括：临床药师、内科、过敏专科、药房库存、专科路由",
-      "首席审查仲裁、辩论评论家、协调员澄清",
-      "统一通过 OpenAI 兼容 API 调用，输出结构化 JSON"]),
-    ("Layer 2: 视觉模型 — Qwen3-VL", ACCENT3,
-     ["百炼 Model Studio API 调用",
-      "最多分析12张医学影像 (X-ray/CT/MRI)",
-      "支持分割标注叠加图像输入",
-      "输出：临床表现、影像发现、药物推荐、诊断等"]),
-    ("Layer 3: 合成模型 — DeepSeek-Chat (专用实例)", ACCENT2,
-     ["融合 VLM 分析结果 + 多Agent药物审查意见",
-      "生成7节结构化临床报告",
-      "临床分析 / 影像发现 / 用药建议 / 药学评估 / 过敏分析 / 麻醉手术 / 风险总结"]),
-    ("Layer 4: 传统ML模型 (本地推理)", ACCENT4,
-     ["Med7 NER: spaCy药物实体抽取 (名称/途径/剂量)",
-      "DDI-BERT: Bio_ClinicalBERT 药物相互作用分类",
-      "嵌入模型: nomic-embed-text → 语义药物搜索",
-      "分割模型: TotalSegmentator / VISTA3D / SAM / BraTS / CXR-Lesion"]),
+    ("1", "主LLM推理层", "DeepSeek-Chat", ACCENT,
+     "5个专家Agent并行推理  |  辩论Critic/Moderator  |  首席仲裁 & 协调员澄清  |  OpenAI兼容API → 结构化JSON输出"),
+    ("2", "视觉理解层", "Qwen3-VL (百炼)", ACCENT3,
+     "最多12张医学影像  |  X-ray / CT / MRI  |  分割标注叠加输入  |  输出: 临床表现, 影像发现, 药物推荐, 诊断, 风险等级"),
+    ("3", "多模态融合层", "DeepSeek-Chat (专用实例)", ACCENT2,
+     "VLM结果 + 5个Agent审查意见 + 仲裁结论 + 规则引擎输出  →  7节结构化ClinicalReport  |  逐项交叉验证 & 去重合并"),
+    ("4", "本地AI基础层", "Med7 / BERT / 分割模型", ACCENT4,
+     "Med7 NER: 药物实体抽取  |  DDI-BERT: 相互作用分类  |  Embedding: 语义药物搜索  |  TotalSegmentator / VISTA3D / SAM / BraTS / CXR"),
 ]
 
-for i, (title, color, items) in enumerate(layers):
-    y = Inches(1.6) + i * Inches(1.35)
-    # Left label box
-    label = make_rounded_rect(slide, Inches(0.6), y, Inches(3.8), Inches(1.2), fill_color=CARD_BG, border_color=color)
-    tf = label.text_frame; tf.word_wrap = True
-    make_title_style(tf, title, size=16, color=color)
-    for item in items:
-        p = tf.add_paragraph()
-        p.text = f"  • {item}"
-        p.font.size = Pt(11)
-        p.font.color.rgb = LIGHT_GRAY
+for i, (num, short_name, model_name, color, desc) in enumerate(layers):
+    y = start_y + i * (card_h + gap)
 
-    # Right connector arrow
+    # Badge on the left
+    badge = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, badge_w, card_h)
+    badge.fill.solid(); badge.fill.fore_color.rgb = color; badge.line.fill.background()
+    tf_badge = badge.text_frame; tf_badge.word_wrap = True; tf_badge.paragraphs[0].alignment = PP_ALIGN.CENTER
+    make_title_style(tf_badge, f"Layer {num}", size=11, color=DARK_BG)
+    p2 = tf_badge.add_paragraph()
+    p2.text = short_name; p2.font.size = Pt(14); p2.font.color.rgb = DARK_BG; p2.font.bold = True
+    p2.alignment = PP_ALIGN.CENTER
+    p3 = tf_badge.add_paragraph()
+    p3.text = model_name; p3.font.size = Pt(9); p3.font.color.rgb = RGBColor(0x20, 0x20, 0x40)
+    p3.alignment = PP_ALIGN.CENTER
+
+    # Content card
+    content = make_rounded_rect(slide, Inches(0.6) + badge_w + Inches(0.1), y, content_w, card_h,
+                                fill_color=CARD_BG, border_color=color)
+    tf_c = content.text_frame; tf_c.word_wrap = True
+    tf_c.paragraphs[0].text = ""
+    p = tf_c.paragraphs[0]
+    p.text = desc
+    p.font.size = Pt(12)
+    p.font.color.rgb = WHITE
+
+    # Vertical down-arrow between layers (except last)
     if i < 3:
-        arrow = add_arrow(slide, Inches(4.8), y + Inches(0.4), Inches(0.5), Inches(0.3),
-                          color=color)
+        arrow_y = y + card_h
+        arrow = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW,
+                                       Inches(0.6) + badge_w + Inches(0.1) + content_w // 2 - Inches(0.1),
+                                       arrow_y, Inches(0.22), Inches(0.14))
+        arrow.fill.solid(); arrow.fill.fore_color.rgb = color; arrow.line.fill.background()
 
-add_textbox(slide, Inches(0.6), Inches(7.0), Inches(12), Inches(0.4),
-            "Orchestrator 通过 ThreadPoolExecutor 并行调度各Agent，确保独立审查互不干扰",
-            size=13, color=MED_GRAY)
+# Bottom note
+add_textbox(slide, Inches(0.6), Inches(6.55), Inches(12), Inches(0.4),
+            "Orchestrator 通过 ThreadPoolExecutor 并行调用 Layer 1 的 Agent，Layer 4 模型提供辅助特征，Layer 2 独立触发，Layer 3 融合全部输出",
+            size=12, color=MED_GRAY)
+
 add_number(slide, 3, TOTAL_SLIDES)
 
 # ════════════════════════════════════════════════════════════════

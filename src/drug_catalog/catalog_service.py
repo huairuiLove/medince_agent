@@ -158,9 +158,6 @@ class DrugCatalogService:
             )
 
         status = index.status()
-        if status["indexed_drugs"] == 0:
-            self._ensure_semantic_index()
-            status = index.status()
 
         if status.get("load_error"):
             raise DrugSearchModelNotReadyError(status["load_error"], download_hint)

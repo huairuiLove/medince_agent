@@ -11,6 +11,16 @@ const error = ref('')
 
 const deptLabel = computed(() => auth.department?.name_cn ?? auth.profile?.dept_id ?? '—')
 
+const caseKindLabel: Record<string, string> = {
+  multi_agent: '多智能体会诊',
+  imaging_vlm: '影像 VLM 查阅',
+  imaging_report: '影像会诊报告',
+}
+
+function kindLabel(kind?: string) {
+  return caseKindLabel[kind ?? 'multi_agent'] ?? kind ?? '—'
+}
+
 onMounted(async () => {
   try {
     if (!auth.workspace) await auth.fetchMe()
@@ -25,7 +35,7 @@ onMounted(async () => {
 <template>
   <div>
     <h1>Case 回放</h1>
-    <p class="sub">本科室多智能体会诊历史 · 科室：{{ deptLabel }}</p>
+    <p class="sub">本科室会诊回放（多智能体 / 影像）· 科室：{{ deptLabel }}</p>
 
     <p v-if="error" class="err">{{ error }}</p>
     <p v-else-if="!auth.profile?.dept_id" class="empty">登录后可查看本科室 Case 回放</p>
@@ -34,6 +44,7 @@ onMounted(async () => {
       <table>
         <thead>
           <tr>
+            <th>类型</th>
             <th>科室</th>
             <th>Case ID</th>
             <th>更新时间</th>
@@ -44,6 +55,7 @@ onMounted(async () => {
         </thead>
         <tbody>
           <tr v-for="item in cases" :key="item.case_id">
+            <td>{{ kindLabel(item.case_kind) }}</td>
             <td>{{ item.department_name_cn || deptLabel }}</td>
             <td><code>{{ item.case_id }}</code></td>
             <td>{{ item.updated_at || item.created_at }}</td>
@@ -58,7 +70,7 @@ onMounted(async () => {
     </div>
 
     <p v-else-if="!error" class="empty">
-      本科室暂无多智能体会诊回放。完成一次「多智能体会诊」后将自动保存到此列表。
+      本科室暂无会诊回放。完成「多智能体会诊」或「影像与会诊」后将自动保存到此列表。
     </p>
   </div>
 </template>

@@ -44,9 +44,40 @@ class AuthService:
             self._conn = connect(self.db_path)
             init_schema(self._conn)
             self._seed_if_empty()
+            self._sync_departments_from_catalog()
             self._seed_chief_pharm_if_missing()
             self._migrate_department_agent_prefs_v1()
+            self._migrate_department_agent_prefs_v2()
         return self._conn
+
+    def _sync_departments_from_catalog(self) -> None:
+        """Keep SQLite department imaging scope aligned with datasets/departments/catalog.json."""
+        for dept in department_rows_for_db(self._catalog):
+            self.conn.execute(
+                """
+                INSERT INTO departments (
+                    dept_id, name_cn, name_en, imaging_sources_json, default_models_json,
+                    recommended_datasets_json, vision_models_json, nav_routes_json,
+                    description, sort_order
+                ) VALUES (
+                    :dept_id, :name_cn, :name_en, :imaging_sources_json, :default_models_json,
+                    :recommended_datasets_json, :vision_models_json, :nav_routes_json,
+                    :description, :sort_order
+                )
+                ON CONFLICT(dept_id) DO UPDATE SET
+                    name_cn = excluded.name_cn,
+                    name_en = excluded.name_en,
+                    imaging_sources_json = excluded.imaging_sources_json,
+                    default_models_json = excluded.default_models_json,
+                    recommended_datasets_json = excluded.recommended_datasets_json,
+                    vision_models_json = excluded.vision_models_json,
+                    nav_routes_json = excluded.nav_routes_json,
+                    description = excluded.description,
+                    sort_order = excluded.sort_order
+                """,
+                dept,
+            )
+        self.conn.commit()
 
     def _secret(self) -> str:
         cfg = get_config()
@@ -147,6 +178,12 @@ class AuthService:
                 auto.add(spec.agent_id)
         return auto
 
+    def _agent_visible_for_dept(self, spec, dept_id: str) -> bool:
+        """Core agents are always configurable; department agents only for matching dept."""
+        if not spec.is_department_agent:
+            return True
+        return spec.agent_id in self._department_auto_enable_agent_ids(dept_id)
+
     def _init_default_agent_prefs(self, user_id: str, dept_id: str = "") -> None:
         auto_ids = self._department_auto_enable_agent_ids(dept_id)
         for spec in self._registry.list_specs():
@@ -185,6 +222,46 @@ class AuthService:
                 )
         self.conn.execute(
             "INSERT INTO auth_meta (key, value) VALUES ('dept_agent_prefs_v1', 'done')",
+        )
+        self.conn.commit()
+
+    def _migrate_department_agent_prefs_v2(self) -> None:
+        """Backfill agent prefs rows added to registry after user registration."""
+        row = self.conn.execute(
+            "SELECT value FROM auth_meta WHERE key = 'dept_agent_prefs_v2'",
+        ).fetchone()
+        if row:
+            return
+        for user in self.conn.execute("SELECT user_id, dept_id FROM users").fetchall():
+            user_id = user["user_id"]
+            dept_id = user["dept_id"]
+            auto_ids = self._department_auto_enable_agent_ids(dept_id)
+            existing = {
+                r["agent_id"]
+                for r in self.conn.execute(
+                    "SELECT agent_id FROM doctor_agent_prefs WHERE user_id = ?",
+                    (user_id,),
+                ).fetchall()
+            }
+            for spec in self._registry.list_specs():
+                if not spec.debate or spec.agent_id in existing:
+                    continue
+                enabled = spec.default_enabled or spec.agent_id in auto_ids
+                self.conn.execute(
+                    "INSERT INTO doctor_agent_prefs (user_id, agent_id, enabled) VALUES (?, ?, ?)",
+                    (user_id, spec.agent_id, 1 if enabled else 0),
+                )
+                for skill in self._registry.list_skills(spec.agent_id):
+                    default_on = skill.skill_id in spec.default_skills or skill.skill_id == "base"
+                    self.conn.execute(
+                        """
+                        INSERT OR IGNORE INTO doctor_skill_prefs (user_id, agent_id, skill_id, enabled)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (user_id, spec.agent_id, skill.skill_id, 1 if default_on else 0),
+                    )
+        self.conn.execute(
+            "INSERT INTO auth_meta (key, value) VALUES ('dept_agent_prefs_v2', 'done')",
         )
         self.conn.commit()
 
@@ -312,11 +389,13 @@ class AuthService:
             return None
         agent_prefs = self.get_agent_prefs(user_id)
         skill_prefs = self.get_skill_prefs(user_id)
-        custom = self.get_custom_skills(user_id)
+        dept_id = profile.dept_id or ""
 
         agents: list[AgentConfigInfo] = []
         for spec in self._registry.list_specs():
             if not spec.debate:
+                continue
+            if not self._agent_visible_for_dept(spec, dept_id):
                 continue
             skills_meta = self._registry.list_skills(spec.agent_id)
             enabled_skills = [
@@ -345,6 +424,8 @@ class AuthService:
                     enabled_skills=enabled_skills,
                 )
             )
+        visible_ids = {a.agent_id for a in agents}
+        custom = [c for c in self.get_custom_skills(user_id) if c["agent_id"] in visible_ids]
         return DoctorWorkspaceResponse(profile=profile, agents=agents, custom_skills=custom)
 
     def update_agent_prefs(self, user_id: str, updates: list[dict]) -> None:

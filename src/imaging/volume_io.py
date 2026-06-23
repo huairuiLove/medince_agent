@@ -21,6 +21,47 @@ def is_visual_image(path: str | Path) -> bool:
     return Path(path).suffix.lower() in VISUAL_SUFFIXES
 
 
+def is_vlm_compatible_image(path: str | Path) -> bool:
+    """True if path is a readable PNG/JPEG/WebP/BMP suitable for Qwen VLM."""
+    p = Path(path)
+    if not p.is_file():
+        return False
+    if is_nifti(p):
+        return False
+    if p.suffix.lower() not in VISUAL_SUFFIXES:
+        return False
+    try:
+        with Image.open(p) as img:
+            img.verify()
+        with Image.open(p) as img:
+            img.load()
+        return True
+    except Exception:
+        return False
+
+
+def resolve_vlm_image_paths(paths: list[str]) -> list[str]:
+    """Resolve project-relative paths and keep only VLM-safe raster images."""
+    root = resolve_path(".")
+    resolved: list[str] = []
+    seen: set[str] = set()
+    for raw in paths:
+        if not raw:
+            continue
+        target = Path(raw)
+        if not target.is_absolute():
+            target = (root / raw).resolve()
+        else:
+            target = target.resolve()
+        key = str(target)
+        if key in seen:
+            continue
+        if is_vlm_compatible_image(target):
+            seen.add(key)
+            resolved.append(key)
+    return resolved
+
+
 def load_grayscale_array(path: str | Path) -> np.ndarray:
     path = Path(path)
     if is_visual_image(path):

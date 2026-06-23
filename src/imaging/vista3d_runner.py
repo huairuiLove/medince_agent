@@ -20,6 +20,7 @@ ORGAN_LABELS: dict[str, list[int]] = {
     "brain": [22],
     "liver": [1],
     "lung": [28, 29, 30, 31, 32],
+    "kidney": [5, 14],
 }
 
 _LABELS_PATH = Path(__file__).resolve().parents[2] / "models" / "vista3d" / "docs" / "labels.json"
@@ -33,6 +34,7 @@ def _load_organ_labels() -> dict[str, list[int]]:
                 "brain": [int(raw["brain"])],
                 "liver": [int(raw["liver"])],
                 "lung": [28, 29, 30, 31, 32],
+                "kidney": [int(raw["right kidney"]), int(raw["left kidney"])],
             }
     return ORGAN_LABELS
 

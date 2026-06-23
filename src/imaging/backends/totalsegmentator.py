@@ -18,6 +18,19 @@ from src.logging_config import get_logger
 
 logger = get_logger("imaging.totalsegmentator")
 
+ORGAN_ROI_SUBSET: dict[str, list[str]] = {
+    "brain": ["brain"],
+    "liver": ["liver"],
+    "lung": [
+        "lung_upper_lobe_left",
+        "lung_lower_lobe_left",
+        "lung_upper_lobe_right",
+        "lung_middle_lobe_right",
+        "lung_lower_lobe_right",
+    ],
+    "kidney": ["kidney_left", "kidney_right"],
+}
+
 
 class TotalSegmentatorBackend(BaseSegmentBackend):
     model_id = "totalsegmentator"
@@ -57,7 +70,12 @@ class TotalSegmentatorBackend(BaseSegmentBackend):
         out_dir.mkdir(parents=True, exist_ok=True)
 
         fast = kwargs.get("fast", True)
-        roi_subset = kwargs.get("roi_subset") or ["liver", "lung", "brain"]
+        organ = str(kwargs.get("organ") or "").strip().lower()
+        roi_subset = kwargs.get("roi_subset")
+        if not roi_subset and organ in ORGAN_ROI_SUBSET:
+            roi_subset = ORGAN_ROI_SUBSET[organ]
+        if not roi_subset:
+            roi_subset = ["liver", "lung", "brain"]
 
         try:
             ts_predict(

@@ -16,12 +16,16 @@ const emit = defineEmits<{
 }>()
 
 const meta = ref<VolumeMeta | null>(null)
-const loading = ref(false)
+const metaLoading = ref(false)
+const sliceLoading = ref(false)
 const error = ref('')
 const sliceSrc = ref('')
 const localAxis = ref<VolumeAxis>(props.axis ?? 'axial')
 const localIndex = ref(props.sliceIndex ?? 0)
-let sliceObjectUrl: string | null = null
+
+const sliceCache = new Map<string, string>()
+let loadTimer: ReturnType<typeof setTimeout> | null = null
+let loadGeneration = 0
 
 const maxIndex = computed(() => {
   if (!meta.value) return 0
@@ -41,58 +45,107 @@ const axes: { id: VolumeAxis; label: string }[] = [
   { id: 'sagittal', label: '矢状 Sagittal' },
 ]
 
-function revokeSliceUrl() {
-  if (sliceObjectUrl) {
-    URL.revokeObjectURL(sliceObjectUrl)
-    sliceObjectUrl = null
-  }
+function sliceCacheKey(params: {
+  volume_path: string
+  axis: string
+  index: number
+  overlay_path?: string
+}) {
+  return `${params.volume_path}|${params.axis}|${params.index}|${params.overlay_path ?? ''}`
 }
 
-async function loadSliceImage() {
-  revokeSliceUrl()
-  sliceSrc.value = ''
-  if (!props.volumePath || !meta.value) return
-  try {
-    sliceObjectUrl = await medsafeApi.volumeSliceObjectUrl(sliceParams.value)
-    sliceSrc.value = sliceObjectUrl
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
+function revokeAllCachedUrls() {
+  for (const url of sliceCache.values()) {
+    URL.revokeObjectURL(url)
   }
+  sliceCache.clear()
 }
 
-watch(() => props.axis, v => { if (v) localAxis.value = v })
-watch(() => props.sliceIndex, v => { if (v !== undefined) localIndex.value = v })
-
-watch(localAxis, v => {
-  if (localIndex.value > maxIndex.value) localIndex.value = maxIndex.value
-  emit('update:axis', v)
-  emit('update:sliceIndex', localIndex.value)
+watch(() => props.axis, v => {
+  if (v && v !== localAxis.value) localAxis.value = v
+})
+watch(() => props.sliceIndex, v => {
+  if (v !== undefined && v !== localIndex.value) localIndex.value = v
 })
 
-watch(localIndex, v => emit('update:sliceIndex', v))
+watch(localAxis, v => {
+  const clamped = Math.min(localIndex.value, maxIndex.value)
+  if (clamped !== localIndex.value) localIndex.value = clamped
+  emit('update:axis', v)
+  if (clamped !== props.sliceIndex) emit('update:sliceIndex', clamped)
+})
+
+watch(localIndex, v => {
+  if (v !== props.sliceIndex) emit('update:sliceIndex', v)
+})
+
+async function loadSliceImage() {
+  if (!props.volumePath || !meta.value) return
+
+  const params = sliceParams.value
+  const key = sliceCacheKey(params)
+  const cached = sliceCache.get(key)
+  if (cached) {
+    sliceSrc.value = cached
+    return
+  }
+
+  const generation = ++loadGeneration
+  sliceLoading.value = true
+  try {
+    const objectUrl = await medsafeApi.volumeSliceObjectUrl(params)
+    if (generation !== loadGeneration) {
+      URL.revokeObjectURL(objectUrl)
+      return
+    }
+    sliceCache.set(key, objectUrl)
+    sliceSrc.value = objectUrl
+    error.value = ''
+  } catch (e) {
+    if (generation === loadGeneration) {
+      error.value = e instanceof Error ? e.message : String(e)
+    }
+  } finally {
+    if (generation === loadGeneration) sliceLoading.value = false
+  }
+}
+
+function scheduleSliceLoad() {
+  if (loadTimer) clearTimeout(loadTimer)
+  loadTimer = setTimeout(() => {
+    loadTimer = null
+    void loadSliceImage()
+  }, 100)
+}
 
 async function loadMeta() {
   if (!props.volumePath) return
-  loading.value = true
+  metaLoading.value = true
   error.value = ''
+  revokeAllCachedUrls()
+  sliceSrc.value = ''
   try {
     meta.value = await medsafeApi.getVolumeMeta(props.volumePath)
     if (localIndex.value > maxIndex.value) {
       localIndex.value = Math.floor(maxIndex.value / 2)
+      emit('update:sliceIndex', localIndex.value)
     }
     await loadSliceImage()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
-    loading.value = false
+    metaLoading.value = false
   }
 }
 
-watch(sliceParams, loadSliceImage, { deep: true })
+watch(sliceParams, scheduleSliceLoad, { deep: true })
 watch(() => props.volumePath, loadMeta)
 
 onMounted(loadMeta)
-onBeforeUnmount(revokeSliceUrl)
+onBeforeUnmount(() => {
+  if (loadTimer) clearTimeout(loadTimer)
+  revokeAllCachedUrls()
+})
 </script>
 
 <template>
@@ -124,16 +177,16 @@ onBeforeUnmount(revokeSliceUrl)
     </div>
 
     <p v-if="error" class="mpr-err">{{ error }}</p>
-    <p v-else-if="loading" class="mpr-loading">加载 3D 体数据…</p>
+    <p v-else-if="metaLoading" class="mpr-loading">加载 3D 体数据…</p>
 
     <div v-else class="mpr-canvas">
       <img
         v-if="sliceSrc"
-        :key="sliceSrc"
         :src="sliceSrc"
         alt="MPR slice"
         class="mpr-img"
       />
+      <div v-if="sliceLoading" class="mpr-slice-loading">切片加载中…</div>
     </div>
   </div>
 </template>
@@ -156,15 +209,27 @@ onBeforeUnmount(revokeSliceUrl)
 .slice-slider { flex: 1; accent-color: var(--primary); }
 .slice-label, .dim-label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
 .mpr-canvas {
+  position: relative;
   background: #000;
   border-radius: var(--radius);
-  min-height: 320px;
+  min-height: 480px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 .mpr-img { max-width: 100%; max-height: 480px; object-fit: contain; }
+.mpr-slice-loading {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
 .mpr-err { color: var(--danger); font-size: 0.85rem; }
 .mpr-loading { color: var(--text-muted); font-size: 0.85rem; }
 </style>

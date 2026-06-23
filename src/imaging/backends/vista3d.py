@@ -172,4 +172,10 @@ class Vista3DBackend(BaseSegmentBackend):
             left = (xx < w * 0.48) & (arr > np.percentile(arr, 50))
             right = (xx > w * 0.52) & (arr > np.percentile(arr, 50))
             return left | right
+        if organ == "kidney":
+            return (
+                (xx > w * 0.22) & (xx < w * 0.78)
+                & (yy > h * 0.32) & (yy < h * 0.72)
+                & (arr > np.percentile(arr, 52))
+            )
         return arr > np.percentile(arr, 70)

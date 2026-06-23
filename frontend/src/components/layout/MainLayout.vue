@@ -45,9 +45,10 @@ function logout() {
       <div v-if="auth.profile" class="user-block">
         <strong>{{ auth.profile.display_name }}</strong>
         <small>{{ auth.department?.name_cn ?? auth.profile.dept_id }}</small>
+        <button type="button" class="logout" @click="logout">退出登录</button>
       </div>
 
-      <nav>
+      <nav class="sidebar-nav">
         <RouterLink
           v-for="l in links"
           :key="l.to"
@@ -59,7 +60,6 @@ function logout() {
         </RouterLink>
       </nav>
       <footer class="sidebar-foot">
-        <button type="button" class="logout" @click="logout">退出登录</button>
         <a href="/docs" target="_blank">API 文档</a>
       </footer>
     </aside>
@@ -73,12 +73,23 @@ function logout() {
 .layout { display: flex; min-height: 100vh; }
 .sidebar {
   width: 220px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
   display: flex;
   flex-direction: column;
   padding: 1rem 0.75rem;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -0.25rem;
+  padding: 0 0.25rem;
 }
 .brand {
   display: flex;
@@ -93,9 +104,11 @@ function logout() {
   margin-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   font-size: 0.82rem;
+  flex-shrink: 0;
 }
 .user-block strong { display: block; color: #fff; }
-.user-block small { color: #90a4be; }
+.user-block small { display: block; color: #90a4be; margin-bottom: 0.45rem; }
+.user-block .logout { width: 100%; margin-top: 0.15rem; }
 .logo {
   width: 34px; height: 34px;
   background: var(--primary);
@@ -122,7 +135,15 @@ function logout() {
   color: #fff;
   border-left-color: #64b5f6;
 }
-.sidebar-foot { margin-top: auto; padding: 0.85rem 0.4rem; font-size: 0.78rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.sidebar-foot {
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: 0.85rem 0.4rem 0;
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 .logout {
   background: transparent;
   border: 1px solid rgba(255,255,255,0.2);
@@ -138,7 +159,8 @@ function logout() {
 .main { flex: 1; padding: 1.25rem 1.75rem; overflow-x: hidden; }
 @media (max-width: 768px) {
   .layout { flex-direction: column; }
-  .sidebar { width: 100%; }
+  .sidebar { width: 100%; height: auto; position: static; }
+  .sidebar-nav { flex: none; max-height: 40vh; }
   .main { padding: 1rem; }
 }
 </style>

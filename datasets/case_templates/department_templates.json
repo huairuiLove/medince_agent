@@ -673,35 +673,48 @@
     },
     {
       "id": "dept_general_internal_01",
-      "title": "高血压联合用药（阴性对照）",
-      "description": "标准 CCB+ACEI 联合降压，信息完整，预期无高风险命中",
+      "title": "住院多病共存：华法林 + NSAIDs",
+      "description": "全科住院患者房颤抗凝基础上加用布洛芬，审查出血风险",
       "department": "general_internal",
       "category": "general_internal",
       "request": {
         "patient_context": {
           "subject_id": 60010,
           "hadm_id": 70010,
-          "age": 55,
+          "age": 68,
           "gender": "M",
           "department": "general_internal",
-          "admission_type": "OUTPATIENT",
-          "source_text": "55岁男性，原发性高血压，氨氯地平控制欠佳，拟加用 ACEI 联合降压。",
-          "chief_complaint": "血压控制不佳",
-          "history_present_illness": "家庭血压 150/95 mmHg，无蛋白尿及血钾异常；eGFR 85。",
-          "symptoms_or_complaints": [],
+          "admission_type": "INPATIENT",
+          "source_text": "68岁男性，房颤、高血压多病共存住院，长期华法林；膝骨关节炎疼痛明显，拟短期布洛芬。",
+          "chief_complaint": "膝关节痛",
+          "history_present_illness": "INR 2.4，无活动性出血；膝 OA 影像学明确。",
+          "symptoms_or_complaints": [
+            "膝关节痛",
+            "活动受限"
+          ],
           "past_medical_history": [
-            "高血压"
+            "房颤",
+            "高血压",
+            "骨关节炎"
           ],
           "diagnoses": [
             {
+              "icd9_code": "427.31",
+              "name": "心房颤动"
+            },
+            {
               "icd9_code": "401.9",
-              "name": "原发性高血压"
+              "name": "高血压"
+            },
+            {
+              "icd9_code": "715.96",
+              "name": "膝骨关节炎"
             }
           ],
           "current_medications": [
             {
-              "name": "amlodipine",
-              "ingredient": "amlodipine",
+              "name": "warfarin",
+              "ingredient": "warfarin",
               "dose": "5 mg",
               "route": "PO",
               "frequency": "qd"
@@ -713,16 +726,16 @@
           "pregnancy_status": "not_applicable",
           "lactation_status": "not_lactating",
           "missing_fields": [],
-          "egfr": 85.0
+          "egfr": 72.0
         },
         "candidate_drugs": [
           {
-            "name": "lisinopril",
-            "ingredient": "lisinopril",
-            "dose": "10 mg",
+            "name": "ibuprofen",
+            "ingredient": "ibuprofen",
+            "dose": "400 mg",
             "route": "PO",
-            "frequency": "qd",
-            "indication": "高血压",
+            "frequency": "tid",
+            "indication": "骨关节炎疼痛",
             "source": "candidate"
           }
         ],
@@ -1723,8 +1736,8 @@
     },
     {
       "id": "dept_ent_01",
-      "title": "急性咽炎抗感染",
-      "description": "A 组链球菌咽炎，阿莫西林标准治疗（信息完整阴性对照）",
+      "title": "急性咽炎：青霉素过敏 + 阿莫西林",
+      "description": "链球菌咽炎候选阿莫西林，明确青霉素过敏史，应触发过敏禁忌",
       "department": "ent",
       "category": "ent",
       "request": {
@@ -1735,7 +1748,7 @@
           "gender": "F",
           "department": "ent",
           "admission_type": "URGENT",
-          "source_text": "26岁女性，急性咽炎，链球菌快速检测阳性；无青霉素过敏，拟阿莫西林 7 天疗程。",
+          "source_text": "26岁女性，急性咽炎，链球菌快速检测阳性；既往青霉素过敏（皮疹），耳鼻喉科拟阿莫西林。",
           "chief_complaint": "咽痛发热 2 天",
           "history_present_illness": "咽部充血，扁桃体渗出；体温 37.8℃。",
           "symptoms_or_complaints": [
@@ -1743,7 +1756,9 @@
             "发热",
             "吞咽痛"
           ],
-          "past_medical_history": [],
+          "past_medical_history": [
+            "青霉素过敏"
+          ],
           "diagnoses": [
             {
               "icd9_code": "462",
@@ -1760,7 +1775,8 @@
             }
           ],
           "allergies": [
-            "NKDA"
+            "penicillin",
+            "青霉素"
           ],
           "pregnancy_status": "not_applicable",
           "lactation_status": "not_lactating",
@@ -1854,6 +1870,196 @@
             "route": "PO",
             "frequency": "qd",
             "indication": "卒中二级预防",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
+      }
+    },
+    {
+      "id": "dept_general_internal_safe_01",
+      "title": "高血压联合用药（阴性对照）",
+      "description": "标准 CCB+ACEI 联合降压，信息完整，预期无高风险命中",
+      "department": "general_internal",
+      "category": "general_internal",
+      "request": {
+        "patient_context": {
+          "subject_id": 60028,
+          "hadm_id": 70028,
+          "age": 55,
+          "gender": "M",
+          "department": "general_internal",
+          "admission_type": "OUTPATIENT",
+          "source_text": "55岁男性，原发性高血压，氨氯地平控制欠佳，拟加用 ACEI 联合降压。",
+          "chief_complaint": "血压控制不佳",
+          "history_present_illness": "家庭血压 150/95 mmHg，无蛋白尿及血钾异常；eGFR 85。",
+          "symptoms_or_complaints": [],
+          "past_medical_history": [
+            "高血压"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "401.9",
+              "name": "原发性高血压"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "amlodipine",
+              "ingredient": "amlodipine",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "qd"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 85.0
+        },
+        "candidate_drugs": [
+          {
+            "name": "lisinopril",
+            "ingredient": "lisinopril",
+            "dose": "10 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "高血压",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
+      }
+    },
+    {
+      "id": "dept_pharmacy_02",
+      "title": "高警示：胰岛素剂量审查",
+      "description": "临床药师会诊：2 型糖尿病住院患者胰岛素加量，审查低血糖风险",
+      "department": "pharmacy",
+      "category": "pharmacy",
+      "request": {
+        "patient_context": {
+          "subject_id": 60029,
+          "hadm_id": 70029,
+          "age": 58,
+          "gender": "F",
+          "department": "pharmacy",
+          "admission_type": "INPATIENT",
+          "source_text": "58岁女性，2 型糖尿病入院调糖，已用基础胰岛素；因空腹血糖 12 mmol/L 拟加用格列本脲。",
+          "chief_complaint": "血糖控制不佳",
+          "history_present_illness": "HbA1c 9.1%，eGFR 88；无低血糖史。",
+          "symptoms_or_complaints": [
+            "多饮",
+            "乏力"
+          ],
+          "past_medical_history": [
+            "2 型糖尿病"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "250.00",
+              "name": "2 型糖尿病"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "insulin glargine",
+              "ingredient": "insulin glargine",
+              "dose": "20 U",
+              "route": "SC",
+              "frequency": "qd"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 88.0
+        },
+        "candidate_drugs": [
+          {
+            "name": "glibenclamide",
+            "ingredient": "glibenclamide",
+            "dose": "5 mg",
+            "route": "PO",
+            "frequency": "qd",
+            "indication": "2 型糖尿病",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
+      }
+    },
+    {
+      "id": "dept_pharmacy_03",
+      "title": "高警示：甲氨蝶呤监测",
+      "description": "风湿科会诊：甲氨蝶呤每周方案，审查骨髓抑制与 DDI",
+      "department": "pharmacy",
+      "category": "pharmacy",
+      "request": {
+        "patient_context": {
+          "subject_id": 60030,
+          "hadm_id": 70030,
+          "age": 54,
+          "gender": "M",
+          "department": "pharmacy",
+          "admission_type": "OUTPATIENT",
+          "source_text": "54岁男性，类风湿关节炎每周甲氨蝶呤；因上呼吸道感染拟加复方磺胺甲噁唑。",
+          "chief_complaint": "发热咳嗽",
+          "history_present_illness": "DAS28 3.8，肝肾功能正常；无磺胺过敏史。",
+          "symptoms_or_complaints": [
+            "发热",
+            "咳嗽"
+          ],
+          "past_medical_history": [
+            "类风湿关节炎"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "714.0",
+              "name": "类风湿关节炎"
+            },
+            {
+              "icd9_code": "486",
+              "name": "上呼吸道感染"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "methotrexate",
+              "ingredient": "methotrexate",
+              "dose": "15 mg",
+              "route": "PO",
+              "frequency": "weekly"
+            },
+            {
+              "name": "folic acid",
+              "ingredient": "folic acid",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "weekly"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": []
+        },
+        "candidate_drugs": [
+          {
+            "name": "trimethoprim sulfamethoxazole",
+            "ingredient": "trimethoprim sulfamethoxazole",
+            "dose": "960 mg",
+            "route": "PO",
+            "frequency": "bid",
+            "indication": "上呼吸道感染",
             "source": "candidate"
           }
         ],

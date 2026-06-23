@@ -72,24 +72,30 @@ def study_allowed_for_sources(patient_id: str, study_id: str, imaging_sources: l
 
 def _catalog_case_allowed(case_dir: str, imaging_sources: list[str]) -> bool:
     for s in _filtered_studies(imaging_sources):
-        if s.patient_id == case_dir or case_dir in s.study_id:
+        if s.patient_id == case_dir or s.study_id == case_dir:
+            return True
+        if s.study_id.endswith(f"_{case_dir}"):
             return True
     return False
 
 
-def _file_stem_allowed(stem: str, imaging_sources: list[str]) -> bool:
-    if not stem:
-        return False
-    for s in _filtered_studies(imaging_sources):
+@lru_cache(maxsize=32)
+def _allowed_file_stems(imaging_sources: tuple[str, ...]) -> frozenset[str]:
+    stems: set[str] = set()
+    for s in _filtered_studies(list(imaging_sources)):
         if s.volume_path:
             vp = Path(s.volume_path)
-            if vp.stem == stem or stem in s.volume_path or vp.parent.name == stem:
-                return True
+            stems.add(vp.stem)
+            stems.add(vp.parent.name)
         for img in s.image_paths:
-            ip = Path(img)
-            if ip.stem == stem or stem in img:
-                return True
-    return False
+            stems.add(Path(img).stem)
+    return frozenset(stems)
+
+
+def _file_stem_allowed(stem: str, imaging_sources: list[str]) -> bool:
+    if not stem or not imaging_sources:
+        return False
+    return stem in _allowed_file_stems(tuple(sorted(imaging_sources)))
 
 
 def _overlay_stem(filename: str) -> str:
@@ -212,13 +218,16 @@ def path_allowed_for_sources(path: str, imaging_sources: list[str]) -> bool:
     if rel.startswith(IMAGING_CACHE_PREFIX):
         return _cache_path_allowed(rel, imaging_sources)
 
-    allowed_prefixes: list[str] = []
     for src in imaging_sources:
         for dataset_dir in SOURCE_DATASET_DIRS.get(src, ()):
-            allowed_prefixes.append(f"{dataset_dir}/")
-
-    if any(rel.startswith(prefix) for prefix in allowed_prefixes):
-        return True
+            prefix = f"{dataset_dir}/"
+            if not rel.startswith(prefix):
+                continue
+            if prefix == "datasets/mimic/":
+                if _mimic_cxr_jpg_under_mimic(rel):
+                    return "mimic_cxr" in imaging_sources
+                return "mimic" in imaging_sources
+            return True
 
     if "mimic_cxr" in imaging_sources and _mimic_cxr_jpg_under_mimic(rel):
         return True

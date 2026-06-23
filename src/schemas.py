@@ -18,6 +18,8 @@ CaseStage = Literal[
     "review",
     "clarify",
     "final",
+    "imaging_vlm",
+    "imaging_report",
 ]
 ReportSection = Literal[
     "clinical_analysis",
@@ -328,11 +330,15 @@ class CaseEvent(BaseModel):
     payload: Dict[str, Any] = Field(default_factory=dict)
 
 
+CaseKind = Literal["multi_agent", "imaging_vlm", "imaging_report"]
+
+
 class CaseLog(BaseModel):
     case_id: str
     user_id: str = Field(default="")
     department: str = Field(default="", description="所属科室 dept_id")
     department_name_cn: str = Field(default="")
+    case_kind: CaseKind = Field(default="multi_agent")
     created_at: str
     updated_at: str
     status: str = Field(default="in_progress")
@@ -346,6 +352,9 @@ class CaseLog(BaseModel):
     safety_panel: Optional[SafetyPanelResult] = None
     arbitration: Optional[ArbitrationResult] = None
     clarify_output: Optional[ClarifyOutput] = None
+    vlm_analysis: Optional[Dict[str, Any]] = None
+    imaging_report_id: str = Field(default="")
+    imaging_session_id: str = Field(default="")
     final_recommendation: str = Field(default="")
     events: List[CaseEvent] = Field(default_factory=list)
 
@@ -354,6 +363,7 @@ class CaseSummary(BaseModel):
     case_id: str
     department: str = ""
     department_name_cn: str = ""
+    case_kind: CaseKind = "multi_agent"
     status: str = "in_progress"
     created_at: str = ""
     updated_at: str = ""
@@ -473,6 +483,7 @@ class VlmAnalyzeRequest(BaseModel):
 
 
 class VlmAnalyzeResponse(BaseModel):
+    case_id: Optional[str] = None
     analysis: Dict[str, Any] = Field(default_factory=dict)
     images_used: List[str] = Field(default_factory=list)
     model: str = ""
@@ -506,6 +517,7 @@ class SaveScreenshotRequest(BaseModel):
 
 class GenerateReportRequest(BaseModel):
     patient_id: str
+    case_id: Optional[str] = Field(default=None, description="Optional Case replay id to update after VLM step")
     clinical_text: str = Field(default="")
     primary_modality: str = Field(default="CT")
     modalities: List[str] = Field(default_factory=lambda: ["CT"])
