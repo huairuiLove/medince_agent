@@ -519,7 +519,7 @@ class ReviewEngine:
         if risk_level == "high":
             final_recommendation = "当前候选用药存在高风险，建议先阻断该方案，并优先采用更安全替代或人工复核。"
         elif need_clarification:
-            final_recommendation = "当前信息不足，建议先补充关键字段后再继续用药审查；在未补全前应采用保守策略。"
+            final_recommendation = "当前信息不足，建议先补充关键字段后再继续用药审查。"
         elif risk_level == "medium":
             final_recommendation = "当前方案存在中等风险，建议结合证据调整方案并进行人工复核。"
         elif risk_level == "low":

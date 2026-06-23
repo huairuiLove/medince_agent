@@ -61,6 +61,7 @@ class AgentConfigInfo(BaseModel):
     role: str
     debate: bool = True
     enabled: bool = True
+    is_department_agent: bool = False
     available_skills: list[AgentSkillInfo] = []
     enabled_skills: list[str] = []
 

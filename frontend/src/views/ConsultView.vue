@@ -153,7 +153,7 @@ function consultPatientContext(): PatientContext {
   return emptyPatient()
 }
 
-async function submitClarify(payload: { answers: Record<string, string>; unable: boolean }) {
+async function submitClarify(payload: { answers: Record<string, string> }) {
   if (!result.value?.rule_output) return
   clarifyLoading.value = true
   clarifyError.value = ''
@@ -163,7 +163,6 @@ async function submitClarify(payload: { answers: Record<string, string>; unable:
       candidate_drugs: drugs.value,
       review_output: result.value.rule_output,
       user_answers: payload.answers,
-      unable_to_answer: payload.unable,
       case_id: result.value.case_id,
       persist: persist.value,
     })

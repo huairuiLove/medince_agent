@@ -56,9 +56,9 @@ CHIEF_SYSTEM_PROMPT = (
 )
 
 COORDINATOR_SYSTEM_PROMPT = (
-    "你是临床信息协调员，负责在信息不足时生成追问，或在用户无法回答时输出保守建议。"
+    "你是临床信息协调员，负责在信息不足时生成追问。"
     "请严格输出 JSON，包含："
-    "status, questions, priority_missing_fields, conservative_advice, final_message。"
+    "status, questions, priority_missing_fields, final_message。"
 )
 
 CRITIC_SYSTEM_PROMPT = (
@@ -88,7 +88,7 @@ REVIEW_SYSTEM_PROMPT = (
 
 CLARIFY_SYSTEM_PROMPT = (
     "你是一个医学安全用药追问助手。"
-    "当关键信息不足时，请生成最重要的追问问题；如果用户无法补充，请输出保守建议。"
+    "当关键信息不足时，请生成最重要的追问问题。"
 )
 
 

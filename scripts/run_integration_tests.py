@@ -80,7 +80,7 @@ cl_out2 = clarify_engine.clarify(
     ReviewOutput.model_validate(cl2["request"]["review_output"]),
     unable_to_answer=True,
 )
-record("clarify: conservative fallback", cl_out2.status == "conservative_fallback")
+record("clarify: unable to answer", cl_out2.status == "complete" and bool(cl_out2.final_message))
 
 print("\n" + "=" * 70)
 print("LLM EXTRACT TESTS")

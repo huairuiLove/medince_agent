@@ -255,6 +255,7 @@ class AgentRegistry:
                 "role": s.role,
                 "debate": s.debate,
                 "default_enabled": s.default_enabled,
+                "is_department_agent": s.is_department_agent,
                 "skills": [{"skill_id": sk.skill_id, "title": sk.title} for sk in s.skills],
             }
             for s in self._specs.values()

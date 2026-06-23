@@ -27,10 +27,20 @@ def load_skill_body(agent_id: str, skill_id: str) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
+def _apply_template(body: str, variables: dict[str, str] | None) -> str:
+    if not variables:
+        return body
+    result = body
+    for key, value in variables.items():
+        result = result.replace(f"{{{{{key}}}}}", value)
+    return result
+
+
 def compose_system_prompt(
     agent_id: str,
     enabled_skill_ids: list[str],
     custom_bodies: list[str] | None = None,
+    template_variables: dict[str, str] | None = None,
 ) -> str:
     parts: list[str] = []
     for sid in enabled_skill_ids:
@@ -38,7 +48,7 @@ def compose_system_prompt(
             continue
         body = load_skill_body(agent_id, sid)
         if body:
-            parts.append(body)
+            parts.append(_apply_template(body, template_variables))
     if custom_bodies:
         for body in custom_bodies:
             if body.strip():
@@ -46,6 +56,6 @@ def compose_system_prompt(
     if not parts:
         fallback = load_skill_body(agent_id, "base")
         if fallback:
-            parts.append(fallback)
+            parts.append(_apply_template(fallback, template_variables))
     parts.append(_AGENT_JSON_SCHEMA)
     return "\n\n".join(parts)

@@ -1,0 +1,76 @@
+{
+  "cases": [
+    {
+      "case_id": "clinical_cardio_polypharmacy_01",
+      "title": "心内科复杂多药联用",
+      "description": "72岁男性，心衰+房颤+CKD3期，新增胺碘酮",
+      "category": "cardiology",
+      "request": {
+        "patient_context": {
+          "age": 72,
+          "gender": "M",
+          "egfr": 42,
+          "department": "cardiology",
+          "diagnoses": [
+            {"icd9_code": "428.0", "name": "Congestive heart failure"},
+            {"icd9_code": "427.31", "name": "Atrial fibrillation"},
+            {"icd9_code": "585.3", "name": "CKD stage 3"}
+          ],
+          "current_medications": [
+            {"name": "digoxin", "dose": "0.125mg"},
+            {"name": "furosemide", "dose": "40mg"},
+            {"name": "warfarin", "dose": "3mg"},
+            {"name": "spironolactone", "dose": "20mg"}
+          ]
+        },
+        "candidate_drugs": [{"name": "amiodarone", "dose": "200mg"}]
+      }
+    },
+    {
+      "case_id": "clinical_neuro_epilepsy_01",
+      "title": "神经内科抗癫痫加药",
+      "description": "青年女性癫痫，丙戊酸基础上加拉莫三嗪",
+      "category": "neurology",
+      "request": {
+        "patient_context": {
+          "age": 28,
+          "gender": "F",
+          "department": "neurology",
+          "current_medications": [{"name": "valproate", "dose": "500mg bid"}]
+        },
+        "candidate_drugs": [{"name": "lamotrigine", "dose": "25mg"}]
+      }
+    },
+    {
+      "case_id": "clinical_oncology_chemo_01",
+      "title": "肿瘤科化疗 DDI",
+      "description": "顺铂方案联用强 CYP3A4 抑制剂",
+      "category": "oncology",
+      "request": {
+        "patient_context": {
+          "age": 58,
+          "gender": "M",
+          "department": "oncology",
+          "current_medications": [{"name": "cisplatin", "dose": "75mg/m2"}]
+        },
+        "candidate_drugs": [{"name": "ketoconazole", "dose": "200mg"}]
+      }
+    },
+    {
+      "case_id": "clinical_safe_htn_01",
+      "title": "阴性测试-安全降压联合",
+      "description": "标准 ACEI+CCB 联合，应通过",
+      "category": "negative",
+      "request": {
+        "patient_context": {
+          "age": 55,
+          "gender": "M",
+          "department": "cardiology",
+          "egfr": 85,
+          "current_medications": [{"name": "amlodipine", "dose": "5mg"}]
+        },
+        "candidate_drugs": [{"name": "lisinopril", "dose": "10mg"}]
+      }
+    }
+  ]
+}

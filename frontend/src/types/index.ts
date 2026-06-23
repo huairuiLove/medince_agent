@@ -323,6 +323,25 @@ export interface DepartmentInfo {
   description?: string
 }
 
+export interface DepartmentContextResponse {
+  dept_id: string
+  name_cn: string
+  name_en?: string
+  description?: string
+  review_config?: Record<string, unknown>
+  core_formulary?: string[]
+  nav_routes?: string[]
+}
+
+export interface DepartmentStatsResponse {
+  dept_id: string
+  reviews_today: number
+  alerts_today: number
+  overrides_today: number
+  pending_queue: number
+  top_alerts: { summary: string; count: number }[]
+}
+
 export interface UserProfile {
   user_id: string
   username: string
@@ -345,6 +364,7 @@ export interface AgentConfigInfo {
   agent_name: string
   role: string
   enabled?: boolean
+  is_department_agent?: boolean
   available_skills?: AgentSkillInfo[]
   enabled_skills?: string[]
 }
@@ -408,6 +428,8 @@ export interface CpoeMedicationReviewResponse {
   unresolved_drugs?: string[]
   review_output?: ReviewOutput
   formulary_drug_count?: number
+  department?: string
+  department_focus_categories?: string[]
 }
 
 export interface AlertDecision {

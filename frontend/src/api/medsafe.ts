@@ -7,6 +7,8 @@ import type {
   ClinicalReport,
   CpoeMedicationOrder,
   CpoeMedicationReviewResponse,
+  DepartmentContextResponse,
+  DepartmentStatsResponse,
   CpoePatientSnapshot,
   DepartmentInfo,
   DoctorWorkspace,
@@ -216,11 +218,22 @@ export const medsafeApi = {
     orders: CpoeMedicationOrder[]
     existing_medications?: DrugItem[]
     review_mode?: string
+    department?: string
   }) =>
     request<CpoeMedicationReviewResponse>('/api/v1/cpoe/medication-review', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  getDepartmentContext: (deptId?: string) => {
+    const q = deptId ? `?dept_id=${encodeURIComponent(deptId)}` : ''
+    return request<DepartmentContextResponse>(`/api/v1/department/context${q}`)
+  },
+
+  getDepartmentStats: (deptId?: string) => {
+    const q = deptId ? `?dept_id=${encodeURIComponent(deptId)}` : ''
+    return request<DepartmentStatsResponse>(`/api/v1/department/stats${q}`)
+  },
 
   ruleReview: (patient_context: PatientContext, candidate_drugs: DrugItem[]) =>
     request<{ review_output: ReviewOutput; retrieved_evidence: unknown[] }>('/api/v1/review', {

@@ -7,7 +7,6 @@ from src.schemas import (
     ClarifyOutput,
     ClarifyQuestion,
     ClarifyStatus,
-    ConservativeAdvice,
     PatientContext,
     ReviewOutput,
 )
@@ -37,7 +36,7 @@ class CoordinatorAgent:
 
     agent_id = "coordinator"
     agent_name = "信息协调员"
-    role = "追问生成与保守降级"
+    role = "追问生成与信息补全"
 
     def __init__(self, llm: LLMClient) -> None:
         self.llm = llm
@@ -62,17 +61,6 @@ class CoordinatorAgent:
                 patient_context, candidate_drugs, review_output, unable_to_answer=unable_to_answer
             )
 
-        conservative = None
-        ca = data.get("conservative_advice")
-        if isinstance(ca, str) and ca.strip():
-            conservative = ConservativeAdvice(summary=ca.strip())
-        elif isinstance(ca, dict):
-            conservative = ConservativeAdvice(
-                summary=str(ca.get("summary", "")),
-                actions=[str(a) for a in ca.get("actions", []) if a],
-                disclaimer=str(ca.get("disclaimer", "")),
-            )
-
         questions: list[ClarifyQuestion] = []
         for q in data.get("questions", []):
             if isinstance(q, str) and q.strip():
@@ -93,6 +81,6 @@ class CoordinatorAgent:
             status=_normalize_clarify_status(data.get("status")),
             questions=questions,
             priority_missing_fields=list(data.get("priority_missing_fields", [])),
-            conservative_advice=conservative,
-            final_message=data.get("final_message", ""),
+            conservative_advice=None,
+            final_message=str(data.get("final_message", "")),
         )

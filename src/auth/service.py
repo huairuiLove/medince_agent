@@ -285,6 +285,7 @@ class AuthService:
                     role=spec.role,
                     debate=spec.debate,
                     enabled=agent_prefs.get(spec.agent_id, spec.default_enabled),
+                    is_department_agent=spec.is_department_agent,
                     available_skills=[
                         AgentSkillInfo(
                             skill_id=s.skill_id,

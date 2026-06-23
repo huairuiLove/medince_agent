@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.schemas import CandidateDrug, ClarifyOutput, ClarifyQuestion, ConservativeAdvice, PatientContext, ReviewOutput
+from src.schemas import CandidateDrug, ClarifyOutput, ClarifyQuestion, PatientContext, ReviewOutput
 from src.utils import dedupe_preserve_order
 
 
@@ -55,27 +55,6 @@ class ClarifyEngine:
         questions.sort(key=lambda item: {"high": 0, "medium": 1, "low": 2}[item.priority])
         return questions[:3]
 
-    def _build_conservative_advice(
-        self,
-        review_output: ReviewOutput,
-        candidate_drugs: list[CandidateDrug],
-    ) -> ConservativeAdvice:
-        drug_names = [drug.name for drug in candidate_drugs if drug.name]
-        if review_output.risk_level == "high":
-            summary = "由于已命中高风险规则，当前不建议直接使用候选药物方案。"
-        else:
-            summary = "由于关键信息仍然缺失，当前建议采用保守策略，暂缓直接给出积极用药建议。"
-
-        actions = []
-        if drug_names:
-            actions.append(f"在未补全信息前，暂缓启动或追加以下药物：{', '.join(drug_names)}。")
-        if review_output.alternative_suggestions:
-            actions.append(f"可优先考虑更安全的替代思路：{'；'.join(review_output.alternative_suggestions[:3])}。")
-        actions.append("建议补充过敏史、妊娠状态、年龄和当前全部用药后重新审查。")
-
-        disclaimer = "本结果为最小规则库驱动的保守审查结论，不能替代执业医师或药师的正式决策。"
-        return ConservativeAdvice(summary=summary, actions=actions, disclaimer=disclaimer)
-
     def clarify(
         self,
         patient_context: PatientContext,
@@ -89,13 +68,12 @@ class ClarifyEngine:
         remaining_fields = [question.field for question in questions]
 
         if unable_to_answer:
-            conservative_advice = self._build_conservative_advice(review_output, candidate_drugs)
             return ClarifyOutput(
-                status="conservative_fallback",
+                status="complete",
                 questions=[],
                 priority_missing_fields=remaining_fields,
-                conservative_advice=conservative_advice,
-                final_message="由于无法补充关键信息，系统已切换为保守输出。建议暂缓高风险或信息依赖较强的方案。",
+                conservative_advice=None,
+                final_message="关键信息仍未补全，建议人工复核后再决定用药方案。",
             )
 
         if questions:
@@ -104,7 +82,7 @@ class ClarifyEngine:
                 questions=questions,
                 priority_missing_fields=remaining_fields,
                 conservative_advice=None,
-                final_message="当前仍需补充关键信息后才能继续完成更稳妥的安全审查。",
+                final_message="请补充关键信息后继续审查。",
             )
 
         return ClarifyOutput(

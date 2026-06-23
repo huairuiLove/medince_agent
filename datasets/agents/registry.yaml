@@ -129,3 +129,82 @@ agents:
     debate: false
     default_enabled: true
     default_skills: [base]
+
+department_agents:
+  cardiology_specialist:
+    agent_id: cardiology_specialist
+    agent_name: 心内专科
+    role: 心衰多药联合、抗凝桥接、抗心律失常审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills: [base, heart_failure, acs_protocol, anticoag_bridge]
+    activate_when:
+      departments: [cardiology]
+      drug_keywords: [warfarin, rivaroxaban, apixaban, dabigatran, amiodarone, digoxin, clopidogrel, ticagrelor]
+
+  neurology_specialist:
+    agent_id: neurology_specialist
+    agent_name: 神经专科
+    role: 抗癫痫、帕金森、卒中二级预防审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills: [base, epilepsy_combo, parkinson_ddi, stroke_prevention]
+    activate_when:
+      departments: [neurology]
+      drug_keywords: [levetiracetam, valproate, carbamazepine, levodopa, phenytoin]
+
+  oncology_specialist:
+    agent_id: oncology_specialist
+    agent_name: 肿瘤专科
+    role: 化疗 DDI、免疫抑制、止吐联合审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills: [base, chemo_ddi, immunosuppress, antiemetic_combo]
+    activate_when:
+      departments: [oncology, hematology]
+      drug_keywords: [cisplatin, carboplatin, paclitaxel, imatinib, cyclophosphamide, methotrexate]
+
+  pediatrics_specialist:
+    agent_id: pediatrics_specialist
+    agent_name: 儿科专科
+    role: 儿科剂量、生长影响、疫苗交互审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills: [base, pediatric_dosing, growth_impact, vaccine_interaction]
+    activate_when:
+      departments: [pediatrics]
+      age_lt: 18
+
+  obgyn_specialist:
+    agent_id: obgyn_specialist
+    agent_name: 妇产专科
+    role: 致畸、哺乳、宫缩剂审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills: [base, teratogen, lactation_safety, tocolysis]
+    activate_when:
+      departments: [obstetrics_gynecology]
+      pregnancy_active: true
+
+  icu_specialist:
+    agent_id: icu_specialist
+    agent_name: 重症专科
+    role: 血管活性、镇静、CRRT 剂量调整审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills: [base, vasoactive, sedation_protocol, crrt_adjustment]
+    activate_when:
+      departments: [icu]
+      drug_keywords: [norepinephrine, vasopressin, propofol, midazolam, fentanyl, meropenem]

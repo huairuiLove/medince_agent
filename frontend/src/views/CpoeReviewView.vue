@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { medsafeApi } from '@/api/medsafe'
 import type {
   CpoeMedicationOrder,
   CpoeMedicationReviewResponse,
   CpoePatientSnapshot,
+  DepartmentContextResponse,
   DrugItem,
 } from '@/types'
 import RiskBadge from '@/components/common/RiskBadge.vue'
+import DeptDrugPanel from '@/components/department/DeptDrugPanel.vue'
+import DeptPriorityAlerts from '@/components/department/DeptPriorityAlerts.vue'
 
+const auth = useAuthStore()
 const loading = ref(false)
 const error = ref('')
 const response = ref<CpoeMedicationReviewResponse | null>(null)
+const deptCtx = ref<DepartmentContextResponse | null>(null)
 
 const encounterId = ref(`enc_${Date.now()}`)
 const patient = ref<CpoePatientSnapshot>({
@@ -38,6 +44,20 @@ const newOrder = ref<CpoeMedicationOrder>({
   frequency: '',
   status: 'new',
 })
+
+onMounted(async () => {
+  try {
+    if (!auth.workspace) await auth.fetchMe()
+    deptCtx.value = await medsafeApi.getDepartmentContext(auth.profile?.dept_id)
+  } catch {
+    deptCtx.value = null
+  }
+})
+
+function pickFormularyDrug(drug: string) {
+  newOrder.value.display_name = drug
+  newOrder.value.ingredient = drug
+}
 
 function addExistingMed() {
   const name = newExistingMed.value.trim()
@@ -103,6 +123,7 @@ async function runReview() {
       orders: orders.value,
       existing_medications: existingMeds.value,
       review_mode: 'pre_save',
+      department: auth.profile?.dept_id,
     })
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
@@ -117,11 +138,20 @@ async function runReview() {
     <header class="page-head">
       <div>
         <h1>CPOE 用药审查</h1>
-        <p class="sub">院目录解析 · 规则引擎 · 药师队列联动（`requires_pharmacist_review` 时自动入队）</p>
+        <p class="sub">
+          科室：{{ auth.department?.name_cn ?? '未登录' }}
+          · 院目录解析 · 规则引擎 · 药师队列联动
+        </p>
       </div>
     </header>
 
-    <div class="grid-2">
+    <div class="grid-3">
+      <DeptDrugPanel
+        v-if="deptCtx?.core_formulary?.length"
+        :drugs="deptCtx.core_formulary"
+        @select="pickFormularyDrug"
+      />
+
       <section class="card form-panel">
         <label class="field">
           <span class="label">就诊 ID</span>
@@ -150,6 +180,9 @@ async function runReview() {
             <span class="label">eGFR</span>
             <input v-model.number="patient.egfr" type="number" class="input" min="0" step="1" />
           </label>
+          <template v-if="deptCtx?.review_config?.lab_context_defaults">
+            <p class="lab-hint">科室关注检验：{{ (deptCtx.review_config.lab_context_defaults as string[]).join(' · ') }}</p>
+          </template>
           <label class="field full">
             <span class="label">过敏（逗号分隔）</span>
             <input
@@ -207,6 +240,10 @@ async function runReview() {
       </section>
 
       <section v-if="response" class="result-panel">
+        <DeptPriorityAlerts
+          :alerts="response.alerts"
+          :focus-categories="response.department_focus_categories ?? []"
+        />
         <div class="card summary-card">
           <h2>审查结果</h2>
           <RiskBadge
@@ -253,6 +290,9 @@ async function runReview() {
 <style scoped>
 .page-head h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
 .sub { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+.grid-3 { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 1rem; align-items: start; }
+@media (max-width: 1100px) { .grid-3 { grid-template-columns: 1fr; } }
+.lab-hint { grid-column: 1 / -1; font-size: 0.78rem; color: var(--text-muted); margin: 0; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
 @media (max-width: 960px) { .grid-2 { grid-template-columns: 1fr; } }
 .form-panel h3 { font-size: 0.92rem; margin: 1rem 0 0.5rem; color: var(--primary-dark); }

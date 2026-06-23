@@ -8,6 +8,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const allLinks = [
+  { to: '/department', label: '科室工作台' },
   { to: '/', label: '系统概览' },
   { to: '/imaging', label: '影像与会诊' },
   { to: '/consult', label: '多智能体会诊' },

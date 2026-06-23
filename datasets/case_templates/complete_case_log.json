@@ -110,7 +110,7 @@
         "source": "ddi_bert_model"
       }
     ],
-    "final_recommendation": "当前信息不足，建议先补充关键字段后再继续用药审查；在未补全前应采用保守策略。"
+    "final_recommendation": "当前信息不足，建议先补充关键字段后再继续用药审查。"
   },
   "agent_opinions": [
     {

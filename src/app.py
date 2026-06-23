@@ -30,6 +30,8 @@ from src.drug_catalog.catalog_service import (
     ensure_semantic_index_if_needed,
     get_drug_catalog_service,
 )
+from src.department.context import get_department_context
+from src.department.stats import get_department_stats_tracker
 from src.drug_catalog.review_facade import CpoeReviewFacade
 from src.auth.dependencies import get_current_user, get_optional_user
 from src.auth.models import (
@@ -55,6 +57,8 @@ from src.schemas import (
     ConsultResponse,
     CpoeMedicationReviewRequest,
     CpoeMedicationReviewResponse,
+    DepartmentContextResponse,
+    DepartmentStatsResponse,
     FormularySyncRequest,
     FormularySyncResponse,
     DiagnosisItem,
@@ -108,7 +112,7 @@ MedSafe — 基于 MIMIC-III 场景的多智能体用药安全审查系统。
 - **Rule Gate** — 确定性规则库预筛（硬安全底线）
 - **Multi-Agent Review** — 临床药师 / 内科主治 / 过敏专员 / 药房库管 / 专科医生
 - **Arbitration** — 会诊主席汇总仲裁
-- **Clarify** — 信息协调员追问或保守降级
+- **Clarify** — 信息协调员追问补全
 """
 
 logger = get_logger("api")
@@ -177,7 +181,7 @@ app = FastAPI(
         {"name": "Health", "description": "Health check and metrics"},
         {"name": "Extract", "description": "LLM structured extraction"},
         {"name": "Review", "description": "Rule-based drug safety review"},
-        {"name": "Clarify", "description": "Clarification and conservative fallback"},
+        {"name": "Clarify", "description": "Clarification and missing-field follow-up"},
         {"name": "Multi-Agent", "description": "Multi-agent consult pipeline"},
         {"name": "Consult", "description": "Legacy rule-only consult pipeline"},
         {"name": "Cases", "description": "Case log management and replay"},
@@ -218,8 +222,9 @@ _REQUEST_COUNTS: dict[str, int] = {
     "extract": 0, "review": 0, "clarify": 0, "consult": 0,
     "multi_review": 0, "multi_consult": 0, "case_get": 0,
     "imaging_segment": 0, "imaging_vlm": 0, "report_generate": 0, "report_ask": 0, "chat_stream": 0,
-    "cpoe_review": 0, "formulary_sync": 0, "fhir_review": 0,
+    "cpoe_review": 0, "formulary_sync": 0, "fhir_review": 0, "department_context": 0,
 }
+DEPT_STATS = get_department_stats_tracker()
 
 app.include_router(create_fhir_router(CPOE_REVIEW, version=VERSION))
 app.include_router(pharmacy_router, prefix="/api/v1/pharmacy")
@@ -506,6 +511,40 @@ def auth_add_custom_skill(
     return get_auth_service().add_custom_skill(user.user_id, body)
 
 
+@app.get("/api/v1/department/context", response_model=DepartmentContextResponse, tags=["Department"])
+def department_context(
+    dept_id: str = "",
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+) -> DepartmentContextResponse:
+    """Return review_config and core_formulary for a department."""
+    _REQUEST_COUNTS["department_context"] += 1
+    resolved = dept_id.strip() or (user.dept_id if user else "")
+    ctx = get_department_context(resolved)
+    if ctx is None:
+        raise HTTPException(status_code=404, detail=f"Unknown department: {resolved}")
+    data = ctx.to_dict()
+    return DepartmentContextResponse(**data)
+
+
+@app.get("/api/v1/department/stats", response_model=DepartmentStatsResponse, tags=["Department"])
+def department_stats(
+    dept_id: str = "",
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+) -> DepartmentStatsResponse:
+    resolved = dept_id.strip() or (user.dept_id if user else "unknown")
+    pending = 0
+    try:
+        pending_row = PHARMACY_QUEUE.store.conn.execute(
+            "SELECT COUNT(*) AS c FROM pharmacist_reviews WHERE status = 'pending' AND department = ?",
+            (resolved,),
+        ).fetchone()
+        pending = int(pending_row["c"]) if pending_row else 0
+    except Exception:
+        pending = 0
+    snap = DEPT_STATS.snapshot(resolved, pending_queue=pending)
+    return DepartmentStatsResponse(**snap)
+
+
 @app.post("/api/v1/cpoe/medication-review", response_model=CpoeMedicationReviewResponse, tags=["CPOE"])
 def cpoe_medication_review(
     req: CpoeMedicationReviewRequest,
@@ -514,7 +553,15 @@ def cpoe_medication_review(
 ) -> CpoeMedicationReviewResponse:
     """Real-time medication review for CPOE — resolves hospital drug IDs via formulary CSV."""
     _REQUEST_COUNTS["cpoe_review"] += 1
+    if not req.department.strip() and user:
+        req = req.model_copy(update={"department": user.dept_id})
     response = CPOE_REVIEW.review(req)
+    dept_id = req.department or (user.dept_id if user else "unknown")
+    DEPT_STATS.record_review(
+        dept_id,
+        alert_count=len(response.alerts),
+        alert_summaries=[a.summary for a in response.alerts],
+    )
     if response.requires_pharmacist_review:
         PHARMACY_QUEUE.enqueue(
             encounter_id=req.encounter_id,
@@ -792,9 +839,9 @@ def consult(req: ConsultRequest, request: Request) -> ConsultResponse:
         patient_context, req.candidate_drugs, review_output, unable_to_answer=req.unable_to_answer
     )
     final = review_output.final_recommendation
-    if clarify_output.conservative_advice:
-        final = clarify_output.conservative_advice.summary
-    elif clarify_output.status == "need_user_input":
+    if clarify_output.status == "need_user_input" and clarify_output.final_message:
+        final = clarify_output.final_message
+    elif req.unable_to_answer and clarify_output.final_message:
         final = clarify_output.final_message
 
     if req.persist:

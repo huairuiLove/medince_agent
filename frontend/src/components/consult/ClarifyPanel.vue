@@ -9,7 +9,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [payload: { answers: Record<string, string>; unable: boolean }]
+  submit: [payload: { answers: Record<string, string> }]
 }>()
 
 const answers = ref<Record<string, string>>({})
@@ -45,8 +45,15 @@ const statusLabel = computed(() => {
   return status
 })
 
-function submitAnswers(unable = false) {
-  emit('submit', { answers: { ...answers.value }, unable })
+const displayFinalMessage = computed(() => {
+  const msg = props.clarify?.final_message?.trim()
+  if (!msg) return ''
+  if (/保守/.test(msg)) return ''
+  return msg
+})
+
+function submitAnswers() {
+  emit('submit', { answers: { ...answers.value } })
 }
 </script>
 
@@ -72,26 +79,12 @@ function submitAnswers(unable = false) {
     </div>
 
     <div v-if="canInteract" class="clarify-actions">
-      <button class="btn-primary" type="button" :disabled="loading" @click="submitAnswers(false)">
+      <button class="btn-primary" type="button" :disabled="loading" @click="submitAnswers">
         {{ loading ? '提交中…' : '提交补充信息' }}
       </button>
-      <button class="btn-secondary" type="button" :disabled="loading" @click="submitAnswers(true)">
-        无法回答，保守建议
-      </button>
     </div>
 
-    <div v-if="clarify.conservative_advice" class="conservative">
-      <h4>保守建议</h4>
-      <p>{{ clarify.conservative_advice.summary }}</p>
-      <ul v-if="clarify.conservative_advice.actions?.length">
-        <li v-for="(a, i) in clarify.conservative_advice.actions" :key="i">{{ a }}</li>
-      </ul>
-      <p v-if="clarify.conservative_advice.disclaimer" class="disclaimer">
-        {{ clarify.conservative_advice.disclaimer }}
-      </p>
-    </div>
-
-    <p v-if="clarify.final_message" class="final-msg">{{ clarify.final_message }}</p>
+    <p v-if="displayFinalMessage" class="final-msg">{{ displayFinalMessage }}</p>
   </section>
 </template>
 
@@ -122,9 +115,5 @@ h3 { margin-bottom: 0.5rem; }
 .q-reason { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
 .answer-input { width: 100%; margin-top: 0.35rem; }
 .clarify-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.75rem 0 1rem; }
-.conservative { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.88rem; }
-.conservative h4 { font-size: 0.82rem; color: var(--primary); margin-bottom: 0.35rem; }
-.conservative ul { margin: 0.35rem 0 0.35rem 1.1rem; }
-.disclaimer { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem; }
 .final-msg { margin-top: 0.75rem; font-weight: 500; }
 </style>
