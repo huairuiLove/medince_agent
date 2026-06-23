@@ -156,6 +156,9 @@ export interface DebateResult {
 
 export interface CaseLog {
   case_id: string
+  user_id?: string
+  department?: string
+  department_name_cn?: string
   status: string
   created_at: string
   updated_at: string
@@ -168,6 +171,17 @@ export interface CaseLog {
   clarify_output?: ClarifyOutput
   final_recommendation?: string
   events?: { stage: string; timestamp: string; payload: unknown }[]
+}
+
+export interface CaseSummary {
+  case_id: string
+  department: string
+  department_name_cn: string
+  status: string
+  created_at: string
+  updated_at: string
+  final_recommendation: string
+  agent_count: number
 }
 
 export interface HealthResponse {

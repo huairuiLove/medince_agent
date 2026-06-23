@@ -251,7 +251,8 @@ export const medsafeApi = {
       body: JSON.stringify({ patient_context, candidate_drugs, persist: false }),
     }),
 
-  listCases: (limit = 30) => request<{ count: number; cases: string[] }>(`/api/v1/cases?limit=${limit}`),
+  listCases: (limit = 30) =>
+    request<{ count: number; cases: CaseSummary[] }>(`/api/v1/cases?limit=${limit}`),
 
   getCase: (caseId: string) => request<CaseLog>(`/api/v1/case/${caseId}`),
 
