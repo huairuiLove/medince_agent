@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_radiology_auto_03",
+  "department": "radiology",
+  "description": "radiology 科室场景：造影+肾毒性：需评估 DDI 与监测。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "radiology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 82353,
+      "gender": "M",
+      "age": 63,
+      "department": "radiology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "radiology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "iodinated_contrast",
+          "ingredient": "iodinated_contrast",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "gentamicin",
+        "ingredient": "gentamicin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ext_radiology_iodinated_contrast_gentamicin",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "radiology"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_neurology_auto_02",
+  "department": "neurology",
+  "description": "neurology 科室场景：丙戊酸与苯妥英联用可因蛋白结合置换升高游离苯妥英。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "neurology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 10952,
+      "gender": "M",
+      "age": 62,
+      "department": "neurology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "neurology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "valproic acid",
+          "ingredient": "valproic acid",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "phenytoin",
+        "ingredient": "phenytoin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_valproate_phenytoin",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "neurology"
+  }
+}

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import VolumeMprViewer from '@/components/imaging/VolumeMprViewer.vue'
+import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
 import { medsafeApi, imagingFileUrl } from '@/api/medsafe'
 import type {
   ClinicalReport,
   ImagingStudy,
   ModelId,
+  ReviewOutput,
   SegModelInfo,
   SegmentResultItem,
   SegmentRunRecord,
@@ -40,7 +42,7 @@ const vlmHint = ref('')
 const vlmImagesUsed = ref<string[]>([])
 const vlmDurationMs = ref(0)
 const includeSourceImage = ref(false)
-const runMedicationReview = ref(false)
+const runMedicationReview = ref(true)
 const candidateDrugText = ref('')
 const qaQuestion = ref('')
 const qaAnswer = ref('')
@@ -350,6 +352,29 @@ async function captureScreenshot() {
   screenshots.value.push({ path: res.path, caption: res.caption })
 }
 
+function drugsToCandidateText(drugs: VlmAnalysis['recommended_drugs']): string {
+  if (!drugs?.length) return ''
+  return drugs
+    .map(d => {
+      if (typeof d === 'string') return d
+      return [d.name, d.dose, d.route].filter(Boolean).join(' ')
+    })
+    .join('；')
+}
+
+function syncCandidateDrugsFromVlm(analysis: VlmAnalysis | null) {
+  const text = drugsToCandidateText(analysis?.recommended_drugs)
+  if (text) candidateDrugText.value = text
+}
+
+watch(vlmAnalysis, analysis => syncCandidateDrugsFromVlm(analysis))
+
+const reportRuleOutput = computed((): ReviewOutput | null => {
+  const raw = report.value?.metadata?.rule_output
+  if (!raw || typeof raw !== 'object') return null
+  return raw as ReviewOutput
+})
+
 function parseCandidateDrugs(raw: string): { name: string; dose?: string; route?: string }[] {
   const text = raw.trim()
   if (!text) return []
@@ -365,13 +390,18 @@ function parseCandidateDrugs(raw: string): { name: string; dose?: string; route?
       /* fall through */
     }
   }
-  return text.split(/[,，、\n]/).map(s => s.trim()).filter(Boolean).map(name => ({ name }))
+  return text.split(/[,，、;\n]/).map(s => s.trim()).filter(Boolean).map(name => ({ name }))
 }
 
 async function generateReport() {
   if (!selectedStudy.value) return
-  if (runMedicationReview.value && !candidateDrugText.value.trim()) {
-    error.value = '已启用用药多智能体审查，请填写候选药物（如：阿莫西林 500mg PO）'
+  const manualDrugs = parseCandidateDrugs(candidateDrugText.value)
+  const vlmDrugs = vlmAnalysis.value?.recommended_drugs?.length
+    ? parseCandidateDrugs(drugsToCandidateText(vlmAnalysis.value.recommended_drugs))
+    : []
+  const candidateDrugs = manualDrugs.length ? manualDrugs : vlmDrugs
+  if (runMedicationReview.value && !candidateDrugs.length) {
+    error.value = '已启用用药审查，请填写候选药物，或先运行 VLM 查阅以自动带入推荐用药'
     return
   }
   loading.value = true
@@ -390,7 +420,7 @@ async function generateReport() {
       segmentation_summary: selectedSegmentSummary.value,
       include_source_image: includeSourceImage.value,
       run_medication_review: runMedicationReview.value,
-      candidate_drugs: parseCandidateDrugs(candidateDrugText.value),
+      candidate_drugs: candidateDrugs,
     })
     await loadPatientReports()
   } catch (e) {
@@ -420,6 +450,7 @@ async function runVlmConsult() {
     vlmModel.value = res.model
     vlmImagesUsed.value = res.images_used
     vlmDurationMs.value = res.duration_ms
+    syncCandidateDrugsFromVlm(res.analysis)
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -663,14 +694,14 @@ const sortedParagraphs = computed(() =>
 
       <label class="model-check include-src">
         <input v-model="runMedicationReview" type="checkbox" />
-        <span>启用用药多智能体审查（需填写候选药物，否则仅生成影像会诊报告）</span>
+        <span>启用用药审查流水线（VLM 推荐 → 规则审查 Layer 0 → 多智能体审查）</span>
       </label>
       <textarea
         v-if="runMedicationReview"
         v-model="candidateDrugText"
         class="textarea"
         rows="2"
-        placeholder="候选药物，如：阿莫西林 500mg PO；华法林 3mg PO（逗号或换行分隔）"
+        placeholder="候选药物（可留空，VLM 查阅后会自动带入推荐用药）"
       />
 
       <div class="action-row">
@@ -682,7 +713,7 @@ const sortedParagraphs = computed(() =>
           Qwen VLM 查阅（已选 {{ selectedOverlayPaths.length }} 张 overlay）
         </button>
         <button class="btn-secondary" :disabled="loading" @click="generateReport">
-          生成完整用药安全报告（VLM + DeepSeek + 多智能体）
+          生成完整报告（VLM → 规则审查 → 多智能体）
         </button>
       </div>
 
@@ -709,6 +740,14 @@ const sortedParagraphs = computed(() =>
           <h4>用药建议</h4>
           <p>{{ vlmAnalysis.medication_recommendation }}</p>
         </div>
+        <div v-if="vlmAnalysis.recommended_drugs?.length" class="report-section">
+          <h4>VLM 推荐用药（Step 1）</h4>
+          <ul>
+            <li v-for="(d, i) in vlmAnalysis.recommended_drugs" :key="i">
+              {{ typeof d === 'string' ? d : [d.name, d.dose, d.route, d.indication].filter(Boolean).join(' ') }}
+            </li>
+          </ul>
+        </div>
         <div v-if="vlmAnalysis.reasoning" class="cot-block">
           <strong>推理</strong>
           {{ vlmAnalysis.reasoning }}
@@ -722,6 +761,8 @@ const sortedParagraphs = computed(() =>
           {{ report.created_at }}
           <span v-if="report.metadata?.medication_review_ran === false" class="info-tag">未跑用药审查</span>
         </p>
+
+        <RuleReviewSummary v-if="reportRuleOutput" :rule-output="reportRuleOutput" />
 
         <div v-for="p in sortedParagraphs" :key="p.paragraph_id" class="report-section">
           <h4>{{ p.title }}</h4>

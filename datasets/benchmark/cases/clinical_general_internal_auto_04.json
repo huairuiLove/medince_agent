@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_general_internal_auto_04",
+  "department": "general_internal",
+  "description": "general_internal 科室场景：SSRI+NSAID 消化道出血。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "general_internal"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 49097,
+      "gender": "M",
+      "age": 64,
+      "department": "general_internal",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "general_internal clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "fluoxetine",
+          "ingredient": "fluoxetine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "ibuprofen",
+        "ingredient": "ibuprofen",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_gen_ssri_nsaids",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "general_internal"
+  }
+}

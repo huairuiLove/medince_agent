@@ -1,0 +1,101 @@
+{
+  "case_id": "clinical_cardio_polypharmacy_01",
+  "department": "cardiology",
+  "description": "72岁男性，心衰+房颤+CKD3，地高辛+呋塞米+华法林+螺内酯，新增胺碘酮",
+  "difficulty": "expert",
+  "tags": [
+    "stage11",
+    "clinical",
+    "cardiology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 43602,
+      "gender": "M",
+      "age": 72,
+      "department": "cardiology",
+      "diagnoses": [
+        {
+          "icd9_code": "428.0",
+          "name": "Congestive heart failure"
+        },
+        {
+          "icd9_code": "427.31",
+          "name": "Atrial fibrillation"
+        },
+        {
+          "icd9_code": "585.3",
+          "name": "CKD stage 3"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "digoxin",
+          "ingredient": "digoxin",
+          "dose": "0.125mg",
+          "route": "PO",
+          "frequency": "qd"
+        },
+        {
+          "name": "furosemide",
+          "ingredient": "furosemide",
+          "dose": "40mg",
+          "route": "PO",
+          "frequency": "qd"
+        },
+        {
+          "name": "warfarin",
+          "ingredient": "warfarin",
+          "dose": "3mg",
+          "route": "PO",
+          "frequency": "qd"
+        },
+        {
+          "name": "spironolactone",
+          "ingredient": "spironolactone",
+          "dose": "20mg",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 42
+    },
+    "candidate_drugs": [
+      {
+        "name": "amiodarone",
+        "ingredient": "amiodarone",
+        "dose": "200mg",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_digoxin_amiodarone",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      },
+      {
+        "rule_id": "ddi_warfarin_amiodarone",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false,
+    "expected_department_boost": "cardiology"
+  }
+}

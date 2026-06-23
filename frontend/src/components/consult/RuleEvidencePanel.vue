@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { RuleEvidence } from '@/types'
 import RiskBadge from '@/components/common/RiskBadge.vue'
+import { sanitizeReviewText } from '@/utils/reviewText'
 
 defineProps<{
   evidence: RuleEvidence[]
@@ -31,7 +32,7 @@ const FIELD_LABELS: Record<string, string> = {
       </div>
       <p>{{ ev.summary }}</p>
       <p v-if="ev.mechanism" class="muted">{{ ev.mechanism }}</p>
-      <p v-if="ev.recommendation" class="rec">{{ ev.recommendation }}</p>
+      <p v-if="ev.recommendation" class="rec">{{ sanitizeReviewText(ev.recommendation) }}</p>
     </div>
   </section>
 </template>

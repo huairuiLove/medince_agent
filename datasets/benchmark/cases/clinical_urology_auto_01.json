@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_urology_auto_01",
+  "department": "urology",
+  "description": "urology 科室场景：抗胆碱能药加重认知障碍与尿潴留。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "urology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 64885,
+      "gender": "M",
+      "age": 61,
+      "department": "urology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "urology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "oxybutynin",
+          "ingredient": "oxybutynin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "tolterodine",
+        "ingredient": "tolterodine",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_uro_anticholinergic_dementia",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "urology"
+  }
+}

@@ -10,11 +10,18 @@ import torch.nn as nn
 from transformers import AutoTokenizer, BertConfig, BertModel
 
 from src.config import get_config, resolve_path
+from src.llm.errors import DdiModelNotReadyError
 from src.safety_models.smiles_lookup import SmilesLookup
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL_DIR = Path(__file__).resolve().parent.parent.parent / "models" / "ddi_bert"
+_HF_REPO_ID = "ltmai/Bio_ClinicalBERT_DDI_finetuned"
+
+
+def is_ddi_bert_enabled() -> bool:
+    cfg = get_config().get("safety_models", {})
+    return bool(cfg.get("enabled", True) and cfg.get("ddi_bert", {}).get("enabled", True))
 
 
 class BioClinicalBertClassification(nn.Module):
@@ -72,6 +79,11 @@ class DdiClassifier:
         self._model: BioClinicalBertClassification | None = None
         self._ready = False
         self._load_error: str | None = None
+        self._enabled = is_ddi_bert_enabled() and self.model_dir.name != "__disabled__"
+
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
 
     @property
     def available(self) -> bool:
@@ -114,9 +126,19 @@ class DdiClassifier:
             logger.warning("DDI classifier load failed: %s", exc)
             return False
 
-    def predict_pair(self, drug_a: str, drug_b: str) -> dict[str, Any] | None:
+    def require_ready(self) -> DdiClassifier:
+        if not self._enabled:
+            raise DdiModelNotReadyError("safety_models.ddi_bert.enabled 为 false，但当前路径要求 DDI 模型。")
         if not self._ensure_loaded():
-            return None
+            detail = self._load_error or f"checkpoint 缺失: {self.model_dir / 'pytorch_model.bin'}"
+            raise DdiModelNotReadyError(
+                detail,
+                hint=f"请运行: python scripts/download_models.py --ddi-bert （HuggingFace: {_HF_REPO_ID}）",
+            )
+        return self
+
+    def predict_pair(self, drug_a: str, drug_b: str) -> dict[str, Any] | None:
+        self.require_ready()
         smiles_a = self.smiles.resolve(drug_a)
         smiles_b = self.smiles.resolve(drug_b)
         if not smiles_a or not smiles_b:
@@ -156,8 +178,7 @@ class DdiClassifier:
         """Batch score drug pairs; skips pairs without resolvable SMILES."""
         if not pairs:
             return []
-        if not self._ensure_loaded():
-            return []
+        self.require_ready()
 
         resolved: list[tuple[str, str, str, str, str]] = []
         for drug_a, drug_b in pairs:
@@ -213,9 +234,11 @@ class DdiClassifier:
 
     def status(self) -> dict[str, Any]:
         return {
+            "enabled": self._enabled,
             "available": self.available,
             "loaded": self._ready,
             "model_dir": str(self.model_dir),
+            "hf_repo": _HF_REPO_ID,
             "high_threshold": self.high_threshold,
             "medium_threshold": self.medium_threshold,
             "smiles_lookup": self.smiles.status(),
@@ -225,7 +248,6 @@ class DdiClassifier:
 
 @lru_cache(maxsize=1)
 def get_ddi_classifier() -> DdiClassifier:
-    cfg = get_config().get("safety_models", {})
-    if not cfg.get("enabled", True) or not cfg.get("ddi_bert", {}).get("enabled", True):
+    if not is_ddi_bert_enabled():
         return DdiClassifier(model_dir=Path("__disabled__"))
     return DdiClassifier()

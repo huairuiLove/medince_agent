@@ -1,0 +1,58 @@
+{
+  "case_id": "clinical_geriatrics_beers_01",
+  "department": "geriatrics",
+  "description": "老年 Beers 苯二氮䓬",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "geriatrics"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 10172,
+      "gender": "M",
+      "age": 82,
+      "department": "geriatrics",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "geriatrics clinical scenario"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 55
+    },
+    "candidate_drugs": [
+      {
+        "name": "diazepam",
+        "ingredient": "diazepam",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_beers_diazepam",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false,
+    "expected_department_boost": "geriatrics"
+  }
+}

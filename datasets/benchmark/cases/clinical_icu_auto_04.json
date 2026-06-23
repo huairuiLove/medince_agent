@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_icu_auto_04",
+  "department": "icu",
+  "description": "icu 科室场景：去甲肾上腺素与 MAO 抑制剂联用可致高血压危象。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "icu"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 32456,
+      "gender": "M",
+      "age": 64,
+      "department": "icu",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "icu clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "isocarboxazid",
+          "ingredient": "isocarboxazid",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "norepinephrine",
+        "ingredient": "norepinephrine",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_icu_norepi_maoi_isocarboxazid_norepinephrine",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "icu"
+  }
+}

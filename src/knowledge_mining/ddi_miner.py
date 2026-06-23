@@ -49,7 +49,7 @@ class DdiRuleMiner:
         classifier: DdiClassifier | None = None,
         smiles_lookup: SmilesLookup | None = None,
     ) -> None:
-        self.classifier = classifier or DdiClassifier()
+        self.classifier = classifier or get_ddi_classifier().require_ready()
         self.smiles = smiles_lookup or self.classifier.smiles
 
     def filter_drugs_with_smiles(
@@ -75,11 +75,7 @@ class DdiRuleMiner:
         formulary_path: str | None = None,
         exclusions_path: str | None = None,
     ) -> dict[str, Any]:
-        if not self.classifier.available and not self.classifier._ensure_loaded():  # noqa: SLF001
-            raise RuntimeError(
-                f"DDI classifier unavailable: {self.classifier.status().get('error')}"
-            )
-
+        self.classifier.require_ready()
         universe = collect_canonical_drugs(
             inn_map_path=inn_map_path or "datasets/knowledge/drug_inn_map.json",
             formulary_path=formulary_path or "datasets/hospital/formulary_demo.csv",

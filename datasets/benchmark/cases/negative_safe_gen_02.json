@@ -1,0 +1,50 @@
+{
+  "case_id": "negative_safe_gen_02",
+  "department": "general_internal",
+  "description": "阴性测试：单药 rosuvastatin 预期安全",
+  "difficulty": "easy",
+  "tags": [
+    "stage11",
+    "negative",
+    "general_internal"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 49097,
+      "gender": "M",
+      "age": 55,
+      "department": "general_internal",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "general_internal clinical scenario"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "rosuvastatin",
+        "ingredient": "rosuvastatin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "unknown",
+    "block_decision": false,
+    "required_alerts": [],
+    "should_not_fire": [],
+    "is_negative_test": true
+  }
+}

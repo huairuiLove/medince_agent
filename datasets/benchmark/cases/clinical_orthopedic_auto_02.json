@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_orthopedic_auto_02",
+  "department": "orthopedic",
+  "description": "orthopedic 科室场景：NSAIDs 可能延迟骨愈合，骨折早期慎用。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "orthopedic"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 34090,
+      "gender": "M",
+      "age": 62,
+      "department": "orthopedic",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "orthopedic clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "ibuprofen",
+          "ingredient": "ibuprofen",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "fracture",
+        "ingredient": "fracture",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ortho_nsaid_healing",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "orthopedic"
+  }
+}

@@ -20,7 +20,7 @@ data:
   knowledge_dir: datasets/knowledge
   cases_dir: datasets/cases
   case_templates_dir: datasets/case_templates
-  knowledge_base: datasets/knowledge/hospital_production_v4.json
+  knowledge_base: datasets/knowledge/hospital_production_v5.json
   formulary: datasets/knowledge/pharmacy_formulary.json
 server:
   host: 0.0.0.0
@@ -97,12 +97,12 @@ auth:
   jwt_secret: ''
   token_ttl_hours: 72
 clinical_knowledge:
-  version: hospital_production_v4
+  version: hospital_production_v5
   ddi_source: ddi_bert_mined
   mined_rules_path: datasets/knowledge/mined_ddi_rules.json
   expanded_rules_path: datasets/knowledge/expanded_drug_safety_rules.json
-  production_rules_path: datasets/knowledge/hospital_production_v4.json
-  drug_kg_v2_path: datasets/knowledge/drug_kg_v2.json
+  production_rules_path: datasets/knowledge/hospital_production_v5.json
+  drug_kg_v2_path: datasets/knowledge/drug_kg_v2_stage11.json
   twosides_signals_path: datasets/knowledge/twosides_ddi_signals.json
   mining_exclusions: datasets/knowledge/ddi_mining_exclusions.json
   mining_thresholds:

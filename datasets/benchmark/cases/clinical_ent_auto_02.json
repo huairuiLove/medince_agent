@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_ent_auto_02",
+  "department": "ent",
+  "description": "ent 科室场景：抗组胺与 CNS 抑制药叠加镇静。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "ent"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 44763,
+      "gender": "M",
+      "age": 62,
+      "department": "ent",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "ent clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "diphenhydramine",
+          "ingredient": "diphenhydramine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "midazolam",
+        "ingredient": "midazolam",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ent_antihist_cns",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "ent"
+  }
+}

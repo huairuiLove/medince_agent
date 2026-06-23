@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_dermatology_auto_04",
+  "department": "dermatology",
+  "description": "dermatology 科室场景：阿维 A 酯+酒精致更长致畸窗口。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "dermatology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 85636,
+      "gender": "M",
+      "age": 64,
+      "department": "dermatology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "dermatology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "acitretin",
+          "ingredient": "acitretin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "alcohol",
+        "ingredient": "alcohol",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_derm_acitretin_alcohol",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "dermatology"
+  }
+}

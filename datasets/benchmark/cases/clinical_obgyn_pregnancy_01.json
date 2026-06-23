@@ -1,0 +1,58 @@
+{
+  "case_id": "clinical_obgyn_pregnancy_01",
+  "department": "obgyn",
+  "description": "妊娠期 ACEI 禁忌",
+  "difficulty": "expert",
+  "tags": [
+    "stage11",
+    "clinical",
+    "obgyn"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 80694,
+      "gender": "F",
+      "age": 32,
+      "department": "obgyn",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "obgyn clinical scenario"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "pregnant",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "lisinopril",
+        "ingredient": "lisinopril",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "pop_pregnancy_lisinopril",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false,
+    "expected_department_boost": "obgyn"
+  }
+}

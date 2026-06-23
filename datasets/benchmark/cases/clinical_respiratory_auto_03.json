@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_respiratory_auto_03",
+  "department": "respiratory",
+  "description": "respiratory 科室场景：茶碱与 CYP1A2 抑制剂联用可显著升高茶碱浓度，致毒性。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "respiratory"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 22337,
+      "gender": "M",
+      "age": 63,
+      "department": "respiratory",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "respiratory clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "theophylline",
+          "ingredient": "theophylline",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "cimetidine",
+        "ingredient": "cimetidine",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_resp_theo_cyp1a2_theophylline_cimetidine",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "respiratory"
+  }
+}

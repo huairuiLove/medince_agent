@@ -309,7 +309,13 @@ def main():
     if args.drug_search:
         download_drug_search(force=args.force)
 
-    verify_all()
+    ddi_only = args.ddi_bert and not run_all and not args.safety_models
+    if ddi_only:
+        ok = _exists(MODELS / "ddi_bert" / "pytorch_model.bin", min_mb=100)
+        print("\n=== DDI-BERT verification ===")
+        print(f"  [{'OK' if ok else 'MISSING'}] ddi_bert: {MODELS / 'ddi_bert' / 'pytorch_model.bin'}")
+    else:
+        verify_all()
     print("\nDone.")
 
 

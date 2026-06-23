@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_cardiology_auto_03",
+  "department": "cardiology",
+  "description": "cardiology 科室场景：地高辛与呋塞米联用可因低钾血症增加地高辛中毒风险。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "cardiology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 43602,
+      "gender": "M",
+      "age": 63,
+      "department": "cardiology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "cardiology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "digoxin",
+          "ingredient": "digoxin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "furosemide",
+        "ingredient": "furosemide",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_digoxin_furosemide",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "cardiology"
+  }
+}

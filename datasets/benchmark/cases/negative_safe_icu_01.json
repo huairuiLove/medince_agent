@@ -1,0 +1,50 @@
+{
+  "case_id": "negative_safe_icu_01",
+  "department": "icu",
+  "description": "阴性测试：单药 pantoprazole 预期安全",
+  "difficulty": "easy",
+  "tags": [
+    "stage11",
+    "negative",
+    "icu"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 32456,
+      "gender": "M",
+      "age": 55,
+      "department": "icu",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "icu clinical scenario"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "pantoprazole",
+        "ingredient": "pantoprazole",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "unknown",
+    "block_decision": false,
+    "required_alerts": [],
+    "should_not_fire": [],
+    "is_negative_test": true
+  }
+}

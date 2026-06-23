@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_anesthesiology_auto_01",
+  "department": "anesthesiology",
+  "description": "anesthesiology 科室场景：镇静/阿片联用增加呼吸抑制，需监测 SpO2。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "anesthesiology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 21944,
+      "gender": "M",
+      "age": 61,
+      "department": "anesthesiology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "anesthesiology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "propofol",
+          "ingredient": "propofol",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "fentanyl",
+        "ingredient": "fentanyl",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_anest_propofol_opioid_propofol_fentanyl",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "anesthesiology"
+  }
+}

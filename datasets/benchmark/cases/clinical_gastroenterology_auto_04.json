@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_gastroenterology_auto_04",
+  "department": "gastroenterology",
+  "description": "gastroenterology 科室场景：甲氧氯普胺与抗胆碱能药药理拮抗。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "gastroenterology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 81572,
+      "gender": "M",
+      "age": 64,
+      "department": "gastroenterology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "gastroenterology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "metoclopramide",
+          "ingredient": "metoclopramide",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "oxybutynin",
+        "ingredient": "oxybutynin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_metoclopramide_anticholinergic",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "gastroenterology"
+  }
+}

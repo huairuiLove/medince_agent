@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_neuro_polypharmacy_01",
+  "department": "neurology",
+  "description": "癫痫患者丙戊酸基础上加拉莫三嗪",
+  "difficulty": "hard",
+  "tags": [
+    "stage11",
+    "clinical",
+    "neurology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 10952,
+      "gender": "F",
+      "age": 28,
+      "department": "neurology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "neurology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "valproic acid",
+          "ingredient": "valproic acid",
+          "dose": "500mg bid",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "lamotrigine",
+        "ingredient": "lamotrigine",
+        "dose": "25mg",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_valproate_lamotrigine",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false,
+    "expected_department_boost": "neurology"
+  }
+}

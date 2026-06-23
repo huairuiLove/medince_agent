@@ -25,3 +25,20 @@ class DrugSearchModelNotReadyError(RuntimeError):
         if hint:
             msg = f"{msg} {hint}"
         super().__init__(msg)
+
+
+class DdiModelNotReadyError(RuntimeError):
+    """Raised when Bio_ClinicalBERT DDI model is required but missing or failed to load."""
+
+    def __init__(self, detail: str = "", hint: str = "") -> None:
+        msg = (
+            "DDI-BERT 未就绪：safety_models.ddi_bert 已启用，但模型无法加载。"
+            "禁止静默跳过 DDI 推断。"
+        )
+        if detail:
+            msg = f"{msg} {detail}"
+        if hint:
+            msg = f"{msg} {hint}"
+        else:
+            msg = f"{msg} 请运行: python scripts/download_models.py --ddi-bert"
+        super().__init__(msg)

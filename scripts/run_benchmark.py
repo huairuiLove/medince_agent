@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Stage 9 benchmark evaluation against benchmark cases."""
+"""Run Stage 9/11 benchmark evaluation against benchmark cases."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.department.priority import DEPT_FOCUS_PREFIX, normalize_department
 from src.drug_catalog.review_facade import CpoeReviewFacade
 from src.knowledge_base import SafetyKnowledgeBase
 from src.llm.client import is_llm_configured
@@ -25,10 +26,11 @@ from src.schemas import (
     CpoePatientSnapshot,
     DrugItem,
     PatientContext,
+    RuleEvidence,
 )
 from src.utils import load_json, save_json
 
-DEFAULT_KB = PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json"
+DEFAULT_KB = PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v5.json"
 CASES_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "cases"
 REPORTS_DIR = PROJECT_ROOT / "datasets" / "benchmark" / "reports"
 
@@ -36,6 +38,7 @@ KB_ALIASES: dict[str, Path] = {
     "expanded_mined_v1": PROJECT_ROOT / "datasets" / "knowledge" / "expanded_drug_safety_rules.json",
     "internal_medicine_full": PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json",
     "hospital_production_v4": PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v4.json",
+    "hospital_production_v5": PROJECT_ROOT / "datasets" / "knowledge" / "hospital_production_v5.json",
     "minimal": PROJECT_ROOT / "datasets" / "knowledge" / "minimal_drug_safety_rules.json",
 }
 
@@ -113,12 +116,24 @@ def _output_to_actual(output, candidates: list[CandidateDrug]) -> dict[str, Any]
     }
 
 
+def _resolve_department(case: dict[str, Any]) -> str:
+    dept = case.get("department") or case.get("request", {}).get("patient_context", {}).get("department", "")
+    return normalize_department(str(dept))
+
+
 def _run_rule_review(case: dict[str, Any], engine: ReviewEngine) -> dict[str, Any]:
     request = case["request"]
-    patient = PatientContext.model_validate(request["patient_context"])
+    patient_raw = dict(request["patient_context"])
+    dept = _resolve_department(case)
+    if dept:
+        patient_raw["department"] = dept
+    patient = PatientContext.model_validate(patient_raw)
     candidates = [CandidateDrug.model_validate(item) for item in request.get("candidate_drugs", [])]
-    output = engine.review(patient, candidates)
-    return _output_to_actual(output, candidates)
+    output = engine.review(patient, candidates, department=dept or None)
+    actual = _output_to_actual(output, candidates)
+    actual["evidence"] = output.evidence
+    actual["department"] = dept
+    return actual
 
 
 def _case_to_cpoe_request(case: dict[str, Any]) -> CpoeMedicationReviewRequest:
@@ -151,6 +166,7 @@ def _case_to_cpoe_request(case: dict[str, Any]) -> CpoeMedicationReviewRequest:
         patient=patient,
         orders=orders,
         existing_medications=existing,
+        department=_resolve_department(case),
     )
 
 
@@ -163,6 +179,8 @@ def _run_cpoe_review(case: dict[str, Any], kb_path: Path) -> dict[str, Any]:
         raise RuntimeError(f"CPOE review returned no review_output for {case['case_id']}")
     candidates = [CandidateDrug.model_validate(item) for item in case["request"].get("candidate_drugs", [])]
     actual = _output_to_actual(response.review_output, candidates)
+    actual["evidence"] = response.review_output.evidence
+    actual["department"] = _resolve_department(case)
     clinical_rule_ids = {
         alert.rule_id
         for alert in response.alerts
@@ -178,13 +196,19 @@ def _run_full_pipeline_review(case: dict[str, Any], kb_path: Path) -> dict[str, 
             "full-pipeline benchmark requires configured LLM (llm.provider + api_key in config.yaml)"
         )
     request = case["request"]
-    patient = PatientContext.model_validate(request["patient_context"])
+    patient_raw = dict(request["patient_context"])
+    dept = _resolve_department(case)
+    if dept:
+        patient_raw["department"] = dept
+    patient = PatientContext.model_validate(patient_raw)
     candidates = [CandidateDrug.model_validate(item) for item in request.get("candidate_drugs", [])]
     engine = ReviewEngine(kb=SafetyKnowledgeBase(kb_path))
     orchestrator = MultiAgentOrchestrator()
     orchestrator.review_engine = engine
     multi = orchestrator.run(patient, candidates, skip_clarify=True)
     actual = _output_to_actual(multi.rule_output, candidates)
+    actual["evidence"] = multi.rule_output.evidence
+    actual["department"] = dept
     actual["risk_level"] = multi.arbitration.consensus_risk_level
     actual["block_decision"] = multi.arbitration.consensus_block_decision
     return actual
@@ -192,6 +216,86 @@ def _run_full_pipeline_review(case: dict[str, Any], kb_path: Path) -> dict[str, 
 
 def normalize_name(value: str) -> str:
     return value.strip().lower().replace(" ", "_")
+
+
+def _dept_rule_ids(kb: SafetyKnowledgeBase, dept: str) -> set[str]:
+    tag = normalize_department(dept)
+    ids: set[str] = set()
+    for rule in kb.get_interaction_rules():
+        rule_dept = normalize_department(str(rule.get("department") or ""))
+        if rule_dept and rule_dept == tag:
+            rid = rule.get("rule_id")
+            if rid:
+                ids.add(str(rid))
+    return ids
+
+
+def _evaluate_department_boost(
+    case: dict[str, Any],
+    actual: dict[str, Any],
+    kb: SafetyKnowledgeBase,
+) -> dict[str, Any] | None:
+    gt = case.get("ground_truth") or {}
+    expected_dept = gt.get("expected_department_boost")
+    if not expected_dept:
+        return None
+
+    dept = normalize_department(str(expected_dept))
+    evidence: list[RuleEvidence] = actual.get("evidence") or []
+    dept_rule_ids = _dept_rule_ids(kb, dept)
+
+    required = [
+        item["rule_id"]
+        for item in gt.get("required_alerts", [])
+        if item.get("must_fire", True) and item["rule_id"] in dept_rule_ids
+    ]
+    if not required:
+        return None
+
+    boosted = [
+        rid for rid in required
+        if any(
+            ev.rule_id == rid and ev.summary.startswith(DEPT_FOCUS_PREFIX)
+            for ev in evidence
+        )
+    ]
+    ranked_ok = False
+    if evidence:
+        dept_positions = [
+            index for index, ev in enumerate(evidence)
+            if ev.rule_id in dept_rule_ids
+        ]
+        other_positions = [
+            index for index, ev in enumerate(evidence)
+            if ev.rule_id not in dept_rule_ids and ev.category == "drug_interaction"
+        ]
+        if dept_positions and other_positions:
+            ranked_ok = min(dept_positions) < min(other_positions)
+        elif dept_positions:
+            ranked_ok = True
+
+    boost_applied = len(boosted) == len(required) or (len(boosted) > 0 and ranked_ok)
+    return {
+        "case_id": case["case_id"],
+        "expected_department_boost": dept,
+        "boost_applied": boost_applied,
+        "boosted_rule_ids": boosted,
+        "required_dept_rules": required,
+        "dept_ranked_first": ranked_ok,
+    }
+
+
+def _aggregate_department_boost(boost_results: list[dict[str, Any] | None]) -> dict[str, Any]:
+    relevant = [item for item in boost_results if item is not None]
+    if not relevant:
+        return {"case_count": 0, "department_boost_accuracy": None}
+    passed = sum(1 for item in relevant if item.get("boost_applied"))
+    return {
+        "case_count": len(relevant),
+        "department_boost_passed": passed,
+        "department_boost_accuracy": round(passed / len(relevant), 4),
+        "failures": [item for item in relevant if not item.get("boost_applied")],
+    }
 
 
 def _evaluate_case(case: dict[str, Any], actual: dict[str, Any]) -> dict[str, Any]:
@@ -209,6 +313,31 @@ def _evaluate_case(case: dict[str, Any], actual: dict[str, Any]) -> dict[str, An
         for rule_id in actual["fired_rule_ids"]
         if rule_id not in {item["rule_id"] for item in required} and rule_id not in should_not
     ]
+
+    if gt.get("is_negative_test"):
+        evidence = actual.get("evidence") or []
+        high_clinical = [
+            ev for ev in evidence
+            if ev.risk_level in {"high", "medium"}
+            and getattr(ev, "source", "") != "ddi_bert_model"
+            and not str(ev.rule_id).startswith("ddi_model_")
+        ]
+        clarification_only = (
+            not high_clinical
+            and not evidence
+            and actual["risk_level"] == "unknown"
+        )
+        passed = (
+            (not high_clinical and actual["risk_level"] in {"none", "low"})
+            or clarification_only
+        ) and fn == 0
+    else:
+        passed = not (
+            fn > 0
+            or fp > 0
+            or actual["risk_level"] != gt.get("risk_level")
+            or actual["block_decision"] != gt.get("block_decision")
+        )
 
     return {
         "case_id": case["case_id"],
@@ -230,12 +359,8 @@ def _evaluate_case(case: dict[str, Any], actual: dict[str, Any]) -> dict[str, An
         "actual_block_decision": actual["block_decision"],
         "expected_block_decision": gt.get("block_decision"),
         "alert_attribution": actual["alert_attribution"],
-        "passed": not (
-            fn > 0
-            or fp > 0
-            or actual["risk_level"] != gt.get("risk_level")
-            or actual["block_decision"] != gt.get("block_decision")
-        ),
+        "passed": passed,
+        "is_negative_test": bool(gt.get("is_negative_test")),
     }
 
 
@@ -316,6 +441,8 @@ def run_benchmark(
     if not cases:
         raise SystemExit(f"No benchmark cases found in {cases_dir} for department={department}")
 
+    kb = SafetyKnowledgeBase(kb_path)
+
     if mode == "compare":
         if kb_v2_path is None:
             raise SystemExit("compare mode requires --kb-v2")
@@ -342,8 +469,10 @@ def run_benchmark(
             "kb_v2_failures": [item for item in results_v2 if not item["passed"]],
         }
 
-    engine = ReviewEngine(kb=SafetyKnowledgeBase(kb_path))
+    engine = ReviewEngine(kb=kb)
     case_results: list[dict[str, Any]] = []
+    boost_results: list[dict[str, Any] | None] = []
+    actuals: list[dict[str, Any]] = []
     for case in cases:
         if mode == "rule-only":
             actual = _run_rule_review(case, engine)
@@ -354,9 +483,18 @@ def run_benchmark(
         else:
             raise SystemExit(f"Unsupported mode: {mode}")
 
+        actuals.append(actual)
+        boost_results.append(_evaluate_department_boost(case, actual, kb))
         case_results.append(_evaluate_case(case, actual))
 
     metrics = _aggregate(case_results)
+    metrics["department_boost"] = _aggregate_department_boost(boost_results)
+    metrics["stage11_clinical_cases"] = sum(
+        1 for c in cases if c.get("case_id", "").startswith("clinical_")
+    )
+    metrics["stage11_negative_cases"] = sum(
+        1 for c in cases if c.get("case_id", "").startswith("negative_")
+    )
     failures = [item for item in case_results if not item["passed"]]
     return {
         "mode": mode,
@@ -367,6 +505,7 @@ def run_benchmark(
         "by_department": _department_breakdown(case_results),
         "failures": failures,
         "case_results": case_results,
+        "department_boost_details": [b for b in boost_results if b],
     }
 
 
@@ -386,7 +525,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--kb-v2",
-        default="internal_medicine_full",
+        default="hospital_production_v5",
         help="KB v2 alias/path for compare mode",
     )
     parser.add_argument("--cases-dir", type=Path, default=CASES_DIR)
@@ -438,6 +577,14 @@ def main() -> None:
     print(f"Risk level accuracy: {metrics['risk_level_accuracy']}")
     print(f"Block decision F1: {metrics['block_decision_f1']}")
     print(f"Alert attribution: {metrics['alert_attribution']}")
+    boost = metrics.get("department_boost") or {}
+    if boost.get("department_boost_accuracy") is not None:
+        print(
+            f"Department boost accuracy: {boost['department_boost_accuracy']} "
+            f"({boost.get('department_boost_passed', 0)}/{boost.get('case_count', 0)})"
+        )
+    print(f"Stage11 clinical cases in run: {metrics.get('stage11_clinical_cases', 0)}")
+    print(f"Stage11 negative cases in run: {metrics.get('stage11_negative_cases', 0)}")
     print(f"Failed cases: {metrics['failed_cases']}")
     if report["failures"]:
         for item in report["failures"][:10]:

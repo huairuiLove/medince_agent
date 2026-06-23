@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_neurology_auto_03",
+  "department": "neurology",
+  "description": "neurology 科室场景：CYP3A4 抑制剂可致卡马西平中毒（共济失调、复视）。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "neurology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 10952,
+      "gender": "M",
+      "age": 63,
+      "department": "neurology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "neurology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "carbamazepine",
+          "ingredient": "carbamazepine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "clarithromycin",
+        "ingredient": "clarithromycin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_carbamazepine_cyp3a4i_carbamazepine_clarithromycin",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "neurology"
+  }
+}

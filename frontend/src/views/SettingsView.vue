@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+const router = useRouter()
 const saving = ref(false)
 const customAgentId = ref('clinical_pharmacist')
 const customTitle = ref('')
@@ -80,6 +82,11 @@ async function addCustomSkill() {
 
     <section v-if="auth.department" class="card dept-card">
       <h2>{{ auth.department.name_cn }} 科室视图</h2>
+      <p class="dept-lock">
+        科室在注册时绑定，登录后<strong>不可切换</strong>。如需更换科室，请先
+        <button type="button" class="linkish" @click="auth.logout(); router.push('/login')">退出登录</button>
+        并使用新科室账号重新注册/登录。
+      </p>
       <p>{{ auth.department.description }}</p>
       <div class="chips">
         <span v-for="src in auth.department.imaging_sources" :key="src" class="chip">{{ src }}</span>
@@ -161,6 +168,8 @@ async function addCustomSkill() {
 .sub { color: var(--text-muted); margin-bottom: 1rem; }
 .ok { color: var(--success, #2e7d32); margin-bottom: 1rem; }
 .dept-card { margin-bottom: 1.25rem; }
+.dept-lock { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.linkish { background: none; border: none; padding: 0; color: var(--primary); cursor: pointer; text-decoration: underline; font: inherit; }
 .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
 .chip { background: var(--primary-light); color: var(--primary-dark); padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.78rem; }
 .chip.muted { background: var(--surface-2); color: var(--text-muted); }

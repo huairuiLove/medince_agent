@@ -8,10 +8,7 @@ from src.knowledge_base import SafetyKnowledgeBase
 from src.schemas import CandidateDrug, PatientContext, ReviewOutput, RuleEvidence
 from src.utils import dedupe_preserve_order, normalize_text
 
-try:
-    from src.safety_models.ddi_classifier import get_ddi_classifier
-except ImportError:  # pragma: no cover
-    get_ddi_classifier = None  # type: ignore[assignment,misc]
+from src.safety_models.ddi_classifier import get_ddi_classifier, is_ddi_bert_enabled
 
 
 RISK_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3, "unknown": 4}
@@ -134,11 +131,9 @@ class ReviewEngine:
         candidate_registry: list[dict[str, str]],
         existing_evidence: list[RuleEvidence],
     ) -> list[RuleEvidence]:
-        if get_ddi_classifier is None:
+        if not is_ddi_bert_enabled():
             return []
-        classifier = get_ddi_classifier()
-        if not classifier.available and not classifier._ensure_loaded():  # noqa: SLF001
-            return []
+        classifier = get_ddi_classifier().require_ready()
 
         covered_canonical: set[tuple[str, str]] = set()
         for item in existing_evidence:
@@ -180,7 +175,7 @@ class ReviewEngine:
                         ),
                         mechanism="Bio_ClinicalBERT SMILES 药对分类",
                         implicated_drugs=[candidate["name"], other["name"]],
-                        recommendation="建议人工复核；规则库未命中时由 DDI 小模型补充拦截。",
+                        recommendation="建议人工复核并查阅说明书。",
                         alternatives=["优先查阅药品说明书或药学咨询。"],
                         clarification_fields=["current_medications"],
                         source="ddi_bert_model",

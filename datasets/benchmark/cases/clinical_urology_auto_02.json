@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_urology_auto_02",
+  "department": "urology",
+  "description": "urology 科室场景：5α 还原酶抑制剂禁用于妊娠接触。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "urology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 64885,
+      "gender": "M",
+      "age": 62,
+      "department": "urology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "urology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "finasteride",
+          "ingredient": "finasteride",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "pregnancy",
+        "ingredient": "pregnancy",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_uro_5ari_pregnancy",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "urology"
+  }
+}

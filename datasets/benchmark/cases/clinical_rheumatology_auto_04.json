@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_rheumatology_auto_04",
+  "department": "rheumatology",
+  "description": "rheumatology 科室场景：羟氯喹与他莫昔芬联用视网膜毒性叠加。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "rheumatology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 36923,
+      "gender": "M",
+      "age": 64,
+      "department": "rheumatology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "rheumatology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "hydroxychloroquine",
+          "ingredient": "hydroxychloroquine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "tamoxifen",
+        "ingredient": "tamoxifen",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_hcq_tamoxifen",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "rheumatology"
+  }
+}

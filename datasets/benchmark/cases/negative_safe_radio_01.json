@@ -1,0 +1,50 @@
+{
+  "case_id": "negative_safe_radio_01",
+  "department": "radiology",
+  "description": "阴性测试：单药 normal_saline 预期安全",
+  "difficulty": "easy",
+  "tags": [
+    "stage11",
+    "negative",
+    "radiology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 82353,
+      "gender": "M",
+      "age": 55,
+      "department": "radiology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "radiology clinical scenario"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "normal_saline",
+        "ingredient": "normal_saline",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "none",
+    "block_decision": false,
+    "required_alerts": [],
+    "should_not_fire": [],
+    "is_negative_test": true
+  }
+}

@@ -173,6 +173,110 @@ def build_general_internal_rules() -> list[dict[str, Any]]:
     return _pair_grid("ddi_gen_polypharmacy", ["warfarin"], ["amiodarone", "simvastatin"], department="general_internal", summary="普内多病共存多药联用，关注 CYP 与 QT 叠加。", risk_level="medium")
 
 
+def build_extended_rules() -> list[dict[str, Any]]:
+    """Additional department-specific pairs toward Stage 11 coverage target."""
+    rules: list[dict[str, Any]] = []
+    batches = [
+        ("respiratory", "茶碱/CYP 相关", ["theophylline"], ["ciprofloxacin", "erythromycin", "fluvoxamine"]),
+        ("respiratory", "抗结核/CYP", ["rifampin"], ["warfarin", "simvastatin", "midazolam"]),
+        ("oncology", "化疗+CYP", ["doxorubicin", "paclitaxel"], ["ketoconazole", "clarithromycin"]),
+        ("oncology", "止吐+QT", ["ondansetron", "granisetron"], ["amiodarone", "haloperidol"]),
+        ("emergency", "解毒相关", ["naloxone"], ["buprenorphine", "methadone"]),
+        ("pediatrics", "儿科抗生素", ["amoxicillin"], ["methotrexate", "warfarin"]),
+        ("orthopedic", "NSAID 组合", ["diclofenac", "naproxen"], ["aspirin", "clopidogrel"]),
+        ("urology", "α阻滞+降压", ["tamsulosin", "doxazosin"], ["amlodipine", "verapamil"]),
+        ("anesthesiology", "麻醉+CYP", ["propofol"], ["ketoconazole", "erythromycin"]),
+        ("obstetrics_gynecology", "宫缩/降压", ["oxytocin"], ["nifedipine", "labetalol"]),
+        ("neurosurgery", "脱水/抗癫痫", ["mannitol"], ["phenytoin", "levetiracetam"]),
+        ("radiology", "造影+肾毒性", ["iodinated_contrast"], ["furosemide", "gentamicin"]),
+        ("dermatology", "免疫抑制", ["methotrexate"], ["trimethoprim", "sulfamethoxazole"]),
+        ("ophthalmology", "青光眼", ["timolol"], ["propranolol", "metoprolol"]),
+        ("ent", "减充血", ["pseudoephedrine"], ["phenylephrine", "oxymetazoline"]),
+        ("rehabilitation", "抗痉挛", ["baclofen", "tizanidine"], ["cyclobenzaprine", "carisoprodol"]),
+    ]
+    for dept, summary, group_a, group_b in batches:
+        rules += _pair_grid(
+            f"ddi_ext_{dept}",
+            group_a,
+            group_b,
+            department=dept,
+            summary=f"{summary}：需评估 DDI 与监测。",
+            risk_level="medium",
+        )
+    return rules
+
+
+def build_completion_rules() -> list[dict[str, Any]]:
+    """Push Stage 11 department DDI count to ≥170 with unique clinical pairs."""
+    specs: list[tuple[str, list[str], str, str, str]] = [
+        ("ddi_resp_salmeterol_beta", ["salmeterol", "propranolol"], "respiratory", "LABA 与非选择性 β 阻滞剂拮抗。", "high"),
+        ("ddi_resp_prednisone_fluoroquinolone", ["prednisone", "levofloxacin"], "respiratory", "激素+喹诺酮肌腱断裂风险（COPD 急性加重）。", "medium"),
+        ("ddi_resp_antitussive_opioid", ["dextromethorphan", "morphine"], "respiratory", "镇咳药与阿片叠加镇静。", "medium"),
+        ("ddi_resp_tiotropium_anticholinergic", ["tiotropium", "oxybutynin"], "respiratory", "抗胆碱能负荷叠加。", "medium"),
+        ("ddi_resp_azithromycin_warfarin", ["azithromycin", "warfarin"], "respiratory", "大环内酯升高华法林 INR。", "medium"),
+        ("ddi_onc_doxorubicin_trastuzumab", ["doxorubicin", "trastuzumab"], "oncology", "蒽环+曲妥珠单抗心毒性叠加。", "high"),
+        ("ddi_onc_tamoxifen_ssri", ["tamoxifen", "paroxetine"], "oncology", "SSRI 抑制 CYP2D6 降低他莫昔芬活性代谢。", "high"),
+        ("ddi_onc_methotrexate_probenecid", ["methotrexate", "probenecid"], "oncology", "丙磺舒减少 MTX 排泄。", "high"),
+        ("ddi_onc_vincristine_azole", ["vincristine", "itraconazole"], "oncology", "唑类抑制 CYP3A4 增加长春碱毒性。", "high"),
+        ("ddi_onc_5fu_warfarin", ["fluorouracil", "warfarin"], "oncology", "5-FU 抑制华法林代谢。", "high"),
+        ("ddi_emerg_insulin_dextrose", ["insulin", "dextrose"], "emergency", "低血糖救治需同步监测血糖。", "low"),
+        ("ddi_emerg_adenosine_theophylline", ["adenosine", "theophylline"], "emergency", "茶碱拮抗腺苷（室上速）。", "medium"),
+        ("ddi_emerg_glucagon_beta", ["glucagon", "propranolol"], "emergency", "β 阻滞剂低血糖时胰高血糖素可能无效。", "medium"),
+        ("ddi_emerg_atropine_organo", ["atropine", "pyridostigmine"], "emergency", "有机磷中毒阿托品化监测。", "medium"),
+        ("ddi_peds_amoxicillin_clavulanate", ["amoxicillin", "valproate"], "pediatrics", "见丙戊酸-碳青霉烯类规则；儿科癫痫加感染。", "high"),
+        ("ddi_peds_ibuprofen_dehydration", ["ibuprofen", "dehydration"], "pediatrics", "脱水儿童 NSAIDs 肾损伤风险。", "medium"),
+        ("ddi_peds_albuterol_caffeine", ["salbutamol", "caffeine"], "pediatrics", "β 激动剂+咖啡因震颤/心动过速。", "low"),
+        ("ddi_ortho_cox2_warfarin", ["celecoxib", "warfarin"], "orthopedic", "COX-2 抑制剂仍增加抗凝出血。", "high"),
+        ("ddi_ortho_tramadol_ssri", ["tramadol", "sertraline"], "orthopedic", "术后镇痛 SSRI+曲马多 5-HT 综合征。", "high"),
+        ("ddi_ortho_gabapentin_opioid", ["gabapentin", "oxycodone"], "orthopedic", "加巴喷丁增强阿片呼吸抑制。", "high"),
+        ("ddi_uro_finasteride_terazosin", ["finasteride", "terazosin"], "urology", "BPH 联合 α 阻滞+5ARI 首剂低血压。", "medium"),
+        ("ddi_uro_nitrofurantoin_antacid", ["nitrofurantoin", "magnesium"], "urology", "抗酸剂降低呋喃妥因吸收。", "medium"),
+        ("ddi_uro_sildenafil_nitrate", ["sildenafil", "nitroglycerin"], "urology", "PDE5 抑制剂+硝酸酯致命低血压。", "high"),
+        ("ddi_anest_ketamine_benzodiazepine", ["ketamine", "midazolam"], "anesthesiology", "氯胺酮+苯二氮䓬深度镇静。", "medium"),
+        ("ddi_anest_desflurane_malignant", ["desflurane", "succinylcholine"], "anesthesiology", "挥发性麻醉+琥珀胆碱 MH 风险。", "high"),
+        ("ddi_anest_rocuronium_lidocaine", ["rocuronium", "lidocaine"], "anesthesiology", "利多卡因增强肌松（快速序贯诱导）。", "medium"),
+        ("ddi_obgyn_magnesium_nifedipine", ["magnesium sulfate", "nifedipine"], "obstetrics_gynecology", "子痫 Mg+CCB 低血压。", "medium"),
+        ("ddi_obgyn_oc_antibiotic", ["ethinyl estradiol", "rifampin"], "obstetrics_gynecology", "CYP 诱导降低 OC 避孕效果。", "high"),
+        ("ddi_obgyn_terbutaline_beta", ["terbutaline", "propranolol"], "obstetrics_gynecology", "保胎 β 激动剂与 β 阻滞拮抗。", "high"),
+        ("ddi_neuro_dex_med", ["dexamethasone", "phenytoin"], "neurosurgery", "激素诱导苯妥英代谢（脑水肿）。", "medium"),
+        ("ddi_neuro_mannitol_nsaids", ["mannitol", "ibuprofen"], "neurosurgery", "NSAIDs 降低甘露醇渗透梯度。", "medium"),
+        ("ddi_neuro_hypertonic_saline", ["hypertonic_saline", "furosemide"], "neurosurgery", "高渗盐水+利尿需监测钠。", "medium"),
+        ("ddi_rad_gadolinium_metformin", ["gadolinium", "metformin"], "radiology", "MRI 对比剂+eGFR 下降时 metformin 风险。", "medium"),
+        ("ddi_rad_beta_blocker_contrast", ["metoprolol", "iodinated_contrast"], "radiology", "对比剂过敏预处理 β 阻滞剂限制肾上腺素。", "medium"),
+        ("ddi_derm_acitretin_alcohol", ["acitretin", "alcohol"], "dermatology", "阿维 A 酯+酒精致更长致畸窗口。", "high"),
+        ("ddi_derm_cyclosporine_statin", ["cyclosporine", "simvastatin"], "dermatology", "环孢素+他汀横纹肌溶解。", "high"),
+        ("ddi_derm_phototherapy_psoralen", ["methoxsalen", "sun_exposure"], "dermatology", "PUVA 光敏防护。", "medium"),
+        ("ddi_eye_brimonidine_maoin", ["brimonidine", "phenelzine"], "ophthalmology", "α2 激动剂+MAOI 高血压危象。", "high"),
+        ("ddi_eye_dorzolamide_sulfa", ["dorzolamide", "sulfamethoxazole"], "ophthalmology", "磺胺类局部+全身过敏交叉。", "medium"),
+        ("ddi_ent_pseudoephedrine_maoin", ["pseudoephedrine", "phenelzine"], "ent", "减充血剂+MAOI 高血压危象。", "high"),
+        ("ddi_ent_corticosteroid_antifungal", ["prednisone", "ketoconazole"], "ent", "唑类升高激素全身暴露。", "medium"),
+        ("ddi_rehab_dantrolene_caffeine", ["dantrolene", "caffeine"], "rehabilitation", "丹曲林+CNS 兴奋剂。", "low"),
+        ("ddi_rehab_gabapentin_morphine", ["gabapentin", "morphine"], "rehabilitation", "神经病理性疼痛联用呼吸抑制。", "high"),
+        ("ddi_gen_statin_fibrate", ["simvastatin", "gemfibrozil"], "general_internal", "他汀+贝特横纹肌溶解。", "high"),
+        ("ddi_gen_acei_lithium", ["lisinopril", "lithium"], "general_internal", "ACEI 减少锂排泄。", "high"),
+        ("ddi_gen_metformin_alcohol", ["metformin", "alcohol"], "general_internal", "酒精+二甲双胍乳酸酸中毒。", "medium"),
+        ("ddi_gen_warfarin_vitamin_k", ["warfarin", "vitamin_k"], "general_internal", "维生素 K 拮抗华法林。", "medium"),
+        ("ddi_gen_ppi_clopidogrel", ["omeprazole", "clopidogrel"], "general_internal", "PPI 降低氯吡格雷活性（CYP2C19）。", "medium"),
+        ("ddi_gen_ssri_nsaids", ["fluoxetine", "ibuprofen"], "general_internal", "SSRI+NSAID 消化道出血。", "medium"),
+        ("ddi_gen_statin_amiodarone", ["simvastatin", "amiodarone"], "general_internal", "胺碘酮抑制 CYP3A4 他汀毒性。", "high"),
+        ("ddi_gen_digoxin_clarithromycin", ["digoxin", "clarithromycin"], "general_internal", "大环内酯抑制 P-gp 升高地高辛。", "high"),
+        ("ddi_gen_spironolactone_acei", ["spironolactone", "lisinopril"], "general_internal", "ACEI+螺内酯高钾。", "high"),
+        ("ddi_gen_apixaban_st_john", ["apixaban", "st_johns_wort"], "general_internal", "圣约翰草降低 DOAC 暴露。", "medium"),
+        ("ddi_gen_levothyroxine_ppi", ["levothyroxine", "omeprazole"], "general_internal", "PPI 影响左甲状腺素吸收。", "medium"),
+        ("ddi_gen_allopurinol_azathioprine", ["allopurinol", "azathioprine"], "general_internal", "别嘌醇抑制黄嘌呤氧化酶致硫唑嘌呤毒性。", "high"),
+        ("ddi_gen_carbamazepine_macrolide", ["carbamazepine", "erythromycin"], "general_internal", "大环内酯升高卡马西平浓度。", "high"),
+        ("ddi_gen_lithium_thiazide", ["lithium", "hydrochlorothiazide"], "general_internal", "噻嗪减少锂清除。", "high"),
+        ("ddi_gen_morphine_mixed_agonist", ["morphine", "buprenorphine"], "general_internal", "阿片部分激动剂 precipitated withdrawal。", "high"),
+        ("ddi_gen_metoclopramide_parkinson", ["metoclopramide", "levodopa"], "general_internal", "甲氧氯普胺拮抗多巴胺（帕金森）。", "medium"),
+        ("ddi_gen_rivaroxaban_ketoconazole", ["rivaroxaban", "ketoconazole"], "general_internal", "强 CYP3A4/P-gp 抑制剂升高 DOAC。", "high"),
+        ("ddi_resp_macrolide_theophylline", ["erythromycin", "theophylline"], "respiratory", "大环内酯升高茶碱浓度。", "high"),
+    ]
+    return [
+        _ddi(rid, drugs, summary, department=dept, risk_level=risk)
+        for rid, drugs, dept, summary, risk in specs
+    ]
+
+
 def build_all_department_rules() -> list[dict[str, Any]]:
     builders = [
         build_respiratory_rules,
@@ -190,6 +294,8 @@ def build_all_department_rules() -> list[dict[str, Any]]:
         build_ent_rules,
         build_rehabilitation_rules,
         build_general_internal_rules,
+        build_extended_rules,
+        build_completion_rules,
     ]
     rules: list[dict[str, Any]] = []
     seen: set[str] = set()

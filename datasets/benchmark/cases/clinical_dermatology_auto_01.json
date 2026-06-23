@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_dermatology_auto_01",
+  "department": "dermatology",
+  "description": "dermatology 科室场景：四环素类光敏性，需防晒。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "dermatology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 85636,
+      "gender": "M",
+      "age": 61,
+      "department": "dermatology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "dermatology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "doxycycline",
+          "ingredient": "doxycycline",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "sun_exposure",
+        "ingredient": "sun_exposure",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_derm_photosens_tetracycline",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "dermatology"
+  }
+}

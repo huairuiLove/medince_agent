@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_orthopedic_auto_01",
+  "department": "orthopedic",
+  "description": "orthopedic 科室场景：NSAIDs 与抗凝联用增加出血风险，围术期需评估。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "orthopedic"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 34090,
+      "gender": "M",
+      "age": 61,
+      "department": "orthopedic",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "orthopedic clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "diclofenac",
+          "ingredient": "diclofenac",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "warfarin",
+        "ingredient": "warfarin",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ortho_nsaid_anticoag_diclofenac_warfarin",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "orthopedic"
+  }
+}

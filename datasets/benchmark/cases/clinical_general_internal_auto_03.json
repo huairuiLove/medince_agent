@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_general_internal_auto_03",
+  "department": "general_internal",
+  "description": "general_internal 科室场景：维生素 K 拮抗华法林。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "general_internal"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 49097,
+      "gender": "M",
+      "age": 63,
+      "department": "general_internal",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "general_internal clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "warfarin",
+          "ingredient": "warfarin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "vitamin_k",
+        "ingredient": "vitamin_k",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_gen_warfarin_vitamin_k",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "general_internal"
+  }
+}

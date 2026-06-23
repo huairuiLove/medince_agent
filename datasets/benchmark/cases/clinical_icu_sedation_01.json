@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_icu_sedation_01",
+  "department": "icu",
+  "description": "ICU 镇静：丙泊酚 + 芬太尼",
+  "difficulty": "hard",
+  "tags": [
+    "stage11",
+    "clinical",
+    "icu"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 32456,
+      "gender": "M",
+      "age": 55,
+      "department": "icu",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "icu clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "fentanyl",
+          "ingredient": "fentanyl",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "propofol",
+        "ingredient": "propofol",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_anest_propofol_opioid_propofol_fentanyl",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_overridable": false,
+    "expected_department_boost": "icu"
+  }
+}

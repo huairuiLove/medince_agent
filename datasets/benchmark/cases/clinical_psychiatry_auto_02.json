@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_psychiatry_auto_02",
+  "department": "psychiatry",
+  "description": "psychiatry 科室场景：噻嗪类利尿剂可致锂中毒（钠丢失→锂重吸收增加）。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "psychiatry"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 23402,
+      "gender": "M",
+      "age": 62,
+      "department": "psychiatry",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "psychiatry clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "lithium",
+          "ingredient": "lithium",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "hydrochlorothiazide",
+        "ingredient": "hydrochlorothiazide",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_lithium_diuretics",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "psychiatry"
+  }
+}

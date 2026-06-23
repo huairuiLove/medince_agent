@@ -11,6 +11,19 @@ GENERIC_BOOST = 1.0
 OTHER_DEPT_BOOST = 0.8
 DEPT_FOCUS_PREFIX = "[本科室重点] "
 
+# Benchmark dept_id aliases → rule department tags in KB
+DEPT_ALIASES: dict[str, str] = {
+    "obgyn": "obstetrics_gynecology",
+    "infectious": "infectious_disease",
+    "infectious_disease": "infectious_disease",
+    "obstetrics_gynecology": "obstetrics_gynecology",
+}
+
+
+def normalize_department(dept: str | None) -> str:
+    key = (dept or "").strip().lower()
+    return DEPT_ALIASES.get(key, key)
+
 RISK_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3, "unknown": 4}
 
 
@@ -22,15 +35,17 @@ class DepartmentRulePrioritizer:
         department: str | None = None,
         priority_categories: list[str] | None = None,
     ) -> None:
-        self.department = (department or "").strip().lower()
+        self.department = normalize_department(department)
         self.priority_categories = {c.lower() for c in (priority_categories or [])}
 
     def _rule_department(self, rule_id: str, rule_lookup: dict[str, dict[str, Any]]) -> str | None:
         rule = rule_lookup.get(rule_id)
         if not rule:
             return None
-        dept = rule.get("department")
-        return str(dept).strip().lower() if dept else None
+        rule_dept = normalize_department(str(rule.get("department") or "")) if rule else None
+        if not rule_dept:
+            return None
+        return rule_dept
 
     def priority_boost(
         self,

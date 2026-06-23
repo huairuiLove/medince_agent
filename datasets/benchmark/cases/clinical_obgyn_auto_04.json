@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_obgyn_auto_04",
+  "department": "obgyn",
+  "description": "obgyn 科室场景：华法林妊娠早期致畸，需 LMWH 替代。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "obgyn"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 80694,
+      "gender": "M",
+      "age": 64,
+      "department": "obgyn",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "obgyn clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "warfarin",
+          "ingredient": "warfarin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "pregnancy",
+        "ingredient": "pregnancy",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_obgyn_warfarin_pregnancy",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "obgyn"
+  }
+}

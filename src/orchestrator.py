@@ -106,15 +106,17 @@ class MultiAgentOrchestrator:
         candidate_drugs: list[CandidateDrug],
         unable_to_answer: bool = False,
         skip_clarify: bool = False,
+        rule_output: ReviewOutput | None = None,
     ) -> MultiReviewResponse:
         self._ensure_agents()
         dept_ctx = self._resolve_department_context(patient_context)
-        rule_output = self.review_engine.review(
-            patient_context,
-            candidate_drugs,
-            department=patient_context.department or None,
-            priority_categories=dept_ctx.priority_categories if dept_ctx else None,
-        )
+        if rule_output is None:
+            rule_output = self.review_engine.review(
+                patient_context,
+                candidate_drugs,
+                department=patient_context.department or None,
+                priority_categories=dept_ctx.priority_categories if dept_ctx else None,
+            )
         agents = self._active_agents(patient_context, candidate_drugs, department_context=dept_ctx)
 
         self.debate_engine.agents = agents

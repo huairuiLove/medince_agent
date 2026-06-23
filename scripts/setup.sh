@@ -26,7 +26,11 @@ if [ ! -f "$ENV_FILE" ]; then
   echo "Created .env from .env.example"
 fi
 
-mkdir -p datasets/cases datasets/processed datasets/case_templates data/imaging_cache data/auth data/hospital data/pharmacy logs
+mkdir -p datasets/cases datasets/processed datasets/case_templates data/imaging_cache data/auth data/hospital data/pharmacy logs models
+
+echo "Downloading DDI-BERT (ltmai/Bio_ClinicalBERT_DDI_finetuned) ..."
+python scripts/download_models.py --ddi-bert
+python scripts/verify_ddi_bert.py
 
 python -m compileall src -q
 python scripts/run_integration_tests.py

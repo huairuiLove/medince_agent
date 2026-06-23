@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_nephrology_auto_03",
+  "department": "nephrology",
+  "description": "nephrology 科室场景：ACEI 与钾补充剂联用可致高钾血症。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "nephrology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 78335,
+      "gender": "M",
+      "age": 63,
+      "department": "nephrology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "nephrology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "captopril",
+          "ingredient": "captopril",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "potassium chloride",
+        "ingredient": "potassium chloride",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_acei_potassium_captopril_potassium chloride",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "nephrology"
+  }
+}

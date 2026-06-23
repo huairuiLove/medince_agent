@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_obgyn_auto_05",
+  "department": "obgyn",
+  "description": "obgyn 科室场景：宫缩/降压：需评估 DDI 与监测。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "obgyn"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 80694,
+      "gender": "M",
+      "age": 65,
+      "department": "obgyn",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "obgyn clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "oxytocin",
+          "ingredient": "oxytocin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "nifedipine",
+        "ingredient": "nifedipine",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_ext_obstetrics_gynecology_oxytocin_nifedipine",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "obgyn"
+  }
+}

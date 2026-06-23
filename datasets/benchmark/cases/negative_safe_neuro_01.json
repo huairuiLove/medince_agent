@@ -1,0 +1,50 @@
+{
+  "case_id": "negative_safe_neuro_01",
+  "department": "neurology",
+  "description": "阴性测试：单药 levetiracetam 预期安全",
+  "difficulty": "easy",
+  "tags": [
+    "stage11",
+    "negative",
+    "neurology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 10952,
+      "gender": "M",
+      "age": 55,
+      "department": "neurology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "neurology clinical scenario"
+        }
+      ],
+      "current_medications": [],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "levetiracetam",
+        "ingredient": "levetiracetam",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "unknown",
+    "block_decision": false,
+    "required_alerts": [],
+    "should_not_fire": [],
+    "is_negative_test": true
+  }
+}

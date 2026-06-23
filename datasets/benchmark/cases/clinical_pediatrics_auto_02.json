@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_pediatrics_auto_02",
+  "department": "pediatrics",
+  "description": "pediatrics 科室场景：CYP2D6 抑制剂降低可待因活化，儿童镇痛可能不足。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "pediatrics"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 16140,
+      "gender": "M",
+      "age": 62,
+      "department": "pediatrics",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "pediatrics clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "codeine",
+          "ingredient": "codeine",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "fluoxetine",
+        "ingredient": "fluoxetine",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "medium",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_peds_codeine_cyp2d6",
+        "category": "drug_interaction",
+        "risk_level": "medium",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "pediatrics"
+  }
+}

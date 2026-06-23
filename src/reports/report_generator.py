@@ -64,12 +64,13 @@ class ReportGenerator:
 
         multi_agent = None
         deepseek_synthesis: dict[str, Any] = {}
+        rule_output = None
         candidate_drugs = list(req.candidate_drugs)
+        if req.run_medication_review and not candidate_drugs:
+            candidate_drugs = self._drugs_from_vlm(vlm_analysis)
         run_med_review = req.run_medication_review and bool(candidate_drugs)
 
         if run_med_review:
-            if not candidate_drugs:
-                candidate_drugs = self._drugs_from_vlm(vlm_analysis)
             patient_context = req.patient_context or PatientContext(
                 source_text=req.clinical_text,
                 chief_complaint=str(vlm_analysis.get("chief_complaint", "")),
@@ -77,7 +78,19 @@ class ReportGenerator:
                 diagnoses=[DiagnosisItem(name=str(d)) for d in vlm_analysis.get("diagnoses", [])],
                 allergies=list(vlm_analysis.get("allergies", []) or []),
             )
-            multi_agent = self.orchestrator.run(patient_context, candidate_drugs, skip_clarify=True)
+            dept_ctx = self.orchestrator._resolve_department_context(patient_context)
+            rule_output = self.orchestrator.review_engine.review(
+                patient_context,
+                candidate_drugs,
+                department=patient_context.department or None,
+                priority_categories=dept_ctx.priority_categories if dept_ctx else None,
+            )
+            multi_agent = self.orchestrator.run(
+                patient_context,
+                candidate_drugs,
+                skip_clarify=True,
+                rule_output=rule_output,
+            )
             deepseek_synthesis = deepseek.synthesize_report(
                 clinical_text=req.clinical_text,
                 vlm_analysis=vlm_analysis,
@@ -117,6 +130,12 @@ class ReportGenerator:
                 "deepseek_model": deepseek.model_name,
                 "segmentation_summary": req.segmentation_summary,
                 "medication_review_ran": run_med_review,
+                "review_pipeline": (
+                    ["vlm_recommendation", "rule_layer_0", "multi_agent_review"]
+                    if run_med_review
+                    else ["vlm_only"]
+                ),
+                "rule_output": rule_output.model_dump() if rule_output else None,
                 "visual_images_submitted": len(all_visual),
                 "overlay_count": len(overlay_paths),
             },
@@ -168,8 +187,9 @@ class ReportGenerator:
             section_content["risk_summary"] = self._risk_summary_section(multi_agent, synthesis)
         else:
             section_content["medication_recommendation"] = (
-                "本次报告以影像会诊为主，未启用用药多智能体审查。"
-                "如需对具体候选药物进行五专家辩论审查，请在生成报告前勾选「用药多智能体审查」并填写候选药物。"
+                "本次报告以影像会诊为主，未启用用药审查流水线。"
+                "完整流程为：VLM 用药推荐 → 规则审查（Layer 0）→ 多智能体用药审查。"
+                "如需执行，请勾选「启用用药审查」并填写候选药物（或依赖 VLM 推荐自动带入）。"
             )
             section_content["risk_summary"] = str(
                 vlm.get("reasoning") or vlm.get("risk_level") or "影像会诊完成，用药安全审查未执行。"
@@ -219,9 +239,14 @@ class ReportGenerator:
                     lines.append(f"- {item.get('name', '')} {item.get('dose', '')} {item.get('route', '')} {item.get('indication', '')}".strip())
                 else:
                     lines.append(f"- {item}")
-        if multi_agent.rule_output.evidence:
+        ro = multi_agent.rule_output
+        lines.append(
+            f"\n规则审查（Layer 0 前置）：{ro.final_recommendation}"
+            + ("【建议阻断】" if ro.block_decision else "")
+        )
+        if ro.evidence:
             lines.append("\n规则引擎命中：")
-            for ev in multi_agent.rule_output.evidence[:6]:
+            for ev in ro.evidence[:6]:
                 lines.append(f"- [{ev.risk_level}] {ev.summary}")
         return "\n".join(line for line in lines if line is not None).strip()
 
@@ -304,14 +329,17 @@ class ReportGenerator:
         synthesis: dict,
         run_med_review: bool,
     ) -> str:
-        parts: list[str] = ["Step 1 VLM 视觉分析完成。"]
+        parts: list[str] = ["Step 1 VLM 视觉分析 → 用药推荐。"]
         parts.append(f"VLM 推理：{vlm.get('reasoning', '')}")
 
         if not run_med_review or multi_agent is None:
-            parts.append("Step 2 跳过用药多智能体（未指定候选药物或未启用审查）。")
+            parts.append("Step 2 跳过规则审查与多智能体用药审查（未启用或未指定候选药物）。")
             return "\n".join(p for p in parts if p)
 
-        parts.append("Step 2 规则引擎预筛 → Step 3 多专家并行审查 → Step 4 辩论修订 → Step 5 主席仲裁。")
+        ro = multi_agent.rule_output
+        parts.append("Step 2 规则审查（Layer 0 前置审查，内嵌于所有用药审查）。")
+        parts.append(f"规则结论：{ro.final_recommendation}")
+        parts.append("Step 3 多智能体用药审查 → Step 4 辩论修订 → Step 5 主席仲裁 → DeepSeek 合成。")
         if synthesis.get("chain_of_thought"):
             parts.append(str(synthesis["chain_of_thought"]))
         elif multi_agent.debate:

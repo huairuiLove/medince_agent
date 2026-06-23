@@ -1,0 +1,66 @@
+{
+  "case_id": "clinical_oncology_auto_02",
+  "department": "oncology",
+  "description": "oncology 科室场景：化疗药与强 CYP3A4 抑制剂联用改变暴露与毒性风险。",
+  "difficulty": "medium",
+  "tags": [
+    "stage11",
+    "clinical",
+    "auto",
+    "oncology"
+  ],
+  "request": {
+    "patient_context": {
+      "subject_id": 41360,
+      "gender": "M",
+      "age": 62,
+      "department": "oncology",
+      "diagnoses": [
+        {
+          "icd9_code": "799.9",
+          "name": "oncology clinical scenario"
+        }
+      ],
+      "current_medications": [
+        {
+          "name": "cisplatin",
+          "ingredient": "cisplatin",
+          "dose": "standard",
+          "route": "PO",
+          "frequency": "qd"
+        }
+      ],
+      "allergies": [
+        "NKDA"
+      ],
+      "pregnancy_status": "not_applicable",
+      "lactation_status": "not_lactating",
+      "missing_fields": [],
+      "egfr": 90
+    },
+    "candidate_drugs": [
+      {
+        "name": "ketoconazole",
+        "ingredient": "ketoconazole",
+        "dose": "standard",
+        "route": "PO",
+        "frequency": "qd",
+        "source": "candidate"
+      }
+    ]
+  },
+  "ground_truth": {
+    "risk_level": "high",
+    "block_decision": true,
+    "required_alerts": [
+      {
+        "rule_id": "ddi_onc_chemo_cyp3a4_cisplatin_ketoconazole",
+        "category": "drug_interaction",
+        "risk_level": "high",
+        "must_fire": true
+      }
+    ],
+    "should_not_fire": [],
+    "expected_department_boost": "oncology"
+  }
+}
