@@ -1,5 +1,6 @@
 {
   "case_id": "demo_review_03",
+  "department": "obstetrics_gynecology",
   "description": "妊娠相关禁忌：育龄女性，妊娠状态未知，候选药物lisinopril",
   "request": {
     "patient_context": {
@@ -7,6 +8,7 @@
       "hadm_id": 20003,
       "gender": "F",
       "age": 28,
+      "department": "obstetrics_gynecology",
       "admission_type": "URGENT",
       "source_text": "患者女性28岁，因头晕头痛入院，血压偏高。",
       "chief_complaint": "头晕头痛",

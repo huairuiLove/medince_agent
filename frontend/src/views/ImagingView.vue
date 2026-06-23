@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import VolumeMprViewer from '@/components/imaging/VolumeMprViewer.vue'
+import ImagingFileImage from '@/components/imaging/ImagingFileImage.vue'
 import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
-import { medsafeApi, imagingFileUrl } from '@/api/medsafe'
+import { medsafeApi } from '@/api/medsafe'
+import { useAuthStore } from '@/stores/auth'
 import type {
   ClinicalReport,
   ImagingStudy,
@@ -15,8 +17,27 @@ import type {
   VlmAnalysis,
 } from '@/types'
 
+const auth = useAuthStore()
+
+const SOURCE_LABELS: Record<string, string> = {
+  mimic_cxr: '胸片 XR',
+  chest_ct: '胸部/肺 CT',
+  kits19: '肾脏 CT',
+  brats2024: '脑 MRI',
+  mimic: 'MIMIC CT',
+}
+
 const studies = ref<ImagingStudy[]>([])
-const sourceFilter = ref<'all' | 'mimic_cxr' | 'chest_ct' | 'kits19' | 'brats2024'>('all')
+const allowedSources = computed(() => auth.department?.imaging_sources ?? [])
+const sourceFilterOptions = computed(() => {
+  const opts: Array<[string, string]> = []
+  if (allowedSources.value.length > 1) opts.push(['all', '全部'])
+  for (const src of allowedSources.value) {
+    opts.push([src, SOURCE_LABELS[src] ?? src])
+  }
+  return opts
+})
+const sourceFilter = ref<string>('all')
 const models = ref<SegModelInfo[]>([])
 const selectedStudy = ref<ImagingStudy | null>(null)
 const selectedModels = ref<ModelId[]>(['sam2d'])
@@ -41,6 +62,10 @@ const vlmConfigured = ref(true)
 const vlmHint = ref('')
 const vlmImagesUsed = ref<string[]>([])
 const vlmDurationMs = ref(0)
+const reportDurationMs = ref(0)
+const reportTask = ref<'vlm' | 'report' | null>(null)
+const taskElapsedMs = ref(0)
+let taskTimer: ReturnType<typeof setInterval> | null = null
 const includeSourceImage = ref(false)
 const runMedicationReview = ref(true)
 const candidateDrugText = ref('')
@@ -54,6 +79,34 @@ const filteredStudies = computed(() => {
   if (sourceFilter.value === 'all') return studies.value
   return studies.value.filter(s => s.source === sourceFilter.value)
 })
+
+function formatElapsed(ms: number): string {
+  const sec = ms / 1000
+  if (sec < 60) return `${sec.toFixed(1)} 秒`
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function startReportTask(task: 'vlm' | 'report') {
+  stopReportTask(false)
+  reportTask.value = task
+  taskElapsedMs.value = 0
+  const started = Date.now()
+  taskTimer = setInterval(() => {
+    taskElapsedMs.value = Date.now() - started
+  }, 200)
+}
+
+function stopReportTask(clearTask = true) {
+  if (taskTimer) {
+    clearInterval(taskTimer)
+    taskTimer = null
+  }
+  if (clearTask) reportTask.value = null
+}
+
+onUnmounted(() => stopReportTask())
 
 async function loadStudies() {
   const res = await medsafeApi.listImagingStudies(
@@ -203,6 +256,13 @@ onMounted(async () => {
   }
 })
 
+watch(allowedSources, (sources) => {
+  if (sources.length === 1) sourceFilter.value = sources[0]
+  else if (!sources.includes(sourceFilter.value) && sourceFilter.value !== 'all') {
+    sourceFilter.value = sources.length > 1 ? 'all' : (sources[0] ?? 'all')
+  }
+}, { immediate: true })
+
 watch(sourceFilter, () => {
   void loadStudies()
 })
@@ -226,6 +286,7 @@ function selectStudy(s: ImagingStudy) {
   screenshots.value = []
   report.value = null
   savedReports.value = []
+  reportDurationMs.value = 0
   vlmAnalysis.value = null
   volumeMaskPath.value = null
   qaAnswer.value = ''
@@ -406,6 +467,8 @@ async function generateReport() {
   }
   loading.value = true
   error.value = ''
+  startReportTask('report')
+  const started = Date.now()
   try {
     report.value = await medsafeApi.generateReport({
       patient_id: selectedStudy.value.patient_id,
@@ -422,11 +485,13 @@ async function generateReport() {
       run_medication_review: runMedicationReview.value,
       candidate_drugs: candidateDrugs,
     })
+    reportDurationMs.value = Date.now() - started
     await loadPatientReports()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
     loading.value = false
+    stopReportTask()
   }
 }
 
@@ -438,6 +503,9 @@ async function runVlmConsult() {
   }
   loading.value = true
   error.value = ''
+  vlmAnalysis.value = null
+  startReportTask('vlm')
+  const started = Date.now()
   try {
     const res = await medsafeApi.analyzeWithVlm({
       clinical_text: clinicalText.value,
@@ -449,12 +517,13 @@ async function runVlmConsult() {
     vlmAnalysis.value = res.analysis
     vlmModel.value = res.model
     vlmImagesUsed.value = res.images_used
-    vlmDurationMs.value = res.duration_ms
+    vlmDurationMs.value = res.duration_ms || Date.now() - started
     syncCandidateDrugsFromVlm(res.analysis)
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
     loading.value = false
+    stopReportTask()
   }
 }
 
@@ -487,7 +556,7 @@ const sortedParagraphs = computed(() =>
     <header class="page-head">
       <div>
         <h1>影像分割与用药安全报告</h1>
-        <p class="sub">病灶分割（MIMIC CXR / BraTS）· 器官分割 · Qwen VLM 报告</p>
+        <p class="sub">病灶分割 · 器官分割 · Qwen VLM 报告 · 科室：{{ auth.department?.name_cn ?? '—' }}</p>
       </div>
       <div v-if="memoryPeak" class="mem-badge">峰值内存 ~{{ memoryPeak.toFixed(0) }} MB</div>
     </header>
@@ -498,9 +567,9 @@ const sortedParagraphs = computed(() =>
     <div class="grid-main">
       <aside class="card panel">
         <h3>影像检查</h3>
-        <div class="source-filter">
+        <div v-if="sourceFilterOptions.length" class="source-filter">
           <button
-            v-for="opt in ([['all', '全部'], ['mimic_cxr', '胸片 XR'], ['chest_ct', '胸部/肺 CT'], ['kits19', '肾脏 CT'], ['brats2024', '脑 MRI']] as const)"
+            v-for="opt in sourceFilterOptions"
             :key="opt[0]"
             type="button"
             class="mode-btn"
@@ -508,6 +577,7 @@ const sortedParagraphs = computed(() =>
             @click="sourceFilter = opt[0]"
           >{{ opt[1] }}</button>
         </div>
+        <p v-else class="empty-hint">本科室未配置影像数据源，请联系管理员。</p>
         <ul class="study-list">
           <li v-if="!filteredStudies.length" class="empty-hint">
             暂无该类型影像。运行：
@@ -593,7 +663,7 @@ const sortedParagraphs = computed(() =>
           </div>
 
           <div ref="viewerRef" class="viewer-canvas">
-            <img v-if="currentImage" :src="imagingFileUrl(currentImage)" alt="study slice" />
+            <ImagingFileImage v-if="currentImage" :path="currentImage" alt="study slice" />
           </div>
         </template>
 
@@ -601,7 +671,7 @@ const sortedParagraphs = computed(() =>
           <h4>本次分割结果</h4>
           <div class="overlay-row">
             <figure v-for="r in segmentResults" :key="r.model_id">
-              <img :src="imagingFileUrl(r.overlay_path)" :alt="r.model_id" />
+              <ImagingFileImage :path="r.overlay_path" :alt="r.model_id" />
               <figcaption>
                 {{ r.model_id }} · {{ r.duration_ms.toFixed(0) }}ms · +{{ r.memory_mb.toFixed(1) }}MB
                 <br /><small>{{ r.notes }}</small>
@@ -631,7 +701,7 @@ const sortedParagraphs = computed(() =>
                     @click.stop
                     @change="toggleOverlaySelection(run.run_id, r.model_id)"
                   />
-                  <img :src="imagingFileUrl(r.overlay_path)" :alt="r.model_id" />
+                  <ImagingFileImage :path="r.overlay_path" :alt="r.model_id" />
                 </label>
                 <figcaption>
                   {{ r.model_id }}
@@ -646,7 +716,7 @@ const sortedParagraphs = computed(() =>
           <h4>已截截图 ({{ screenshots.length }})</h4>
           <div class="overlay-row">
             <figure v-for="s in screenshots" :key="s.path">
-              <img :src="imagingFileUrl(s.path)" :alt="s.caption" />
+              <ImagingFileImage :path="s.path" :alt="s.caption" />
             </figure>
           </div>
         </div>
@@ -710,11 +780,38 @@ const sortedParagraphs = computed(() =>
           :disabled="loading || !selectedOverlayPaths.length"
           @click="runVlmConsult"
         >
-          Qwen VLM 查阅（已选 {{ selectedOverlayPaths.length }} 张 overlay）
+          <span v-if="reportTask === 'vlm'" class="spinner" />
+          {{
+            reportTask === 'vlm'
+              ? `VLM 查阅中… ${formatElapsed(taskElapsedMs)}`
+              : `Qwen VLM 查阅（已选 ${selectedOverlayPaths.length} 张 overlay）`
+          }}
         </button>
-        <button class="btn-secondary" :disabled="loading" @click="generateReport">
-          生成完整报告（VLM → 规则审查 → 多智能体）
+        <button
+          class="btn-secondary"
+          :disabled="loading"
+          @click="generateReport"
+        >
+          <span v-if="reportTask === 'report'" class="spinner" />
+          {{
+            reportTask === 'report'
+              ? `报告生成中… ${formatElapsed(taskElapsedMs)}`
+              : '生成完整报告（VLM → 规则审查 → 多智能体）'
+          }}
         </button>
+      </div>
+
+      <div v-if="reportTask" class="task-status" role="status" aria-live="polite">
+        <template v-if="reportTask === 'vlm'">
+          <strong>正在调用 Qwen VLM 分析 overlay…</strong>
+          <span>已用时 {{ formatElapsed(taskElapsedMs) }}</span>
+          <p class="task-hint">通常需 10–60 秒，请稍候</p>
+        </template>
+        <template v-else>
+          <strong>正在生成完整报告（VLM → 规则审查 → 多智能体）…</strong>
+          <span>已用时 {{ formatElapsed(taskElapsedMs) }}</span>
+          <p class="task-hint">完整流水线通常需 1–4 分钟，请保持页面打开</p>
+        </template>
       </div>
 
       <template v-if="vlmAnalysis">
@@ -723,7 +820,7 @@ const sortedParagraphs = computed(() =>
           模型 {{ vlmModel }}
           · 提交 {{ vlmImagesUsed.length }} 张（overlay {{ selectedOverlayPaths.length
           }}{{ includeSourceImage ? ' + 原图' : '' }}）
-          · 耗时 {{ vlmDurationMs.toFixed(0) }}ms
+          · 耗时 {{ formatElapsed(vlmDurationMs) }}
         </p>
         <ul v-if="vlmImagesUsed.length" class="used-images">
           <li v-for="p in vlmImagesUsed" :key="p">{{ p.split('/').slice(-2).join('/') }}</li>
@@ -759,6 +856,7 @@ const sortedParagraphs = computed(() =>
         <p class="meta">
           报告 ID: {{ report.report_id }} · 会话: {{ report.imaging_session_id }} ·
           {{ report.created_at }}
+          <span v-if="reportDurationMs"> · 生成耗时 {{ formatElapsed(reportDurationMs) }}</span>
           <span v-if="report.metadata?.medication_review_ran === false" class="info-tag">未跑用药审查</span>
         </p>
 
@@ -845,7 +943,7 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
 .overlays h4, .shots h4 { font-size: 0.85rem; margin-bottom: 0.5rem; }
 .overlay-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .overlay-row figure { max-width: 200px; }
-.overlay-row img { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); }
+.overlay-row :deep(img) { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); }
 .overlay-row figcaption { font-size: 0.72rem; color: var(--text-muted); }
 .history h4 small { font-weight: normal; color: var(--text-muted); margin-left: 0.5rem; }
 .history-run { margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--border); }
@@ -855,6 +953,22 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
 .overlay-check { display: block; position: relative; }
 .overlay-check input { position: absolute; top: 0.35rem; left: 0.35rem; z-index: 1; }
 .action-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+.action-row .btn-primary,
+.action-row .btn-secondary { display: inline-flex; align-items: center; gap: 0.45rem; }
+.task-status {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  background: var(--primary-light);
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  font-size: 0.88rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.task-status strong { color: var(--primary-dark); }
+.task-status span { color: var(--text-muted); font-size: 0.82rem; }
+.task-hint { margin: 0; font-size: 0.78rem; color: var(--text-muted); }
 .report-panel { margin-top: 0.5rem; }
 .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
 .meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem; }

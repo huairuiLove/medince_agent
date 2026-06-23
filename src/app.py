@@ -22,7 +22,7 @@ from src.clarify_engine import ClarifyEngine
 from src.config import load_config
 from src.llm.client import get_llm_client, is_llm_configured
 from src.llm.embedding_client import embedding_status
-from src.llm.errors import LLMNotConfiguredError
+from src.llm.errors import LLMNotConfiguredError, VisionLLMError
 from src.logging_config import get_logger, setup_logging
 from src.orchestrator import MultiAgentOrchestrator
 from src.drug_catalog.catalog_service import (
@@ -45,6 +45,14 @@ from src.auth.models import (
     UserProfile,
 )
 from src.auth.service import get_auth_service
+from src.auth.imaging_scope import (
+    allowed_model_ids,
+    filter_models,
+    filter_studies,
+    imaging_sources_for_user,
+    path_allowed_for_sources,
+    study_allowed_for_sources,
+)
 from src.fhir.routes import create_fhir_router
 from src.pharmacy import PHARMACY_QUEUE
 from src.pharmacy.routes import router as pharmacy_router
@@ -90,7 +98,12 @@ from src.imaging.memory_monitor import rss_mb
 from src.imaging.segment_service import SegmentService
 from src.imaging.segment_store import SegmentStore, make_image_key
 from src.imaging.volume_io import decode_base64_image, export_volume_slice, get_volume_meta, is_nifti
-from src.llm.vision_client import get_qwen_vlm_client, is_vision_llm_configured
+from src.llm.vision_client import (
+    BAILIAN_CONSOLE_URL,
+    get_qwen_vlm_client,
+    get_vision_llm_settings,
+    is_vision_llm_configured,
+)
 from src.reports.report_generator import ReportGenerator, dedupe_paths
 from src.reports.report_qa import ReportQAService
 from src.reports.report_store import ReportStore
@@ -282,6 +295,12 @@ async def llm_not_configured_handler(_request: Request, exc: LLMNotConfiguredErr
     return JSONResponse(status_code=503, content={"detail": str(exc)})
 
 
+@app.exception_handler(VisionLLMError)
+async def vision_llm_error_handler(_request: Request, exc: VisionLLMError):
+    status = exc.status_code if exc.status_code in {401, 403, 429} else 502
+    return JSONResponse(status_code=status, content={"detail": str(exc)})
+
+
 # ── Health ─────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Health"])
@@ -326,8 +345,14 @@ def list_agents() -> dict:
 
 
 @app.get("/api/v1/case-templates", response_model=CaseTemplateListResponse, tags=["Cases"])
-def api_list_case_templates() -> CaseTemplateListResponse:
-    return CaseTemplateListResponse(templates=list_case_templates())
+def api_list_case_templates(
+    department: str = "",
+    user: UserProfile | None = Depends(get_optional_user),
+) -> CaseTemplateListResponse:
+    dept = department.strip() or (user.dept_id if user else "")
+    if not dept:
+        return CaseTemplateListResponse(templates=[])
+    return CaseTemplateListResponse(templates=list_case_templates(dept))
 
 
 @app.get("/api/v1/case-templates/{template_id}", tags=["Cases"])
@@ -896,19 +921,61 @@ def list_cases(limit: int = 20):
 
 # ── Imaging & Reports ────────────────────────────────────────────────────
 
+def _project_rel_path(path: str | Path) -> str:
+    root = resolve_path(".")
+    target = Path(path)
+    if not target.is_absolute():
+        target = (root / path).resolve()
+    else:
+        target = target.resolve()
+    try:
+        return target.relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _require_imaging_path(path: str, user: UserProfile) -> None:
+    sources = imaging_sources_for_user(user)
+    if not path_allowed_for_sources(path, sources):
+        raise HTTPException(status_code=403, detail="无权访问该影像路径")
+
+
+def _require_imaging_paths(paths: list[str], user: UserProfile) -> None:
+    for path in paths:
+        if path:
+            _require_imaging_path(path, user)
+
+
+def _require_study_access(patient_id: str, study_id: str, user: UserProfile) -> None:
+    sources = imaging_sources_for_user(user)
+    if not study_allowed_for_sources(patient_id, study_id, sources):
+        raise HTTPException(status_code=403, detail="无权访问该病例影像")
+
+
 @app.get("/api/v1/imaging/studies", tags=["Imaging"])
-def list_imaging_studies(source: Optional[str] = None):
-    studies = IMAGING_CATALOG.list_studies(source=source)
+def list_imaging_studies(
+    user: Annotated[UserProfile, Depends(get_current_user)],
+    source: Optional[str] = None,
+):
+    sources = imaging_sources_for_user(user)
+    if source and source not in sources:
+        return {"count": 0, "studies": []}
+    studies = IMAGING_CATALOG.list_studies(source=source or None)
+    studies = filter_studies(studies, sources)
     return {"count": len(studies), "studies": [s.model_dump() for s in studies]}
 
 
 @app.get("/api/v1/imaging/models", tags=["Imaging"])
-def list_segment_models():
-    return {"models": SEGMENT_SERVICE.list_models()}
+def list_segment_models(user: Annotated[UserProfile, Depends(get_current_user)]):
+    sources = imaging_sources_for_user(user)
+    dept = user.department
+    default_models = dept.default_models if dept else []
+    models = filter_models(SEGMENT_SERVICE.list_models(), default_models, sources)
+    return {"models": models}
 
 
 @app.get("/api/v1/imaging/file", tags=["Imaging"])
-def serve_imaging_file(path: str):
+def serve_imaging_file(path: str, user: Annotated[UserProfile, Depends(get_current_user)]):
     root = resolve_path(".")
     target = Path(path)
     if not target.is_absolute():
@@ -917,17 +984,19 @@ def serve_imaging_file(path: str):
         target = target.resolve()
     if not str(target).startswith(str(root.resolve())):
         raise HTTPException(status_code=403, detail="Invalid path")
+    _require_imaging_path(path, user)
     if not target.exists():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(target)
 
 
 @app.get("/api/v1/imaging/volume/meta", tags=["Imaging"])
-def imaging_volume_meta(volume_path: str):
+def imaging_volume_meta(volume_path: str, user: Annotated[UserProfile, Depends(get_current_user)]):
     root = resolve_path(".")
     target = (root / volume_path).resolve()
     if not str(target).startswith(str(root.resolve())):
         raise HTTPException(status_code=403, detail="Invalid path")
+    _require_imaging_path(volume_path, user)
     if not target.exists() or not is_nifti(target):
         raise HTTPException(status_code=404, detail="NIfTI volume not found")
     meta = get_volume_meta(target)
@@ -936,6 +1005,7 @@ def imaging_volume_meta(volume_path: str):
 
 @app.get("/api/v1/imaging/volume/slice", tags=["Imaging"])
 def imaging_volume_slice(
+    user: Annotated[UserProfile, Depends(get_current_user)],
     volume_path: str,
     axis: str = "axial",
     index: int = 0,
@@ -945,10 +1015,12 @@ def imaging_volume_slice(
     target = (root / volume_path).resolve()
     if not str(target).startswith(str(root.resolve())):
         raise HTTPException(status_code=403, detail="Invalid path")
+    _require_imaging_path(volume_path, user)
     if not target.exists():
         raise HTTPException(status_code=404, detail="Volume not found")
     mask = None
     if overlay_path:
+        _require_imaging_path(overlay_path, user)
         mask_target = (root / overlay_path).resolve()
         if str(mask_target).startswith(str(root.resolve())) and mask_target.exists():
             mask = str(mask_target)
@@ -962,8 +1034,24 @@ def imaging_volume_slice(
 
 
 @app.post("/api/v1/imaging/segment", response_model=SegmentResponse, tags=["Imaging"])
-def run_segmentation(req: SegmentRequest, request: Request) -> SegmentResponse:
+def run_segmentation(
+    req: SegmentRequest,
+    request: Request,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> SegmentResponse:
     _REQUEST_COUNTS["imaging_segment"] += 1
+    sources = imaging_sources_for_user(user)
+    dept = user.department
+    default_models = dept.default_models if dept else []
+    allowed_ids = allowed_model_ids(SEGMENT_SERVICE.list_models(), default_models, sources)
+    if not allowed_ids:
+        raise HTTPException(status_code=403, detail="本科室未配置可用分割模型")
+    blocked = [m for m in req.model_ids if m not in allowed_ids]
+    if blocked:
+        raise HTTPException(status_code=403, detail=f"无权使用模型: {', '.join(blocked)}")
+    _require_imaging_path(req.image_path, user)
+    if req.volume_path:
+        _require_imaging_path(req.volume_path, user)
     visual = IMAGING_CATALOG.resolve_visual_only(req.image_path)
     kwargs: dict = {"organ": req.organ}
     if req.volume_path:
@@ -985,8 +1073,8 @@ def run_segmentation(req: SegmentRequest, request: Request) -> SegmentResponse:
 
     result_payload = [{
         "model_id": r.model_id,
-        "source_image": r.source_image,
-        "overlay_path": r.overlay_path,
+        "source_image": _project_rel_path(r.source_image),
+        "overlay_path": _project_rel_path(r.overlay_path),
         "labels": r.labels,
         "stats": r.stats,
         "memory_mb": r.memory_mb,
@@ -1022,6 +1110,7 @@ def run_segmentation(req: SegmentRequest, request: Request) -> SegmentResponse:
 
 @app.get("/api/v1/imaging/segments", response_model=ListSegmentRunsResponse, tags=["Imaging"])
 def list_segment_runs(
+    user: Annotated[UserProfile, Depends(get_current_user)],
     patient_id: str,
     study_id: str,
     image_path: str = "",
@@ -1029,6 +1118,11 @@ def list_segment_runs(
     slice_axis: str = "axial",
     slice_index: int | None = None,
 ):
+    _require_study_access(patient_id, study_id, user)
+    if image_path:
+        _require_imaging_path(image_path, user)
+    if volume_path:
+        _require_imaging_path(volume_path, user)
     image_key = make_image_key(image_path or volume_path or "", volume_path, slice_axis, slice_index)
     runs = SEGMENT_STORE.list_runs(patient_id, study_id, image_key=image_key)
     return ListSegmentRunsResponse(
@@ -1054,23 +1148,43 @@ def _resolve_existing_visual_paths(paths: list[str]) -> list[str]:
 
 @app.get("/api/v1/imaging/vlm/config", tags=["Imaging"])
 def imaging_vlm_config():
-    if not is_vision_llm_configured():
+    try:
+        settings = get_vision_llm_settings()
+    except LLMNotConfiguredError:
+        settings = None
+    if not settings or not settings.get("api_key"):
         return {
             "configured": False,
             "model": "",
-            "hint": "未配置 Qwen VLM API Key。请在 config.yaml 设置 vision_llm.provider=qwen 与 api_key。",
+            "hint": f"未配置百炼 Qwen VLM API Key。请在 {BAILIAN_CONSOLE_URL} 创建 Key 并写入 .env。",
         }
-    client = get_qwen_vlm_client()
+    try:
+        client = get_qwen_vlm_client()
+    except LLMNotConfiguredError as exc:
+        return {
+            "configured": False,
+            "model": settings.get("model", ""),
+            "base_url": settings.get("base_url", ""),
+            "hint": str(exc),
+        }
     return {
         "configured": True,
         "model": client.model_name,
-        "hint": "已启用云端 Qwen VLM。",
+        "base_url": settings["base_url"],
+        "region": settings.get("region"),
+        "workspace_id": settings.get("workspace_id") or None,
+        "hint": f"已连接百炼 Qwen VLM（{settings['base_url']}）。",
     }
 
 
 @app.post("/api/v1/imaging/vlm/analyze", response_model=VlmAnalyzeResponse, tags=["Imaging"])
-def analyze_with_vlm(req: VlmAnalyzeRequest, request: Request) -> VlmAnalyzeResponse:
+def analyze_with_vlm(
+    req: VlmAnalyzeRequest,
+    request: Request,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> VlmAnalyzeResponse:
     _REQUEST_COUNTS["imaging_vlm"] += 1
+    _require_imaging_paths(req.image_paths + req.overlay_paths, user)
     root = resolve_path(".")
     source_paths = _resolve_existing_visual_paths(req.image_paths)
     overlay_paths = _resolve_existing_visual_paths(req.overlay_paths)
@@ -1121,7 +1235,11 @@ def analyze_with_vlm(req: VlmAnalyzeRequest, request: Request) -> VlmAnalyzeResp
 
 
 @app.post("/api/v1/imaging/screenshot", tags=["Imaging"])
-def save_screenshot(req: SaveScreenshotRequest):
+def save_screenshot(
+    req: SaveScreenshotRequest,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+):
+    _require_study_access(req.patient_id, req.study_id, user)
     out_dir = resolve_path(f"data/imaging_cache/screenshots/{req.patient_id}/{req.study_id}")
     out_dir.mkdir(parents=True, exist_ok=True)
     from uuid import uuid4
@@ -1131,26 +1249,43 @@ def save_screenshot(req: SaveScreenshotRequest):
 
 
 @app.post("/api/v1/imaging/report/generate", response_model=ClinicalReport, tags=["Imaging"])
-def generate_clinical_report(req: GenerateReportRequest, request: Request) -> ClinicalReport:
+def generate_clinical_report(
+    req: GenerateReportRequest,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> ClinicalReport:
     _REQUEST_COUNTS["report_generate"] += 1
-    return REPORT_GENERATOR.generate(req)
+    _require_imaging_paths(
+        req.image_paths + req.overlay_paths + req.screenshot_paths,
+        user,
+    )
+    return REPORT_GENERATOR.generate(req, user_id=user.user_id)
 
 
 @app.get("/api/v1/imaging/report/{patient_id}", tags=["Imaging"])
-def list_patient_reports(patient_id: str):
-    reports = REPORT_STORE.list_patient_reports(patient_id)
+def list_patient_reports(
+    patient_id: str,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+):
+    reports = REPORT_STORE.list_patient_reports(user.user_id, patient_id)
     return {"patient_id": patient_id, "count": len(reports), "reports": [r.model_dump() for r in reports]}
 
 
 @app.get("/api/v1/imaging/report/{patient_id}/{report_id}", tags=["Imaging"])
-def get_clinical_report(patient_id: str, report_id: str) -> ClinicalReport:
-    return REPORT_STORE.get_report(patient_id, report_id)
+def get_clinical_report(
+    patient_id: str,
+    report_id: str,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> ClinicalReport:
+    return REPORT_STORE.get_report(user.user_id, patient_id, report_id)
 
 
 @app.post("/api/v1/imaging/report/ask", response_model=ReportAskResponse, tags=["Imaging"])
-def ask_report(req: ReportAskRequest, request: Request) -> ReportAskResponse:
+def ask_report(
+    req: ReportAskRequest,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> ReportAskResponse:
     _REQUEST_COUNTS["report_ask"] += 1
-    return REPORT_QA.ask(req)
+    return REPORT_QA.ask(req, user_id=user.user_id)
 
 
 # ── Chat (ReAct + Graph RAG, role-based) ─────────────────────────────────

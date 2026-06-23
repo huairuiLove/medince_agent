@@ -1,5 +1,6 @@
 {
   "case_id": "demo_clarify_02",
+  "department": "gastroenterology",
   "description": "保守降级模式：用户无法补充信息",
   "request": {
     "patient_context": {
@@ -7,6 +8,7 @@
       "hadm_id": 20005,
       "gender": "F",
       "age": 31,
+      "department": "gastroenterology",
       "admission_type": "EMERGENCY",
       "chief_complaint": "严重腹痛",
       "symptoms_or_complaints": [

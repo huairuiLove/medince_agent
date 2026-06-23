@@ -190,6 +190,8 @@ export interface CaseTemplate {
   title: string
   description: string
   category: string
+  department: string
+  department_name_cn: string
   input_mode: 'text' | 'context'
   text?: string
   patient_context?: PatientContext
@@ -300,6 +302,7 @@ export interface ReportSupplement {
 
 export interface ClinicalReport {
   report_id: string
+  user_id?: string
   patient_id: string
   imaging_session_id: string
   modalities: string[]

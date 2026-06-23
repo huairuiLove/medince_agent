@@ -1,5 +1,6 @@
 {
   "case_id": "demo_review_02",
+  "department": "respiratory",
   "description": "过敏信息缺失：阿莫西林候选，过敏史未知",
   "request": {
     "patient_context": {
@@ -7,6 +8,7 @@
       "hadm_id": 20002,
       "gender": "F",
       "age": 34,
+      "department": "respiratory",
       "admission_type": "URGENT",
       "source_text": "患者女性34岁，因发热咳嗽3天入院，诊断为社区获得性肺炎。",
       "chief_complaint": "发热咳嗽",

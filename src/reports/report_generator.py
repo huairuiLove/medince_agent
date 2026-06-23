@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.llm.vision_client import get_deepseek_client, get_qwen_vlm_client
+from src.config import project_root
 from src.orchestrator import MultiAgentOrchestrator
 from src.reports.report_store import ReportStore
 from src.schemas import (
@@ -35,19 +36,23 @@ class ReportGenerator:
         self.orchestrator = MultiAgentOrchestrator()
         self.store = ReportStore()
 
-    def generate(self, req: GenerateReportRequest) -> ClinicalReport:
+    def generate(self, req: GenerateReportRequest, *, user_id: str) -> ClinicalReport:
         qwen_vlm = get_qwen_vlm_client()
         deepseek = get_deepseek_client()
-        image_paths = [str(p) for p in req.image_paths]
-        screenshot_paths = [str(p) for p in req.screenshot_paths]
-        overlay_paths = [str(p) for p in req.overlay_paths]
+        image_paths = [_project_rel_path(p) for p in req.image_paths]
+        screenshot_paths = [_project_rel_path(p) for p in req.screenshot_paths]
+        overlay_paths = [_project_rel_path(p) for p in req.overlay_paths]
 
         if overlay_paths:
             all_visual = dedupe_paths(
-                (image_paths if req.include_source_image else []) + screenshot_paths + overlay_paths
+                ([image_paths[0]] if req.include_source_image and image_paths else [])
+                + screenshot_paths
+                + overlay_paths
             )
         else:
             all_visual = dedupe_paths(image_paths + screenshot_paths)
+
+        resolved_visual = _resolve_existing_visual_paths(all_visual)
 
         session_id = ReportStore.make_imaging_session_id(
             req.primary_modality,
@@ -56,7 +61,7 @@ class ReportGenerator:
         )
 
         vlm_analysis = qwen_vlm.analyze_images(
-            images=all_visual[:12],
+            images=resolved_visual[:12],
             patient_summary=self._vlm_summary(req),
             modality=req.primary_modality,
             task="clinical_and_medication",
@@ -116,6 +121,7 @@ class ReportGenerator:
         )
 
         return self.store.create_or_replace_session_report(
+            user_id=user_id,
             patient_id=req.patient_id,
             imaging_session_id=session_id,
             modalities=req.modalities,
@@ -361,7 +367,36 @@ def dedupe_paths(paths: list[str]) -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
     for p in paths:
-        if p and p not in seen and Path(p).exists():
+        if p and p not in seen:
             seen.add(p)
             out.append(p)
     return out
+
+
+def _project_rel_path(path: str | Path) -> str:
+    root = project_root().resolve()
+    target = Path(path)
+    if not target.is_absolute():
+        target = (root / path).resolve()
+    else:
+        target = target.resolve()
+    try:
+        return target.relative_to(root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def _resolve_existing_visual_paths(paths: list[str]) -> list[str]:
+    root = project_root().resolve()
+    resolved: list[str] = []
+    for raw in paths:
+        if not raw:
+            continue
+        target = Path(raw)
+        if not target.is_absolute():
+            target = (root / raw).resolve()
+        else:
+            target = target.resolve()
+        if target.exists():
+            resolved.append(str(target))
+    return dedupe_paths(resolved)

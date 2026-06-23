@@ -18,8 +18,8 @@ class ReportQAService:
             self._llm = get_llm_client()
         return self._llm
 
-    def ask(self, req: ReportAskRequest) -> ReportAskResponse:
-        report = self.store.get_report(req.patient_id, req.report_id)
+    def ask(self, req: ReportAskRequest, *, user_id: str) -> ReportAskResponse:
+        report = self.store.get_report(user_id, req.patient_id, req.report_id)
         index = ParagraphRAGIndex(report)
         context = index.build_context(req.question, top_k=4)
         hits = index.search(req.question, top_k=3)
@@ -33,6 +33,7 @@ class ReportQAService:
         answer = self.llm.chat(system, user, temperature=0.1)
 
         updated = self.store.append_supplement(
+            user_id,
             req.patient_id,
             req.report_id,
             req.question,

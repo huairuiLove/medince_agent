@@ -1,5 +1,6 @@
 {
   "case_id": "demo_consult_01",
+  "department": "neurology",
   "description": "完整会诊：直接传patient_context，跳过extract",
   "request": {
     "patient_context": {
@@ -7,6 +8,7 @@
       "hadm_id": 20006,
       "gender": "F",
       "age": 35,
+      "department": "neurology",
       "admission_type": "EMERGENCY",
       "chief_complaint": "剧烈头痛伴视力模糊",
       "symptoms_or_complaints": [

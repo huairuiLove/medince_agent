@@ -1,5 +1,6 @@
 {
   "case_id": "demo_review_01",
+  "department": "cardiology",
   "description": "高风险相互作用：华法林 + 布洛芬出血风险",
   "request": {
     "patient_context": {
@@ -7,6 +8,7 @@
       "hadm_id": 20001,
       "gender": "M",
       "age": 67,
+      "department": "cardiology",
       "admission_type": "EMERGENCY",
       "source_text": "患者男性67岁，因胸痛和呼吸困难入院。既往冠心病、房颤病史，长期口服华法林。",
       "chief_complaint": "胸痛和呼吸困难",

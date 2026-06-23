@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { medsafeApi, volumeSliceUrl } from '@/api/medsafe'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { medsafeApi } from '@/api/medsafe'
 import type { VolumeAxis, VolumeMeta } from '@/types'
 
 const props = defineProps<{
@@ -18,29 +18,47 @@ const emit = defineEmits<{
 const meta = ref<VolumeMeta | null>(null)
 const loading = ref(false)
 const error = ref('')
+const sliceSrc = ref('')
 const localAxis = ref<VolumeAxis>(props.axis ?? 'axial')
 const localIndex = ref(props.sliceIndex ?? 0)
+let sliceObjectUrl: string | null = null
 
 const maxIndex = computed(() => {
   if (!meta.value) return 0
   return Math.max(0, meta.value.slice_counts[localAxis.value] - 1)
 })
 
-const sliceUrl = computed(() => {
-  if (!props.volumePath) return ''
-  return volumeSliceUrl({
-    volume_path: props.volumePath,
-    axis: localAxis.value,
-    index: localIndex.value,
-    overlay_path: props.overlayPath ?? undefined,
-  })
-})
+const sliceParams = computed(() => ({
+  volume_path: props.volumePath,
+  axis: localAxis.value,
+  index: localIndex.value,
+  overlay_path: props.overlayPath ?? undefined,
+}))
 
 const axes: { id: VolumeAxis; label: string }[] = [
   { id: 'axial', label: '轴位 Axial' },
   { id: 'coronal', label: '冠状 Coronal' },
   { id: 'sagittal', label: '矢状 Sagittal' },
 ]
+
+function revokeSliceUrl() {
+  if (sliceObjectUrl) {
+    URL.revokeObjectURL(sliceObjectUrl)
+    sliceObjectUrl = null
+  }
+}
+
+async function loadSliceImage() {
+  revokeSliceUrl()
+  sliceSrc.value = ''
+  if (!props.volumePath || !meta.value) return
+  try {
+    sliceObjectUrl = await medsafeApi.volumeSliceObjectUrl(sliceParams.value)
+    sliceSrc.value = sliceObjectUrl
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
+}
 
 watch(() => props.axis, v => { if (v) localAxis.value = v })
 watch(() => props.sliceIndex, v => { if (v !== undefined) localIndex.value = v })
@@ -62,6 +80,7 @@ async function loadMeta() {
     if (localIndex.value > maxIndex.value) {
       localIndex.value = Math.floor(maxIndex.value / 2)
     }
+    await loadSliceImage()
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -69,8 +88,11 @@ async function loadMeta() {
   }
 }
 
-onMounted(loadMeta)
+watch(sliceParams, loadSliceImage, { deep: true })
 watch(() => props.volumePath, loadMeta)
+
+onMounted(loadMeta)
+onBeforeUnmount(revokeSliceUrl)
 </script>
 
 <template>
@@ -106,9 +128,9 @@ watch(() => props.volumePath, loadMeta)
 
     <div v-else class="mpr-canvas">
       <img
-        v-if="sliceUrl"
-        :key="sliceUrl"
-        :src="sliceUrl"
+        v-if="sliceSrc"
+        :key="sliceSrc"
+        :src="sliceSrc"
         alt="MPR slice"
         class="mpr-img"
       />

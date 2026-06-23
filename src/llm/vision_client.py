@@ -11,8 +11,102 @@ from typing import Any
 import httpx
 
 from src.config import get_config
-from src.llm.errors import LLMNotConfiguredError
+from src.llm.errors import LLMNotConfiguredError, VisionLLMError
 from src.utils import extract_json_payload
+
+
+BAILIAN_CONSOLE_URL = "https://bailian.console.aliyun.com/cn-beijing"
+BAILIAN_VL_DOC_URL = "https://help.aliyun.com/zh/model-studio/qwen-vl-compatible-with-openai"
+
+_REGION_ALIASES: dict[str, str] = {
+    "cn-beijing": "cn-beijing",
+    "beijing": "cn-beijing",
+    "华北2": "cn-beijing",
+    "ap-southeast-1": "ap-southeast-1",
+    "singapore": "ap-southeast-1",
+    "新加坡": "ap-southeast-1",
+    "ap-northeast-1": "ap-northeast-1",
+    "tokyo": "ap-northeast-1",
+    "东京": "ap-northeast-1",
+    "eu-central-1": "eu-central-1",
+    "frankfurt": "eu-central-1",
+    "us": "us",
+    "virginia": "us",
+}
+
+
+def resolve_bailian_vision_base_url(cfg: dict[str, Any] | None = None) -> str:
+    """Resolve OpenAI-compatible base URL for 百炼 (Model Studio) Qwen-VL."""
+    cfg = cfg or get_config().get("vision_llm", {})
+    explicit = str(
+        cfg.get("base_url") or os.getenv("MEDSAFE_VISION_LLM__BASE_URL", "") or ""
+    ).strip()
+    workspace_id = str(
+        cfg.get("workspace_id") or os.getenv("MEDSAFE_VISION_LLM__WORKSPACE_ID", "") or ""
+    ).strip()
+    region = str(
+        cfg.get("region") or os.getenv("MEDSAFE_VISION_LLM__REGION", "cn-beijing") or "cn-beijing"
+    ).strip().lower()
+    region_key = _REGION_ALIASES.get(region, region)
+
+    if explicit and "{WorkspaceId}" not in explicit and "{workspace_id}" not in explicit:
+        return explicit.rstrip("/")
+
+    if workspace_id:
+        if region_key == "us":
+            return "https://dashscope-us.aliyuncs.com/compatible-mode/v1"
+        return f"https://{workspace_id}.{region_key}.maas.aliyuncs.com/compatible-mode/v1"
+
+    if explicit:
+        return explicit.replace("{WorkspaceId}", workspace_id).replace("{workspace_id}", workspace_id).rstrip("/")
+
+    return "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+
+def get_vision_llm_settings() -> dict[str, Any]:
+    cfg = get_config().get("vision_llm", {})
+    api_key = str(cfg.get("api_key") or os.getenv("MEDSAFE_VISION_LLM__API_KEY", "") or "")
+    model = str(cfg.get("model") or os.getenv("MEDSAFE_VISION_LLM__MODEL", "qwen3-vl-plus") or "qwen3-vl-plus")
+    workspace_id = str(
+        cfg.get("workspace_id") or os.getenv("MEDSAFE_VISION_LLM__WORKSPACE_ID", "") or ""
+    ).strip()
+    region = str(
+        cfg.get("region") or os.getenv("MEDSAFE_VISION_LLM__REGION", "cn-beijing") or "cn-beijing"
+    )
+    base_url = resolve_bailian_vision_base_url(cfg)
+    return {
+        "api_key": api_key,
+        "model": model,
+        "base_url": base_url,
+        "workspace_id": workspace_id,
+        "region": region,
+        "timeout": float(cfg.get("timeout", 120)),
+    }
+
+
+def _validate_bailian_vision_config(api_key: str, base_url: str, workspace_id: str) -> None:
+    uses_legacy = "dashscope.aliyuncs.com" in base_url and "maas.aliyuncs.com" not in base_url
+    is_bailian_key = api_key.startswith("sk-ws-")
+    if is_bailian_key and (uses_legacy or not workspace_id):
+        raise LLMNotConfiguredError(
+            "Qwen VLM",
+            hint=(
+                "检测到百炼业务空间 Key（sk-ws-…），需配置业务空间 ID 与百炼域名。"
+                f"在 {BAILIAN_CONSOLE_URL} 打开「业务空间」复制空间 ID，"
+                "设置 MEDSAFE_VISION_LLM__WORKSPACE_ID，并将 base_url 留空或设为 "
+                "https://{WorkspaceId}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1。"
+                f"文档：{BAILIAN_VL_DOC_URL}"
+            ),
+        )
+    if uses_legacy and not workspace_id:
+        raise LLMNotConfiguredError(
+            "Qwen VLM",
+            hint=(
+                "通义千问已迁移至阿里云百炼，旧 dashscope.aliyuncs.com 域名可能返回 403。"
+                f"请在 {BAILIAN_CONSOLE_URL} 获取 API Key 与业务空间 ID，"
+                "设置 MEDSAFE_VISION_LLM__WORKSPACE_ID 与 region=cn-beijing（base_url 可留空自动拼接）。"
+            ),
+        )
 
 
 class VisionLLMClient(ABC):
@@ -27,6 +121,49 @@ class VisionLLMClient(ABC):
         task: str = "clinical_and_medication",
     ) -> dict[str, Any]:
         raise NotImplementedError
+
+
+def _upstream_error_detail(response: httpx.Response | None) -> str:
+    if response is None:
+        return ""
+    try:
+        data = response.json()
+    except Exception:
+        text = (response.text or "").strip()
+        return text[:500] if text else f"HTTP {response.status_code}"
+    if isinstance(data, dict):
+        err = data.get("error")
+        if isinstance(err, dict):
+            msg = err.get("message") or err.get("code")
+            if msg:
+                return str(msg)
+        for key in ("message", "detail", "msg"):
+            if data.get(key):
+                return str(data[key])
+    return f"HTTP {response.status_code}"
+
+
+def _raise_vision_upstream_error(exc: Exception, *, model: str) -> None:
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code if exc.response is not None else None
+        detail = _upstream_error_detail(exc.response)
+        if status in {401, 403}:
+            hint = (
+                "请确认已在百炼控制台开通视觉模型，且 base_url / workspace_id / model 与 Key 地域一致。"
+                f"控制台：{BAILIAN_CONSOLE_URL} ；文档：{BAILIAN_VL_DOC_URL}"
+            )
+        elif status == 429:
+            hint = "百炼请求频率或配额已达上限，请稍后重试或升级套餐。"
+        else:
+            hint = "请检查百炼服务状态、模型名称与网络连接。"
+        raise VisionLLMError("Qwen VLM", detail, status_code=status, hint=hint) from exc
+    if isinstance(exc, httpx.RequestError):
+        raise VisionLLMError(
+            "Qwen VLM",
+            str(exc) or "网络请求失败",
+            hint="请确认可访问百炼 maas.aliyuncs.com 域名，或增大 vision_llm.timeout。",
+        ) from exc
+    raise VisionLLMError("Qwen VLM", str(exc)) from exc
 
 
 class OpenAIVisionClient(VisionLLMClient):
@@ -74,6 +211,13 @@ class OpenAIVisionClient(VisionLLMClient):
             if Path(img).exists():
                 content.append(self._encode_image(img))
 
+        if len(content) <= 1:
+            raise VisionLLMError(
+                "Qwen VLM",
+                "未找到可读取的影像文件",
+                hint="请确认 overlay 路径存在且为 PNG/JPEG。",
+            )
+
         payload = {
             "model": self.model,
             "messages": [
@@ -83,10 +227,13 @@ class OpenAIVisionClient(VisionLLMClient):
             "temperature": 0.1,
         }
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
-        with httpx.Client(timeout=self.timeout) as client:
-            resp = client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
-            resp.raise_for_status()
-            raw = resp.json()["choices"][0]["message"]["content"]
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                resp = client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
+                resp.raise_for_status()
+                raw = resp.json()["choices"][0]["message"]["content"]
+        except (httpx.HTTPStatusError, httpx.RequestError) as exc:
+            _raise_vision_upstream_error(exc, model=self.model)
         parsed = extract_json_payload(raw)
         return parsed if isinstance(parsed, dict) else {"clinical_analysis": raw, "reasoning": raw}
 
@@ -142,7 +289,8 @@ class DeepSeekSynthesisClient:
 
 def get_qwen_vlm_client() -> VisionLLMClient:
     cfg = get_config().get("vision_llm", {})
-    api_key = cfg.get("api_key") or os.getenv("MEDSAFE_VISION_LLM__API_KEY", "")
+    settings = get_vision_llm_settings()
+    api_key = settings["api_key"]
     provider = str(cfg.get("provider", "")).lower()
     if provider == "mock":
         raise LLMNotConfiguredError(
@@ -152,13 +300,14 @@ def get_qwen_vlm_client() -> VisionLLMClient:
     if not api_key:
         raise LLMNotConfiguredError(
             "Qwen VLM",
-            hint="设置 MEDSAFE_VISION_LLM__API_KEY 或 config.yaml vision_llm.api_key。",
+            hint=f"设置 MEDSAFE_VISION_LLM__API_KEY（百炼控制台 {BAILIAN_CONSOLE_URL}）。",
         )
+    _validate_bailian_vision_config(api_key, settings["base_url"], settings["workspace_id"])
     return OpenAIVisionClient(
         api_key=api_key,
-        base_url=cfg.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
-        model=cfg.get("model", "qwen-vl-max-latest"),
-        timeout=float(cfg.get("timeout", 120)),
+        base_url=settings["base_url"],
+        model=settings["model"],
+        timeout=settings["timeout"],
     )
 
 

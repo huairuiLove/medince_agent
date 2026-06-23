@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { medsafeApi } from '@/api/medsafe'
+import { useAuthStore } from '@/stores/auth'
 import type { PatientContext, DrugItem, CaseTemplate, ReviewOutput } from '@/types'
 import { drugsWithoutIndication, drugDetailParts, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
 import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
@@ -8,9 +9,11 @@ import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
 const loading = ref(false)
 const error = ref('')
 const review = ref<ReviewOutput | null>(null)
+const auth = useAuthStore()
 const templates = ref<CaseTemplate[]>([])
 const templatesError = ref('')
 const selectedTemplateId = ref('')
+const myDeptId = computed(() => auth.profile?.dept_id ?? '')
 
 const emptyPatient = (): PatientContext => ({
   gender: 'unknown',
@@ -27,8 +30,9 @@ const newDrugName = ref('')
 const newDiagnosis = ref('')
 
 onMounted(async () => {
+  if (!myDeptId.value) return
   try {
-    const res = await medsafeApi.listCaseTemplates()
+    const res = await medsafeApi.listCaseTemplates(myDeptId.value)
     templates.value = res.templates.filter((t) => t.input_mode === 'context' && t.patient_context)
   } catch (e) {
     templatesError.value = e instanceof Error ? e.message : String(e)
@@ -100,12 +104,42 @@ async function runReview() {
     <p class="sub">纯规则引擎，无 LLM 多智能体 — 确定性安全底线</p>
 
     <div class="card form-panel">
-      <div v-if="templates.length" class="template-row">
-        <label class="label">载入病例模板（可选）</label>
-        <select v-model="selectedTemplateId" class="select" @change="onTemplateSelect">
+      <div v-if="myDeptId || templates.length" class="template-row">
+        <label class="label">
+          载入病例模板（{{ auth.department?.name_cn ?? '本科室' }}）
+        </label>
+        <select
+          v-if="templates.length"
+          v-model="selectedTemplateId"
+          class="select"
+          @change="onTemplateSelect"
+        >
           <option value="">— 手动录入 —</option>
           <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.title }}</option>
         </select>
+        <table v-if="templates.length" class="template-table">
+          <thead>
+            <tr>
+              <th>科室</th>
+              <th>模板</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="t in templates"
+              :key="t.id"
+              :class="{ active: selectedTemplateId === t.id }"
+              @click="selectedTemplateId = t.id; loadTemplate(t.id)"
+            >
+              <td>{{ t.department_name_cn || auth.department?.name_cn || t.department }}</td>
+              <td>{{ t.title }}</td>
+              <td>{{ t.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else-if="!myDeptId" class="empty-hint">登录后可载入本科室病例模板</p>
+        <p v-else-if="myDeptId" class="empty-hint">本科室暂无病例模板</p>
         <p v-if="templatesError" class="err">{{ templatesError }}</p>
       </div>
 
@@ -164,6 +198,12 @@ h1 { margin-bottom: 0.25rem; }
 .sub { color: var(--text-muted); margin-bottom: 1.5rem; }
 .form-panel { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; }
 .template-row .select { max-width: 100%; }
+.template-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.88rem; }
+.template-table th, .template-table td { border: 1px solid var(--border); padding: 0.4rem 0.55rem; text-align: left; }
+.template-table th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; }
+.template-table tbody tr { cursor: pointer; }
+.template-table tbody tr:hover { background: var(--surface-2); }
+.template-table tbody tr.active { background: var(--primary-light); }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .form-grid .full { grid-column: 1 / -1; }
 .drug-list { list-style: none; margin: 0.35rem 0; }

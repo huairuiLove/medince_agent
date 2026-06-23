@@ -45,8 +45,11 @@ paths:
 vision_llm:
   provider: qwen
   api_key: ''
-  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-  model: qwen-vl-max-latest
+  # 百炼 Model Studio：https://bailian.console.aliyun.com/cn-beijing
+  region: cn-beijing
+  workspace_id: ''
+  base_url: ''
+  model: qwen3-vl-plus
   timeout: 120
 deepseek_llm:
   api_key: ''

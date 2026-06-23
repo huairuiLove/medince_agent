@@ -1,16 +1,18 @@
 """Load clinical case templates from datasets/case_templates/ (single source of truth)."""
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from src.config import load_config, resolve_path
+from src.config import datasets_path, load_config, resolve_path
 from src.schemas import CandidateDrug, PatientContext
 from src.utils import load_json
 
 _SKIP_FILES = frozenset({"complete_case_log.json", "index.json"})
+_CATALOG_PATH = datasets_path("departments/catalog.json")
 
 
 class CaseTemplate(BaseModel):
@@ -18,6 +20,8 @@ class CaseTemplate(BaseModel):
     title: str
     description: str = ""
     category: str = ""
+    department: str = ""
+    department_name_cn: str = ""
     input_mode: Literal["text", "context"] = "context"
     text: str = ""
     patient_context: PatientContext | None = None
@@ -35,6 +39,56 @@ def templates_dir() -> Path:
     return resolve_path(rel)
 
 
+@lru_cache(maxsize=1)
+def _catalog_dept_ids() -> frozenset[str]:
+    if not _CATALOG_PATH.exists():
+        return frozenset()
+    data = load_json(_CATALOG_PATH)
+    return frozenset(
+        str(item.get("dept_id") or "").strip()
+        for item in data.get("departments", [])
+        if item.get("dept_id")
+    )
+
+
+@lru_cache(maxsize=1)
+def _catalog_dept_names() -> dict[str, str]:
+    if not _CATALOG_PATH.exists():
+        return {}
+    data = load_json(_CATALOG_PATH)
+    return {
+        str(item.get("dept_id") or "").strip(): str(item.get("name_cn") or item.get("dept_id") or "").strip()
+        for item in data.get("departments", [])
+        if item.get("dept_id")
+    }
+
+
+def _resolve_department(item: dict, request: dict) -> str:
+    catalog_ids = _catalog_dept_ids()
+    for key in ("department", "dept_id"):
+        val = str(item.get(key) or "").strip()
+        if val in catalog_ids:
+            return val
+
+    category = str(item.get("category") or "").strip()
+    if category in catalog_ids:
+        return category
+
+    patient_raw = request.get("patient_context")
+    if isinstance(patient_raw, dict):
+        dept = str(patient_raw.get("department") or "").strip()
+        if dept in catalog_ids:
+            return dept
+    return ""
+
+
+def _enrich_department(tpl: CaseTemplate) -> CaseTemplate:
+    if not tpl.department:
+        return tpl
+    names = _catalog_dept_names()
+    return tpl.model_copy(update={"department_name_cn": names.get(tpl.department, tpl.department)})
+
+
 def _from_request_block(
     template_id: str,
     title: str,
@@ -42,6 +96,7 @@ def _from_request_block(
     *,
     description: str = "",
     category: str = "",
+    department: str = "",
 ) -> CaseTemplate | None:
     text = str(request.get("text") or "").strip()
     patient_raw = request.get("patient_context")
@@ -59,16 +114,19 @@ def _from_request_block(
         patient_context = PatientContext.model_validate(patient_raw)
         input_mode = "context"
 
-    return CaseTemplate(
+    resolved_department = department or _resolve_department({"category": category}, request)
+    tpl = CaseTemplate(
         id=template_id,
         title=title,
         description=description,
         category=category,
+        department=resolved_department,
         input_mode=input_mode,
         text=text,
         patient_context=patient_context,
         candidate_drugs=candidate_drugs,
     )
+    return _enrich_department(tpl)
 
 
 def _parse_file(path: Path) -> list[CaseTemplate]:
@@ -82,14 +140,17 @@ def _parse_file(path: Path) -> list[CaseTemplate]:
             if not isinstance(item, dict):
                 continue
             req = item.get("request") or item
+            if not isinstance(req, dict):
+                continue
             template_id = str(item.get("id") or item.get("case_id") or path.stem)
             title = str(item.get("title") or template_id)
             tpl = _from_request_block(
                 template_id,
                 title,
                 req,
-                description=str(data.get("description") or item.get("description") or ""),
+                description=str(item.get("description") or data.get("description") or ""),
                 category=str(item.get("category") or ""),
+                department=_resolve_department(item, req),
             )
             if tpl:
                 out.append(tpl)
@@ -107,15 +168,17 @@ def _parse_file(path: Path) -> list[CaseTemplate]:
         request,
         description=str(data.get("description") or ""),
         category=str(data.get("category") or ""),
+        department=_resolve_department(data, request),
     )
     return [tpl] if tpl else []
 
 
-def list_case_templates() -> list[CaseTemplate]:
+def list_case_templates(department: str | None = None) -> list[CaseTemplate]:
     root = templates_dir()
     if not root.is_dir():
         return []
 
+    dept_filter = (department or "").strip()
     templates: list[CaseTemplate] = []
     seen: set[str] = set()
     for path in sorted(root.glob("*.json")):
@@ -124,9 +187,17 @@ def list_case_templates() -> list[CaseTemplate]:
         for tpl in _parse_file(path):
             if tpl.id in seen:
                 continue
+            if dept_filter and tpl.department != dept_filter:
+                continue
             seen.add(tpl.id)
             templates.append(tpl)
     return templates
+
+
+def departments_missing_templates() -> list[str]:
+    catalog_ids = sorted(_catalog_dept_ids())
+    covered = {tpl.department for tpl in list_case_templates() if tpl.department}
+    return [dept_id for dept_id in catalog_ids if dept_id not in covered]
 
 
 def get_case_template(template_id: str) -> CaseTemplate | None:

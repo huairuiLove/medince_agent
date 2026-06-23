@@ -1,5 +1,6 @@
 {
   "case_id": "demo_clarify_01",
+  "department": "ent",
   "description": "追问模式：过敏和妊娠状态缺失",
   "request": {
     "patient_context": {
@@ -7,6 +8,7 @@
       "hadm_id": 20004,
       "gender": "F",
       "age": 26,
+      "department": "ent",
       "admission_type": "URGENT",
       "chief_complaint": "发热咽痛",
       "symptoms_or_complaints": [

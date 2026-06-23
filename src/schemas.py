@@ -363,6 +363,7 @@ class ReportSupplement(BaseModel):
 
 class ClinicalReport(BaseModel):
     report_id: str
+    user_id: str = ""
     patient_id: str
     imaging_session_id: str
     modalities: List[str] = Field(default_factory=list)

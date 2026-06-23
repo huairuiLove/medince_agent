@@ -92,6 +92,16 @@ export function volumeSliceUrl(params: {
   return `${BASE}/api/v1/imaging/volume/slice?${q}`
 }
 
+async function fetchAuthedBlob(url: string): Promise<Blob> {
+  const res = await fetch(url, { headers: authHeaders() })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    const detail = typeof err.detail === 'string' ? err.detail : res.statusText
+    throw new Error(detail || `HTTP ${res.status}`)
+  }
+  return res.blob()
+}
+
 export const medsafeApi = {
   health: () => request<HealthResponse>('/health'),
 
@@ -256,6 +266,21 @@ export const medsafeApi = {
   getVolumeMeta: (volume_path: string) =>
     request<VolumeMeta>(`/api/v1/imaging/volume/meta?volume_path=${encodeURIComponent(volume_path)}`),
 
+  imagingFileObjectUrl: async (path: string) => {
+    const blob = await fetchAuthedBlob(imagingFileUrl(path))
+    return URL.createObjectURL(blob)
+  },
+
+  volumeSliceObjectUrl: async (params: {
+    volume_path: string
+    axis: string
+    index: number
+    overlay_path?: string
+  }) => {
+    const blob = await fetchAuthedBlob(volumeSliceUrl(params))
+    return URL.createObjectURL(blob)
+  },
+
   segment: (body: {
     image_path: string
     model_ids: ModelId[]
@@ -362,8 +387,10 @@ export const medsafeApi = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
-  listCaseTemplates: () =>
-    request<{ templates: CaseTemplate[] }>('/api/v1/case-templates'),
+  listCaseTemplates: (department?: string) => {
+    const q = department ? `?department=${encodeURIComponent(department)}` : ''
+    return request<{ templates: CaseTemplate[] }>(`/api/v1/case-templates${q}`)
+  },
 
   getCaseTemplate: (id: string) => request<CaseTemplate>(`/api/v1/case-templates/${id}`),
 

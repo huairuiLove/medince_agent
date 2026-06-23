@@ -6,8 +6,18 @@
     "population_rules": 3,
     "allergy_rules": 2,
     "covered_drugs": [
-      "warfarin", "aspirin", "ibuprofen", "heparin", "clarithromycin", "simvastatin",
-      "acetaminophen", "lisinopril", "losartan", "amoxicillin", "ampicillin", "penicillin"
+      "warfarin",
+      "aspirin",
+      "ibuprofen",
+      "heparin",
+      "clarithromycin",
+      "simvastatin",
+      "acetaminophen",
+      "lisinopril",
+      "losartan",
+      "amoxicillin",
+      "ampicillin",
+      "penicillin"
     ]
   },
   "cases": [
@@ -18,21 +28,37 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["ddi_warfarin_ibuprofen_bleeding"]
+        "hit_rules": [
+          "ddi_warfarin_ibuprofen_bleeding"
+        ]
       },
       "request": {
         "patient_context": {
           "gender": "M",
           "age": 67,
           "current_medications": [
-            { "name": "warfarin", "dose": "5mg" },
-            { "name": "aspirin", "dose": "81mg" }
+            {
+              "name": "warfarin",
+              "dose": "5mg"
+            },
+            {
+              "name": "aspirin",
+              "dose": "81mg"
+            }
           ],
           "allergies": [],
-          "pregnancy_status": "not_applicable"
+          "pregnancy_status": "not_applicable",
+          "department": "cardiology"
         },
-        "candidate_drugs": [{ "name": "ibuprofen", "dose": "400mg", "indication": "止痛" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "ibuprofen",
+            "dose": "400mg",
+            "indication": "止痛"
+          }
+        ]
+      },
+      "department": "cardiology"
     },
     {
       "id": "R02_ddi_warfarin_aspirin",
@@ -41,18 +67,32 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["ddi_warfarin_aspirin_bleeding"]
+        "hit_rules": [
+          "ddi_warfarin_aspirin_bleeding"
+        ]
       },
       "request": {
         "patient_context": {
           "gender": "M",
           "age": 72,
-          "current_medications": [{ "name": "warfarin", "dose": "3mg" }],
+          "current_medications": [
+            {
+              "name": "warfarin",
+              "dose": "3mg"
+            }
+          ],
           "allergies": [],
-          "pregnancy_status": "not_applicable"
+          "pregnancy_status": "not_applicable",
+          "department": "cardiology"
         },
-        "candidate_drugs": [{ "name": "aspirin", "dose": "100mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "aspirin",
+            "dose": "100mg"
+          }
+        ]
+      },
+      "department": "cardiology"
     },
     {
       "id": "R03_ddi_clarithromycin_simvastatin",
@@ -61,18 +101,32 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["ddi_clarithromycin_simvastatin_muscle"]
+        "hit_rules": [
+          "ddi_clarithromycin_simvastatin_muscle"
+        ]
       },
       "request": {
         "patient_context": {
           "gender": "M",
           "age": 58,
-          "current_medications": [{ "name": "simvastatin", "dose": "20mg" }],
+          "current_medications": [
+            {
+              "name": "simvastatin",
+              "dose": "20mg"
+            }
+          ],
           "allergies": [],
-          "pregnancy_status": "not_applicable"
+          "pregnancy_status": "not_applicable",
+          "department": "infectious_disease"
         },
-        "candidate_drugs": [{ "name": "clarithromycin", "dose": "500mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "clarithromycin",
+            "dose": "500mg"
+          }
+        ]
+      },
+      "department": "infectious_disease"
     },
     {
       "id": "R04_allergy_penicillin_amoxicillin",
@@ -81,18 +135,30 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["alg_penicillin_amoxicillin"]
+        "hit_rules": [
+          "alg_penicillin_amoxicillin"
+        ]
       },
       "request": {
         "patient_context": {
           "gender": "F",
           "age": 40,
           "current_medications": [],
-          "allergies": ["penicillin", "青霉素"],
-          "pregnancy_status": "not_applicable"
+          "allergies": [
+            "penicillin",
+            "青霉素"
+          ],
+          "pregnancy_status": "not_applicable",
+          "department": "infectious_disease"
         },
-        "candidate_drugs": [{ "name": "amoxicillin", "dose": "500mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "amoxicillin",
+            "dose": "500mg"
+          }
+        ]
+      },
+      "department": "infectious_disease"
     },
     {
       "id": "R05_allergy_nsaid_ibuprofen",
@@ -101,18 +167,30 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["alg_aspirin_ibuprofen"]
+        "hit_rules": [
+          "alg_aspirin_ibuprofen"
+        ]
       },
       "request": {
         "patient_context": {
           "gender": "M",
           "age": 45,
           "current_medications": [],
-          "allergies": ["aspirin", "布洛芬"],
-          "pregnancy_status": "not_applicable"
+          "allergies": [
+            "aspirin",
+            "布洛芬"
+          ],
+          "pregnancy_status": "not_applicable",
+          "department": "orthopedic"
         },
-        "candidate_drugs": [{ "name": "ibuprofen", "dose": "200mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "ibuprofen",
+            "dose": "200mg"
+          }
+        ]
+      },
+      "department": "orthopedic"
     },
     {
       "id": "R06_pregnancy_lisinopril",
@@ -121,7 +199,9 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["pop_pregnancy_lisinopril"]
+        "hit_rules": [
+          "pop_pregnancy_lisinopril"
+        ]
       },
       "request": {
         "patient_context": {
@@ -129,10 +209,17 @@
           "age": 30,
           "current_medications": [],
           "allergies": [],
-          "pregnancy_status": "pregnant"
+          "pregnancy_status": "pregnant",
+          "department": "obstetrics_gynecology"
         },
-        "candidate_drugs": [{ "name": "lisinopril", "dose": "10mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "lisinopril",
+            "dose": "10mg"
+          }
+        ]
+      },
+      "department": "obstetrics_gynecology"
     },
     {
       "id": "R07_child_aspirin",
@@ -141,7 +228,9 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["pop_child_aspirin"]
+        "hit_rules": [
+          "pop_child_aspirin"
+        ]
       },
       "request": {
         "patient_context": {
@@ -149,10 +238,17 @@
           "age": 8,
           "current_medications": [],
           "allergies": [],
-          "pregnancy_status": "not_applicable"
+          "pregnancy_status": "not_applicable",
+          "department": "pediatrics"
         },
-        "candidate_drugs": [{ "name": "aspirin", "dose": "100mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "aspirin",
+            "dose": "100mg"
+          }
+        ]
+      },
+      "department": "pediatrics"
     },
     {
       "id": "R08_dup_acetaminophen",
@@ -161,18 +257,32 @@
       "expected": {
         "risk_level": "medium",
         "block_decision": true,
-        "hit_rules": ["dup_acetaminophen"]
+        "hit_rules": [
+          "dup_acetaminophen"
+        ]
       },
       "request": {
         "patient_context": {
           "gender": "F",
           "age": 55,
-          "current_medications": [{ "name": "tylenol", "dose": "500mg" }],
+          "current_medications": [
+            {
+              "name": "tylenol",
+              "dose": "500mg"
+            }
+          ],
           "allergies": [],
-          "pregnancy_status": "not_applicable"
+          "pregnancy_status": "not_applicable",
+          "department": "pharmacy"
         },
-        "candidate_drugs": [{ "name": "对乙酰氨基酚", "dose": "500mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "对乙酰氨基酚",
+            "dose": "500mg"
+          }
+        ]
+      },
+      "department": "pharmacy"
     },
     {
       "id": "R09_clarify_allergy_missing",
@@ -182,7 +292,9 @@
         "risk_level": "unknown",
         "block_decision": true,
         "need_clarification": true,
-        "clarification_targets_include": ["allergies"],
+        "clarification_targets_include": [
+          "allergies"
+        ],
         "hit_rules": []
       },
       "request": {
@@ -192,10 +304,19 @@
           "current_medications": [],
           "allergies": [],
           "pregnancy_status": "unknown",
-          "missing_fields": ["allergies"]
+          "missing_fields": [
+            "allergies"
+          ],
+          "department": "general_internal"
         },
-        "candidate_drugs": [{ "name": "amoxicillin", "dose": "500mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "amoxicillin",
+            "dose": "500mg"
+          }
+        ]
+      },
+      "department": "general_internal"
     },
     {
       "id": "R10_clarify_pregnancy_unknown",
@@ -205,7 +326,9 @@
         "risk_level": "unknown",
         "block_decision": true,
         "need_clarification": true,
-        "clarification_targets_include": ["pregnancy_status"],
+        "clarification_targets_include": [
+          "pregnancy_status"
+        ],
         "hit_rules": []
       },
       "request": {
@@ -214,10 +337,17 @@
           "age": 28,
           "current_medications": [],
           "allergies": [],
-          "pregnancy_status": "unknown"
+          "pregnancy_status": "unknown",
+          "department": "obstetrics_gynecology"
         },
-        "candidate_drugs": [{ "name": "lisinopril", "dose": "10mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "lisinopril",
+            "dose": "10mg"
+          }
+        ]
+      },
+      "department": "obstetrics_gynecology"
     },
     {
       "id": "R11_chinese_alias",
@@ -226,18 +356,32 @@
       "expected": {
         "risk_level": "high",
         "block_decision": true,
-        "hit_rules": ["ddi_warfarin_ibuprofen_bleeding"]
+        "hit_rules": [
+          "ddi_warfarin_ibuprofen_bleeding"
+        ]
       },
       "request": {
         "patient_context": {
           "gender": "M",
           "age": 70,
-          "current_medications": [{ "name": "华法林", "dose": "2.5mg" }],
+          "current_medications": [
+            {
+              "name": "华法林",
+              "dose": "2.5mg"
+            }
+          ],
           "allergies": [],
-          "pregnancy_status": "not_applicable"
+          "pregnancy_status": "not_applicable",
+          "department": "pharmacy"
         },
-        "candidate_drugs": [{ "name": "布洛芬", "dose": "0.3g" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "布洛芬",
+            "dose": "0.3g"
+          }
+        ]
+      },
+      "department": "pharmacy"
     },
     {
       "id": "R12_no_rule_coverage",
@@ -246,19 +390,33 @@
       "expected": {
         "risk_level": "medium",
         "block_decision": true,
-        "hit_rules": ["ddi_model_clopidogrel_metoprolol"],
+        "hit_rules": [
+          "ddi_model_clopidogrel_metoprolol"
+        ],
         "note": "规则库未覆盖时由 DDI BERT 小模型补充；无模型则应为 none"
       },
       "request": {
         "patient_context": {
           "gender": "M",
           "age": 60,
-          "current_medications": [{ "name": "metoprolol", "dose": "25mg" }],
+          "current_medications": [
+            {
+              "name": "metoprolol",
+              "dose": "25mg"
+            }
+          ],
           "allergies": [],
-          "pregnancy_status": "not_applicable"
+          "pregnancy_status": "not_applicable",
+          "department": "general_internal"
         },
-        "candidate_drugs": [{ "name": "clopidogrel", "dose": "75mg" }]
-      }
+        "candidate_drugs": [
+          {
+            "name": "clopidogrel",
+            "dose": "75mg"
+          }
+        ]
+      },
+      "department": "general_internal"
     }
   ]
 }

@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { medsafeApi } from '@/api/medsafe'
+import { useAuthStore } from '@/stores/auth'
 import { useMultiConsult } from '@/composables/useMultiConsult'
 import type { PatientContext, DrugItem, CaseTemplate } from '@/types'
 import { drugsWithoutIndication, drugDetailParts, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
@@ -12,6 +13,7 @@ import DebatePanel from '@/components/consult/DebatePanel.vue'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 
 const { loading, error, result, run, reset } = useMultiConsult()
+const auth = useAuthStore()
 
 const clarifyLoading = ref(false)
 const clarifyError = ref('')
@@ -35,13 +37,15 @@ const drugs = ref<DrugItem[]>([])
 const templates = ref<CaseTemplate[]>([])
 const templatesError = ref('')
 const selectedTemplateId = ref('')
+const myDeptId = computed(() => auth.profile?.dept_id ?? '')
 
 const newDrugName = ref('')
 const newDiagnosis = ref('')
 
 onMounted(async () => {
+  if (!myDeptId.value) return
   try {
-    const res = await medsafeApi.listCaseTemplates()
+    const res = await medsafeApi.listCaseTemplates(myDeptId.value)
     templates.value = res.templates
   } catch (e) {
     templatesError.value = e instanceof Error ? e.message : String(e)
@@ -193,15 +197,42 @@ const arb = computed(() => result.value?.arbitration)
 
     <div class="grid-2">
       <section class="card input-panel">
-        <div v-if="templates.length" class="template-row">
-          <label class="label">载入病例模板（可选）</label>
-          <div class="template-controls">
+        <div v-if="myDeptId || templates.length" class="template-row">
+          <label class="label">
+            载入病例模板（{{ auth.department?.name_cn ?? '本科室' }}）
+          </label>
+          <div v-if="templates.length" class="template-controls">
             <select v-model="selectedTemplateId" class="select" @change="onTemplateSelect">
               <option value="">— 手动录入 —</option>
-              <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.title }}</option>
+              <option v-for="t in templates" :key="t.id" :value="t.id">
+                {{ t.title }}
+              </option>
             </select>
             <button type="button" class="btn-secondary" @click="clearForm">清空</button>
           </div>
+          <table v-if="templates.length" class="template-table">
+            <thead>
+              <tr>
+                <th>科室</th>
+                <th>模板</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="t in templates"
+                :key="t.id"
+                :class="{ active: selectedTemplateId === t.id }"
+                @click="selectedTemplateId = t.id; loadTemplate(t.id)"
+              >
+                <td>{{ t.department_name_cn || auth.department?.name_cn || t.department }}</td>
+                <td>{{ t.title }}</td>
+                <td>{{ t.description }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else-if="!myDeptId" class="hint-muted">登录后可载入本科室病例模板</p>
+          <p v-else-if="myDeptId" class="hint-muted">本科室暂无病例模板</p>
           <p v-if="templatesError" class="hint-err">{{ templatesError }}</p>
         </div>
 
@@ -311,6 +342,13 @@ const arb = computed(() => result.value?.arbitration)
 .template-row { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
 .template-controls { display: flex; gap: 0.5rem; margin-top: 0.35rem; }
 .template-controls .select { flex: 1; }
+.template-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.88rem; }
+.template-table th, .template-table td { border: 1px solid var(--border); padding: 0.4rem 0.55rem; text-align: left; }
+.template-table th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; }
+.template-table tbody tr { cursor: pointer; }
+.template-table tbody tr:hover { background: var(--surface-2); }
+.template-table tbody tr.active { background: var(--primary-light); }
+.hint-muted { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.35rem; }
 .hint-err { color: var(--danger); font-size: 0.82rem; margin-top: 0.35rem; }
 .mode-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .mode-tabs button {

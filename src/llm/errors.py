@@ -42,3 +42,24 @@ class DdiModelNotReadyError(RuntimeError):
         else:
             msg = f"{msg} 请运行: python scripts/download_models.py --ddi-bert"
         super().__init__(msg)
+
+
+class VisionLLMError(RuntimeError):
+    """Raised when Qwen VLM upstream call fails (auth, quota, timeout, etc.)."""
+
+    def __init__(
+        self,
+        service: str,
+        detail: str = "",
+        *,
+        status_code: int | None = None,
+        hint: str = "",
+    ) -> None:
+        msg = f"{service} 调用失败"
+        if detail:
+            msg = f"{msg}：{detail}"
+        if hint:
+            msg = f"{msg} {hint}"
+        super().__init__(msg)
+        self.service = service
+        self.status_code = status_code

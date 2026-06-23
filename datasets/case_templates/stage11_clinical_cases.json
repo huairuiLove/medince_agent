@@ -4,6 +4,7 @@
       "case_id": "clinical_cardio_polypharmacy_01",
       "title": "心内科复杂多药联用",
       "description": "72岁男性，心衰+房颤+CKD3期，新增胺碘酮",
+      "department": "cardiology",
       "category": "cardiology",
       "request": {
         "patient_context": {
@@ -30,6 +31,7 @@
       "case_id": "clinical_neuro_epilepsy_01",
       "title": "神经内科抗癫痫加药",
       "description": "青年女性癫痫，丙戊酸基础上加拉莫三嗪",
+      "department": "neurology",
       "category": "neurology",
       "request": {
         "patient_context": {
@@ -45,6 +47,7 @@
       "case_id": "clinical_oncology_chemo_01",
       "title": "肿瘤科化疗 DDI",
       "description": "顺铂方案联用强 CYP3A4 抑制剂",
+      "department": "oncology",
       "category": "oncology",
       "request": {
         "patient_context": {
@@ -60,6 +63,7 @@
       "case_id": "clinical_safe_htn_01",
       "title": "阴性测试-安全降压联合",
       "description": "标准 ACEI+CCB 联合，应通过",
+      "department": "cardiology",
       "category": "negative",
       "request": {
         "patient_context": {
