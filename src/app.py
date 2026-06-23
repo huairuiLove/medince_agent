@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from src.agents.extract_agent import ExtractAgent
-from src.case_store import CaseStore
+from src.case_store import CaseStore, resolve_case_department
 from src.case_templates import CaseTemplateListResponse, get_case_template, list_case_templates
 from src.mimic_store import get_mimic_store
 from src.clarify_engine import ClarifyEngine
@@ -58,6 +58,7 @@ from src.pharmacy import PHARMACY_QUEUE
 from src.pharmacy.routes import router as pharmacy_router
 from src.schemas import (
     CandidateDrug,
+    CaseListResponse,
     ClarifyRequest,
     ClarifyResponse,
     ClinicalReport,
@@ -703,7 +704,11 @@ def drug_catalog_sync(req: FormularySyncRequest, request: Request) -> FormularyS
 
 @app.post("/api/v1/clarify", response_model=ClarifyResponse, tags=["Clarify"])
 @app.post("/api/clarify", response_model=ClarifyResponse, tags=["Clarify"], include_in_schema=False)
-def clarify_case(req: ClarifyRequest, request: Request) -> ClarifyResponse:
+def clarify_case(
+    req: ClarifyRequest,
+    request: Request,
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+) -> ClarifyResponse:
     _REQUEST_COUNTS["clarify"] += 1
     clarify_output = CLARIFY_ENGINE.clarify(
         patient_context=req.patient_context,
@@ -713,12 +718,17 @@ def clarify_case(req: ClarifyRequest, request: Request) -> ClarifyResponse:
         unable_to_answer=req.unable_to_answer,
     )
     response = ClarifyResponse(case_id=req.case_id, clarify_output=clarify_output)
-    if req.persist:
+    if req.case_id:
         case = CASE_STORE.upsert_case(
             case_id=req.case_id,
-            patch={"clarify_output": clarify_output.model_dump()},
+            patch={
+                "clarify_output": clarify_output.model_dump(),
+                "final_recommendation": clarify_output.final_message,
+            },
             stage="clarify",
             payload=clarify_output.model_dump(),
+            user_id=user.user_id if user else None,
+            department=(req.patient_context.department or "").strip() or (user.dept_id if user else ""),
         )
         response.case_id = case.case_id
     return response
@@ -771,51 +781,56 @@ def multi_review(req: MultiReviewRequest, request: Request) -> MultiReviewRespon
 
 
 @app.post("/api/v1/multi-consult", response_model=MultiConsultResponse, tags=["Multi-Agent"])
-def multi_consult(req: MultiConsultRequest, request: Request) -> MultiConsultResponse:
+def multi_consult(
+    req: MultiConsultRequest,
+    request: Request,
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+) -> MultiConsultResponse:
     _REQUEST_COUNTS["multi_consult"] += 1
     patient_context = req.patient_context
     extraction = None
     case_id = req.case_id
+    raw_text = req.text.strip()
 
     if patient_context is None:
-        if not req.text:
+        if not raw_text:
             raise HTTPException(status_code=400, detail="Either text or patient_context must be provided.")
-        raw_output, extraction = run_extract(req.text)
+        raw_output, extraction = run_extract(raw_text)
         if extraction is None:
             raise HTTPException(status_code=422, detail="Failed to parse LLM extract output.")
-        patient_context = build_patient_context_from_extraction(req.text, extraction)
-        if req.persist:
-            case = CASE_STORE.upsert_case(
-                case_id=case_id,
-                patch={
-                    "raw_input_text": req.text,
-                    "extract_output": extraction.model_dump(),
-                    "patient_context": patient_context.model_dump(),
-                },
-                stage="extract",
-                payload={"raw_output": raw_output},
-            )
-            case_id = case.case_id
+        patient_context = build_patient_context_from_extraction(raw_text, extraction)
+
+    if user and not (patient_context.department or "").strip():
+        patient_context = patient_context.model_copy(update={"department": user.dept_id})
 
     result = ORCHESTRATOR.run(patient_context, req.candidate_drugs, unable_to_answer=req.unable_to_answer)
 
-    if req.persist:
+    if result.agent_opinions:
+        dept_id = (patient_context.department or "").strip() or (user.dept_id if user else "")
+        patch: dict = {
+            "patient_context": patient_context.model_dump(),
+            "candidate_drugs": [d.model_dump() for d in req.candidate_drugs],
+            "review_output": result.rule_output.model_dump(),
+            "agent_opinions": [o.model_dump() for o in result.agent_opinions],
+            "debate": result.debate.model_dump() if result.debate else None,
+            "safety_panel": result.safety_panel.model_dump() if result.safety_panel else None,
+            "arbitration": result.arbitration.model_dump(),
+            "clarify_output": result.clarify_output.model_dump() if result.clarify_output else None,
+            "final_recommendation": result.final_recommendation,
+            "status": "complete",
+        }
+        if extraction:
+            patch["extract_output"] = extraction.model_dump()
+        if raw_text:
+            patch["raw_input_text"] = raw_text
+
         case = CASE_STORE.upsert_case(
             case_id=case_id,
-            patch={
-                "patient_context": patient_context.model_dump(),
-                "candidate_drugs": [d.model_dump() for d in req.candidate_drugs],
-                "review_output": result.rule_output.model_dump(),
-                "agent_opinions": [o.model_dump() for o in result.agent_opinions],
-                "debate": result.debate.model_dump() if result.debate else None,
-                "safety_panel": result.safety_panel.model_dump() if result.safety_panel else None,
-                "arbitration": result.arbitration.model_dump(),
-                "clarify_output": result.clarify_output.model_dump() if result.clarify_output else None,
-                "final_recommendation": result.final_recommendation,
-                "status": "complete",
-            },
-            stage="rule_gate",
+            patch=patch,
+            stage="extract" if extraction else "rule_gate",
             payload=result.rule_output.model_dump(),
+            user_id=user.user_id if user else None,
+            department=dept_id,
         )
         CASE_STORE.upsert_case(case_id=case.case_id, stage="agent_review", payload={"agents": len(result.agent_opinions)})
         if result.debate:
@@ -825,7 +840,11 @@ def multi_consult(req: MultiConsultRequest, request: Request) -> MultiConsultRes
         CASE_STORE.upsert_case(case_id=case.case_id, stage="arbitration", payload=result.arbitration.model_dump())
         if result.clarify_output:
             CASE_STORE.upsert_case(case_id=case.case_id, stage="clarify", payload=result.clarify_output.model_dump())
-        CASE_STORE.upsert_case(case_id=case.case_id, stage="final", payload={"final_recommendation": result.final_recommendation})
+        CASE_STORE.upsert_case(
+            case_id=case.case_id,
+            stage="final",
+            payload={"final_recommendation": result.final_recommendation},
+        )
         case_id = case.case_id
 
     return MultiConsultResponse(
@@ -900,23 +919,32 @@ def consult(req: ConsultRequest, request: Request) -> ConsultResponse:
 
 @app.get("/api/v1/case/{case_id}", tags=["Cases"])
 @app.get("/api/case/{case_id}", tags=["Cases"], include_in_schema=False)
-def get_case(case_id: str, request: Request):
+def get_case(
+    case_id: str,
+    request: Request,
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+):
     _REQUEST_COUNTS["case_get"] += 1
     try:
-        return CASE_STORE.get_case(case_id)
+        case = CASE_STORE.get_case(case_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if user:
+        case_dept = resolve_case_department(case.model_dump())
+        if case_dept and case_dept != user.dept_id:
+            raise HTTPException(status_code=403, detail="无权查看其他科室 Case")
+    return case
 
 
-@app.get("/api/v1/cases", tags=["Cases"])
-def list_cases(limit: int = 20):
-    case_files = sorted(
-        glob.glob(str(CASE_STORE.case_dir / "*.json")),
-        key=os.path.getmtime,
-        reverse=True,
-    )
-    case_ids = [os.path.splitext(os.path.basename(f))[0] for f in case_files[:limit]]
-    return {"count": len(case_ids), "cases": case_ids}
+@app.get("/api/v1/cases", response_model=CaseListResponse, tags=["Cases"])
+def list_cases(
+    limit: int = 50,
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+):
+    if not user:
+        return CaseListResponse(count=0, cases=[])
+    summaries = CASE_STORE.list_case_summaries(department=user.dept_id, limit=limit)
+    return CaseListResponse(count=len(summaries), cases=summaries)
 
 
 # ── Imaging & Reports ────────────────────────────────────────────────────

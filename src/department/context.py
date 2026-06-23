@@ -59,28 +59,109 @@ _DEPT_OVERRIDES: dict[str, dict[str, Any]] = {
         "common_indications": ["脓毒症", "休克", "呼吸衰竭", "镇静镇痛"],
     },
     "respiratory": {
+        "conditional_agents": {"respiratory_specialist": {"always": True}},
         "lab_context_defaults": ["血氧", "血气", "嗜酸性粒细胞"],
         "common_indications": ["COPD", "哮喘", "肺炎", "肺栓塞"],
     },
+    "neurosurgery": {
+        "conditional_agents": {"neurosurgery_specialist": {"always": True}},
+        "lab_context_defaults": ["INR", "eGFR", "血钠"],
+        "common_indications": ["颅脑肿瘤", "颅内出血", "围术期抗凝"],
+    },
+    "radiology": {
+        "conditional_agents": {"radiology_specialist": {"always": True}},
+        "lab_context_defaults": ["eGFR", "血肌酐", "TSH"],
+        "common_indications": ["增强 CT/MRI", "造影剂过敏", "二甲双胍暂停"],
+    },
+    "gastroenterology": {
+        "conditional_agents": {"gastroenterology_specialist": {"always": True}},
+        "lab_context_defaults": ["ALT", "AST", "INR", "eGFR"],
+        "common_indications": ["IBD", "肝硬化", "消化性溃疡", "GERD"],
+    },
     "nephrology": {
+        "conditional_agents": {"nephrology_specialist": {"always": True}},
         "lab_context_defaults": ["eGFR", "血钾", "血磷", "iPTH"],
         "common_indications": ["CKD", "透析", "肾性高血压", "高钾血症"],
     },
     "endocrinology": {
+        "conditional_agents": {"endocrinology_specialist": {"always": True}},
         "lab_context_defaults": ["HbA1c", "血糖", "TSH", "eGFR"],
         "common_indications": ["糖尿病", "甲状腺疾病", "骨质疏松"],
     },
+    "hematology": {
+        "conditional_agents": {"oncology_specialist": {"always": True}},
+        "lab_context_defaults": ["INR", "PLT", "Hb", "eGFR"],
+        "common_indications": ["抗凝管理", "化疗骨髓抑制", "血液肿瘤"],
+    },
     "geriatrics": {
+        "conditional_agents": {"geriatrics_specialist": {"always": True}},
         "lab_context_defaults": ["eGFR", "INR", "血钠"],
-        "common_indications": ["多病共存", "跌倒风险", "认知障碍", " polypharmacy"],
+        "common_indications": ["多病共存", "跌倒风险", "认知障碍", "polypharmacy"],
+    },
+    "rheumatology": {
+        "conditional_agents": {"rheumatology_specialist": {"always": True}},
+        "lab_context_defaults": ["ALT", "eGFR", "CRP", "ESR"],
+        "common_indications": ["类风湿关节炎", "SLE", "痛风", "血管炎"],
+    },
+    "infectious_disease": {
+        "conditional_agents": {"infectious_disease_specialist": {"always": True}},
+        "lab_context_defaults": ["eGFR", "ALT", "CRP", "培养结果"],
+        "common_indications": ["脓毒症", "HIV", "结核", "真菌感染"],
     },
     "emergency": {
+        "conditional_agents": {"emergency_specialist": {"always": True}},
         "priority_categories": ["drug_interaction", "allergy", "special_population"],
         "common_indications": ["急性中毒", "过敏性休克", "急性冠脉综合征"],
     },
     "pharmacy": {
         "auto_enable_agents": ["clinical_pharmacist", "pharmacy_inventory"],
+        "conditional_agents": {"pharmacy_specialist": {"always": True}},
         "common_indications": ["全院用药审查", "高警示药品", "库存替代"],
+    },
+    "general_internal": {
+        "conditional_agents": {"general_internal_specialist": {"always": True}},
+        "lab_context_defaults": ["eGFR", "BP", "HbA1c"],
+        "common_indications": ["高血压", "糖尿病", "慢病多病共存"],
+    },
+    "orthopedic": {
+        "conditional_agents": {"orthopedic_specialist": {"always": True}},
+        "lab_context_defaults": ["INR", "eGFR", "PLT"],
+        "common_indications": ["关节置换", "骨折", "VTE 预防", "围术期镇痛"],
+    },
+    "urology": {
+        "conditional_agents": {"urology_specialist": {"always": True}},
+        "lab_context_defaults": ["eGFR", "PSA", "INR"],
+        "common_indications": ["BPH", "泌尿系结石", "前列腺手术"],
+    },
+    "anesthesiology": {
+        "conditional_agents": {"anesthesiology_specialist": {"always": True}},
+        "lab_context_defaults": ["INR", "PLT", "eGFR", "QTc"],
+        "common_indications": ["全麻诱导", "区域麻醉", "围术期抗凝"],
+    },
+    "psychiatry": {
+        "conditional_agents": {"psychiatry_specialist": {"always": True}},
+        "lab_context_defaults": ["锂浓度", "QTc", "eGFR"],
+        "common_indications": ["抑郁", "焦虑", "精神分裂", "双相障碍"],
+    },
+    "dermatology": {
+        "conditional_agents": {"dermatology_specialist": {"always": True}},
+        "lab_context_defaults": ["ALT", "eGFR", "β-hCG"],
+        "common_indications": ["银屑病", "天疱疮", "痤疮", "免疫性皮肤病"],
+    },
+    "ophthalmology": {
+        "conditional_agents": {"ophthalmology_specialist": {"always": True}},
+        "lab_context_defaults": ["眼压", "eGFR"],
+        "common_indications": ["青光眼", "葡萄膜炎", "药物性眼毒性"],
+    },
+    "ent": {
+        "conditional_agents": {"ent_specialist": {"always": True}},
+        "lab_context_defaults": ["eGFR", "听力"],
+        "common_indications": ["急性咽炎", "中耳炎", "头颈手术"],
+    },
+    "rehabilitation": {
+        "conditional_agents": {"rehabilitation_specialist": {"always": True}},
+        "lab_context_defaults": ["eGFR", "INR", "BP"],
+        "common_indications": ["卒中康复", "痉挛管理", "长期用药优化"],
     },
 }
 

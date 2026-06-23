@@ -3,11 +3,30 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.auth.ownership import CaseAccessError, assert_case_owner
-from src.schemas import CaseEvent, CaseLog
+from src.department.context import get_department_context
+from src.schemas import CaseEvent, CaseLog, CaseSummary
 from src.utils import ensure_dir, load_json, make_case_id, save_json, to_jsonable, utc_now_iso
 
 
 DEFAULT_CASE_DIR = Path(__file__).resolve().parent.parent / "datasets" / "cases"
+
+
+def resolve_case_department(data: dict) -> str:
+    dept = str(data.get("department") or "").strip()
+    if dept:
+        return dept
+    patient = data.get("patient_context")
+    if isinstance(patient, dict):
+        return str(patient.get("department") or "").strip()
+    return ""
+
+
+def department_name_cn(dept_id: str) -> str:
+    dept_id = (dept_id or "").strip()
+    if not dept_id:
+        return ""
+    ctx = get_department_context(dept_id)
+    return ctx.name_cn if ctx else dept_id
 
 
 class CaseStore:
@@ -21,11 +40,20 @@ class CaseStore:
     def exists(self, case_id: str) -> bool:
         return self._case_path(case_id).exists()
 
-    def create_case(self, case_id: str | None = None, raw_input_text: str = "", user_id: str | None = None) -> CaseLog:
+    def create_case(
+        self,
+        case_id: str | None = None,
+        raw_input_text: str = "",
+        user_id: str | None = None,
+        department: str = "",
+    ) -> CaseLog:
         timestamp = utc_now_iso()
+        dept = (department or "").strip()
         case = CaseLog(
             case_id=case_id or make_case_id(),
-            user_id=user_id,
+            user_id=user_id or "",
+            department=dept,
+            department_name_cn=department_name_cn(dept),
             created_at=timestamp,
             updated_at=timestamp,
             raw_input_text=raw_input_text,
@@ -61,6 +89,49 @@ class CaseStore:
                 continue
         return ids
 
+    def list_case_summaries(
+        self,
+        *,
+        department: str,
+        limit: int = 50,
+        multi_agent_only: bool = True,
+    ) -> list[CaseSummary]:
+        dept_filter = (department or "").strip()
+        if not dept_filter:
+            return []
+
+        files = sorted(self.case_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+        summaries: list[CaseSummary] = []
+        for path in files:
+            if len(summaries) >= limit:
+                break
+            try:
+                data = load_json(path)
+            except (OSError, ValueError, TypeError):
+                continue
+
+            case_dept = resolve_case_department(data)
+            if case_dept != dept_filter:
+                continue
+
+            agent_opinions = data.get("agent_opinions") or []
+            if multi_agent_only and not agent_opinions:
+                continue
+
+            summaries.append(
+                CaseSummary(
+                    case_id=str(data.get("case_id") or path.stem),
+                    department=case_dept,
+                    department_name_cn=str(data.get("department_name_cn") or "") or department_name_cn(case_dept),
+                    status=str(data.get("status") or "in_progress"),
+                    created_at=str(data.get("created_at") or ""),
+                    updated_at=str(data.get("updated_at") or ""),
+                    final_recommendation=str(data.get("final_recommendation") or "")[:160],
+                    agent_count=len(agent_opinions),
+                )
+            )
+        return summaries
+
     def upsert_case(
         self,
         case_id: str | None = None,
@@ -68,6 +139,7 @@ class CaseStore:
         stage: str | None = None,
         payload: object | None = None,
         user_id: str | None = None,
+        department: str = "",
     ) -> CaseLog:
         if case_id and self.exists(case_id):
             case = self.get_case(case_id)
@@ -78,11 +150,28 @@ class CaseStore:
             raw_input_text = ""
             if patch and patch.get("raw_input_text"):
                 raw_input_text = str(patch["raw_input_text"])
-            case = self.create_case(case_id=case_id, raw_input_text=raw_input_text, user_id=user_id)
+            resolved_dept = (department or "").strip()
+            if not resolved_dept and patch:
+                resolved_dept = resolve_case_department(patch)
+            case = self.create_case(
+                case_id=case_id,
+                raw_input_text=raw_input_text,
+                user_id=user_id,
+                department=resolved_dept,
+            )
 
         data = case.model_dump()
         if patch:
             data.update(to_jsonable(patch))
+
+        resolved_dept = resolve_case_department(data)
+        if resolved_dept:
+            data["department"] = resolved_dept
+            data["department_name_cn"] = department_name_cn(resolved_dept)
+            patient = data.get("patient_context")
+            if isinstance(patient, dict) and not patient.get("department"):
+                patient["department"] = resolved_dept
+                data["patient_context"] = patient
 
         if user_id and not data.get("user_id"):
             data["user_id"] = user_id

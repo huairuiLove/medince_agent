@@ -330,6 +330,9 @@ class CaseEvent(BaseModel):
 
 class CaseLog(BaseModel):
     case_id: str
+    user_id: str = Field(default="")
+    department: str = Field(default="", description="所属科室 dept_id")
+    department_name_cn: str = Field(default="")
     created_at: str
     updated_at: str
     status: str = Field(default="in_progress")
@@ -339,10 +342,28 @@ class CaseLog(BaseModel):
     extract_output: Optional[ExtractionOutput] = None
     review_output: Optional[ReviewOutput] = None
     agent_opinions: List[AgentOpinion] = Field(default_factory=list)
+    debate: Optional[DebateResult] = None
+    safety_panel: Optional[SafetyPanelResult] = None
     arbitration: Optional[ArbitrationResult] = None
     clarify_output: Optional[ClarifyOutput] = None
     final_recommendation: str = Field(default="")
     events: List[CaseEvent] = Field(default_factory=list)
+
+
+class CaseSummary(BaseModel):
+    case_id: str
+    department: str = ""
+    department_name_cn: str = ""
+    status: str = "in_progress"
+    created_at: str = ""
+    updated_at: str = ""
+    final_recommendation: str = ""
+    agent_count: int = 0
+
+
+class CaseListResponse(BaseModel):
+    count: int
+    cases: List[CaseSummary]
 
 
 class ReportParagraph(BaseModel):

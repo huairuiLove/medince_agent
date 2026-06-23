@@ -1,4 +1,3 @@
-# MedSafe Agent Registry — add agents here or via datasets/agents/registry.yaml
 agents:
   clinical_pharmacist:
     module: src.agents.clinical_pharmacist
@@ -8,21 +7,23 @@ agents:
     role: 药物相互作用、剂量、重复用药审查
     debate: true
     default_enabled: true
-    default_skills: [base, ddi_review, dose_review]
+    default_skills:
+    - base
+    - ddi_review
+    - dose_review
     skills:
-      - id: base
-        title: 基础角色
-        file: base.md
-      - id: ddi_review
-        title: 药物相互作用审查
-        file: ddi_review.md
-      - id: dose_review
-        title: 剂量与给药途径
-        file: dose_review.md
-      - id: duplicate_review
-        title: 重复用药审查
-        file: duplicate_review.md
-
+    - id: base
+      title: 基础角色
+      file: base.md
+    - id: ddi_review
+      title: 药物相互作用审查
+      file: ddi_review.md
+    - id: dose_review
+      title: 剂量与给药途径
+      file: dose_review.md
+    - id: duplicate_review
+      title: 重复用药审查
+      file: duplicate_review.md
   internal_medicine:
     module: src.agents.internal_medicine
     class: InternalMedicineAgent
@@ -31,18 +32,19 @@ agents:
     role: 适应证与诊断匹配、off-label 风险评估
     debate: true
     default_enabled: true
-    default_skills: [base, indication_match]
+    default_skills:
+    - base
+    - indication_match
     skills:
-      - id: base
-        title: 基础角色
-        file: base.md
-      - id: indication_match
-        title: 适应证匹配
-        file: indication_match.md
-      - id: comorbidity
-        title: 合并症评估
-        file: comorbidity.md
-
+    - id: base
+      title: 基础角色
+      file: base.md
+    - id: indication_match
+      title: 适应证匹配
+      file: indication_match.md
+    - id: comorbidity
+      title: 合并症评估
+      file: comorbidity.md
   allergy_specialist:
     module: src.agents.allergy_specialist
     class: AllergySpecialistAgent
@@ -51,18 +53,19 @@ agents:
     role: 过敏史、交叉过敏、ADR 审查
     debate: true
     default_enabled: true
-    default_skills: [base, cross_allergy]
+    default_skills:
+    - base
+    - cross_allergy
     skills:
-      - id: base
-        title: 基础角色
-        file: base.md
-      - id: cross_allergy
-        title: 交叉过敏
-        file: cross_allergy.md
-      - id: adr_history
-        title: 既往 ADR
-        file: adr_history.md
-
+    - id: base
+      title: 基础角色
+      file: base.md
+    - id: cross_allergy
+      title: 交叉过敏
+      file: cross_allergy.md
+    - id: adr_history
+      title: 既往 ADR
+      file: adr_history.md
   pharmacy_inventory:
     module: src.agents.pharmacy_inventory
     class: PharmacyInventoryAgent
@@ -71,18 +74,19 @@ agents:
     role: 库存、formulary、替代方案
     debate: true
     default_enabled: true
-    default_skills: [base, formulary_check]
+    default_skills:
+    - base
+    - formulary_check
     skills:
-      - id: base
-        title: 基础角色
-        file: base.md
-      - id: formulary_check
-        title: Formulary 审查
-        file: formulary_check.md
-      - id: stock_alternative
-        title: 缺货替代
-        file: stock_alternative.md
-
+    - id: base
+      title: 基础角色
+      file: base.md
+    - id: formulary_check
+      title: Formulary 审查
+      file: formulary_check.md
+    - id: stock_alternative
+      title: 缺货替代
+      file: stock_alternative.md
   specialist:
     module: src.agents.specialist_router
     class: SpecialistAgent
@@ -91,25 +95,32 @@ agents:
     role: 专科禁忌（妊娠/抗凝/老年/感染等）
     debate: true
     default_enabled: false
-    default_skills: [base, pregnancy, anticoagulation]
+    default_skills:
+    - base
+    - pregnancy
+    - anticoagulation
     activate_when:
-      drug_keywords: [warfarin, heparin, enoxaparin, lisinopril, losartan]
+      drug_keywords:
+      - warfarin
+      - heparin
+      - enoxaparin
+      - lisinopril
+      - losartan
       female_reproductive_age: true
       age_gte: 65
     skills:
-      - id: base
-        title: 基础角色
-        file: base.md
-      - id: pregnancy
-        title: 妊娠用药
-        file: pregnancy.md
-      - id: anticoagulation
-        title: 抗凝桥接
-        file: anticoagulation.md
-      - id: geriatric
-        title: 老年用药
-        file: geriatric.md
-
+    - id: base
+      title: 基础角色
+      file: base.md
+    - id: pregnancy
+      title: 妊娠用药
+      file: pregnancy.md
+    - id: anticoagulation
+      title: 抗凝桥接
+      file: anticoagulation.md
+    - id: geriatric
+      title: 老年用药
+      file: geriatric.md
   chief_reviewer:
     module: src.agents.chief_reviewer
     class: ChiefReviewerAgent
@@ -118,8 +129,8 @@ agents:
     role: 冲突仲裁与最终建议
     debate: false
     default_enabled: true
-    default_skills: [base]
-
+    default_skills:
+    - base
   coordinator:
     module: src.agents.coordinator
     class: CoordinatorAgent
@@ -128,8 +139,8 @@ agents:
     role: 追问生成与保守降级
     debate: false
     default_enabled: true
-    default_skills: [base]
-
+    default_skills:
+    - base
 department_agents:
   cardiology_specialist:
     agent_id: cardiology_specialist
@@ -139,11 +150,23 @@ department_agents:
     class: DepartmentSpecialistAgent
     debate: true
     default_enabled: false
-    skills: [base, heart_failure, acs_protocol, anticoag_bridge]
+    skills:
+    - base
+    - heart_failure
+    - acs_protocol
+    - anticoag_bridge
     activate_when:
-      departments: [cardiology]
-      drug_keywords: [warfarin, rivaroxaban, apixaban, dabigatran, amiodarone, digoxin, clopidogrel, ticagrelor]
-
+      departments:
+      - cardiology
+      drug_keywords:
+      - warfarin
+      - rivaroxaban
+      - apixaban
+      - dabigatran
+      - amiodarone
+      - digoxin
+      - clopidogrel
+      - ticagrelor
   neurology_specialist:
     agent_id: neurology_specialist
     agent_name: 神经专科
@@ -152,11 +175,20 @@ department_agents:
     class: DepartmentSpecialistAgent
     debate: true
     default_enabled: false
-    skills: [base, epilepsy_combo, parkinson_ddi, stroke_prevention]
+    skills:
+    - base
+    - epilepsy_combo
+    - parkinson_ddi
+    - stroke_prevention
     activate_when:
-      departments: [neurology]
-      drug_keywords: [levetiracetam, valproate, carbamazepine, levodopa, phenytoin]
-
+      departments:
+      - neurology
+      drug_keywords:
+      - levetiracetam
+      - valproate
+      - carbamazepine
+      - levodopa
+      - phenytoin
   oncology_specialist:
     agent_id: oncology_specialist
     agent_name: 肿瘤专科
@@ -165,11 +197,22 @@ department_agents:
     class: DepartmentSpecialistAgent
     debate: true
     default_enabled: false
-    skills: [base, chemo_ddi, immunosuppress, antiemetic_combo]
+    skills:
+    - base
+    - chemo_ddi
+    - immunosuppress
+    - antiemetic_combo
     activate_when:
-      departments: [oncology, hematology]
-      drug_keywords: [cisplatin, carboplatin, paclitaxel, imatinib, cyclophosphamide, methotrexate]
-
+      departments:
+      - oncology
+      - hematology
+      drug_keywords:
+      - cisplatin
+      - carboplatin
+      - paclitaxel
+      - imatinib
+      - cyclophosphamide
+      - methotrexate
   pediatrics_specialist:
     agent_id: pediatrics_specialist
     agent_name: 儿科专科
@@ -178,11 +221,15 @@ department_agents:
     class: DepartmentSpecialistAgent
     debate: true
     default_enabled: false
-    skills: [base, pediatric_dosing, growth_impact, vaccine_interaction]
+    skills:
+    - base
+    - pediatric_dosing
+    - growth_impact
+    - vaccine_interaction
     activate_when:
-      departments: [pediatrics]
+      departments:
+      - pediatrics
       age_lt: 18
-
   obgyn_specialist:
     agent_id: obgyn_specialist
     agent_name: 妇产专科
@@ -191,11 +238,15 @@ department_agents:
     class: DepartmentSpecialistAgent
     debate: true
     default_enabled: false
-    skills: [base, teratogen, lactation_safety, tocolysis]
+    skills:
+    - base
+    - teratogen
+    - lactation_safety
+    - tocolysis
     activate_when:
-      departments: [obstetrics_gynecology]
+      departments:
+      - obstetrics_gynecology
       pregnancy_active: true
-
   icu_specialist:
     agent_id: icu_specialist
     agent_name: 重症专科
@@ -204,7 +255,442 @@ department_agents:
     class: DepartmentSpecialistAgent
     debate: true
     default_enabled: false
-    skills: [base, vasoactive, sedation_protocol, crrt_adjustment]
+    skills:
+    - base
+    - vasoactive
+    - sedation_protocol
+    - crrt_adjustment
     activate_when:
-      departments: [icu]
-      drug_keywords: [norepinephrine, vasopressin, propofol, midazolam, fentanyl, meropenem]
+      departments:
+      - icu
+      drug_keywords:
+      - norepinephrine
+      - vasopressin
+      - propofol
+      - midazolam
+      - fentanyl
+      - meropenem
+  respiratory_specialist:
+    agent_id: respiratory_specialist
+    agent_name: 呼吸专科
+    role: COPD/哮喘/肺炎抗感染与吸入治疗审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - copd_management
+    - inhaled_therapy
+    - respiratory_antibiotic
+    activate_when:
+      departments:
+      - respiratory
+      drug_keywords:
+      - theophylline
+      - azithromycin
+      - salbutamol
+      - budesonide
+      - montelukast
+  neurosurgery_specialist:
+    agent_id: neurosurgery_specialist
+    agent_name: 神经外科专科
+    role: 颅脑围术期抗凝、颅内压与癫痫预防用药审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - perioperative_anticoag
+    - intracranial_htn
+    - seizure_prophylaxis
+    activate_when:
+      departments:
+      - neurosurgery
+      drug_keywords:
+      - levetiracetam
+      - dexamethasone
+      - phenytoin
+      - mannitol
+  radiology_specialist:
+    agent_id: radiology_specialist
+    agent_name: 放射专科
+    role: 造影剂安全、二甲双胍暂停与过敏预处理审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - contrast_safety
+    - metformin_hold
+    - allergy_premedication
+    activate_when:
+      departments:
+      - radiology
+      drug_keywords:
+      - iohexol
+      - iodixanol
+      - gadolinium
+      - metformin
+  gastroenterology_specialist:
+    agent_id: gastroenterology_specialist
+    agent_name: 消化专科
+    role: PPI/抗血小板、IBD 免疫抑制与肝代谢用药审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - ppi_antiplatelet
+    - ibd_immunosuppress
+    - hepatic_metabolism
+    activate_when:
+      departments:
+      - gastroenterology
+      drug_keywords:
+      - omeprazole
+      - pantoprazole
+      - infliximab
+      - mesalazine
+  emergency_specialist:
+    agent_id: emergency_specialist
+    agent_name: 急诊专科
+    role: 急性中毒、复苏用药与急诊镇痛镇静审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - acute_toxicology
+    - resuscitation_drugs
+    - analgesia_sedation
+    activate_when:
+      departments:
+      - emergency
+      drug_keywords:
+      - naloxone
+      - epinephrine
+      - morphine
+      - midazolam
+      - flumazenil
+  pharmacy_specialist:
+    agent_id: pharmacy_specialist
+    agent_name: 药学专科
+    role: 高警示药品、全院 DDI 与 formulary 一致性审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - high_alert_review
+    - formulary_alignment
+    - pharmacy_ddi
+    activate_when:
+      departments:
+      - pharmacy
+      drug_keywords:
+      - warfarin
+      - insulin
+      - methotrexate
+      - morphine
+      - amiodarone
+  general_internal_specialist:
+    agent_id: general_internal_specialist
+    agent_name: 普内专科
+    role: 住院多病共存、慢病联合用药与 off-label 风险审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - polypharmacy
+    - chronic_disease_combo
+    - comorbidity_risk
+    activate_when:
+      departments:
+      - general_internal
+      drug_keywords:
+      - amlodipine
+      - lisinopril
+      - metformin
+      - atorvastatin
+  nephrology_specialist:
+    agent_id: nephrology_specialist
+    agent_name: 肾内专科
+    role: 肾剂量调整、高钾风险与透析用药审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - renal_dose_adjust
+    - hyperkalemia_risk
+    - dialysis_medication
+    activate_when:
+      departments:
+      - nephrology
+      drug_keywords:
+      - furosemide
+      - spironolactone
+      - sevelamer
+      - calcitriol
+  endocrinology_specialist:
+    agent_id: endocrinology_specialist
+    agent_name: 内分泌专科
+    role: 糖尿病多药联合、甲状腺与激素替代审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - diabetes_combo
+    - thyroid_ddi
+    - steroid_management
+    activate_when:
+      departments:
+      - endocrinology
+      drug_keywords:
+      - metformin
+      - glibenclamide
+      - levothyroxine
+      - insulin
+  geriatrics_specialist:
+    agent_id: geriatrics_specialist
+    agent_name: 老年专科
+    role: Beers 准则、跌倒风险与去处方化审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - beers_criteria
+    - fall_risk
+    - deprescribing
+    activate_when:
+      departments:
+      - geriatrics
+      drug_keywords:
+      - lorazepam
+      - diphenhydramine
+      - glyburide
+      - tramadol
+  rheumatology_specialist:
+    agent_id: rheumatology_specialist
+    agent_name: 风湿专科
+    role: MTX/生物制剂、NSAIDs 与免疫抑制审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - mtx_monitoring
+    - biologic_infection
+    - nsaid_gi_risk
+    activate_when:
+      departments:
+      - rheumatology
+      drug_keywords:
+      - methotrexate
+      - leflunomide
+      - infliximab
+      - adalimumab
+  infectious_disease_specialist:
+    agent_id: infectious_disease_specialist
+    agent_name: 感染专科
+    role: 抗感染谱系、耐药管理与 HIV/TB/真菌 DDI 审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - antibiotic_spectrum
+    - resistance_stewardship
+    - hiv_tb_antifungal
+    activate_when:
+      departments:
+      - infectious_disease
+      drug_keywords:
+      - vancomycin
+      - meropenem
+      - linezolid
+      - fluconazole
+  orthopedic_specialist:
+    agent_id: orthopedic_specialist
+    agent_name: 骨科专科
+    role: 围术期抗凝、NSAIDs 与 VTE 预防审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - perioperative_anticoag
+    - nsaid_bone_healing
+    - vte_prophylaxis
+    activate_when:
+      departments:
+      - orthopedic
+      drug_keywords:
+      - ibuprofen
+      - enoxaparin
+      - warfarin
+      - celecoxib
+  urology_specialist:
+    agent_id: urology_specialist
+    agent_name: 泌尿专科
+    role: α 阻滞剂低血压、BPH 与抗凝联用审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - alpha_blocker_hypotension
+    - anticoag_prostate
+    - renal_stone_analgesia
+    activate_when:
+      departments:
+      - urology
+      drug_keywords:
+      - tamsulosin
+      - finasteride
+      - doxazosin
+      - sildenafil
+  anesthesiology_specialist:
+    agent_id: anesthesiology_specialist
+    agent_name: 麻醉专科
+    role: 麻醉诱导、围术期抗凝与恶性高热用药审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - induction_agents
+    - anticoag_periop
+    - malignant_hyperthermia
+    activate_when:
+      departments:
+      - anesthesiology
+      drug_keywords:
+      - propofol
+      - midazolam
+      - succinylcholine
+      - sevoflurane
+  psychiatry_specialist:
+    agent_id: psychiatry_specialist
+    agent_name: 精神专科
+    role: 五羟色胺综合征、QT 延长与精神药物 DDI 审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - serotonergic_syndrome
+    - qt_psychotropics
+    - mood_stabilizer
+    activate_when:
+      departments:
+      - psychiatry
+      drug_keywords:
+      - sertraline
+      - fluoxetine
+      - quetiapine
+      - lithium
+      - risperidone
+  dermatology_specialist:
+    agent_id: dermatology_specialist
+    agent_name: 皮肤专科
+    role: 系统免疫抑制、维 A 酸致畸与外用/全身叠加审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - systemic_immunosuppress
+    - retinoid_teratogenicity
+    - topical_systemic
+    activate_when:
+      departments:
+      - dermatology
+      drug_keywords:
+      - methotrexate
+      - acitretin
+      - cyclosporine
+      - isotretinoin
+  ophthalmology_specialist:
+    agent_id: ophthalmology_specialist
+    agent_name: 眼科专科
+    role: 眼毒性、青光眼局部/全身用药叠加审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - ocular_toxicity
+    - topical_beta_blocker
+    - glaucoma_systemic
+    activate_when:
+      departments:
+      - ophthalmology
+      drug_keywords:
+      - timolol
+      - latanoprost
+      - acetazolamide
+      - amiodarone
+  ent_specialist:
+    agent_id: ent_specialist
+    agent_name: 耳鼻喉专科
+    role: 耳毒性、气道用药与头颈围术期审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - ototoxicity
+    - airway_sedation
+    - postop_analgesia
+    activate_when:
+      departments:
+      - ent
+      drug_keywords:
+      - gentamicin
+      - amoxicillin
+      - dexamethasone
+      - pseudoephedrine
+  rehabilitation_specialist:
+    agent_id: rehabilitation_specialist
+    agent_name: 康复专科
+    role: 卒中二级预防、痉挛管理与长期多重用药审查
+    module: src.agents.department_specialist
+    class: DepartmentSpecialistAgent
+    debate: true
+    default_enabled: false
+    skills:
+    - base
+    - stroke_secondary_prevention
+    - spasticity_mgmt
+    - long_term_polypharmacy
+    activate_when:
+      departments:
+      - rehabilitation
+      drug_keywords:
+      - baclofen
+      - clopidogrel
+      - aspirin
+      - tizanidine
