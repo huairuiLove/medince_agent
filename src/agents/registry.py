@@ -197,6 +197,8 @@ class AgentRegistry:
         agent_id: str,
         llm: LLMClient,
         department_context: DepartmentContext | None = None,
+        enabled_skills: list[str] | None = None,
+        custom_skill_bodies: list[str] | None = None,
     ) -> Any | None:
         spec = self.get_department_agent_spec(agent_id)
         if not spec:
@@ -210,9 +212,11 @@ class AgentRegistry:
                 "lab_context_defaults": ", ".join(department_context.lab_context_defaults),
                 "common_indications": ", ".join(department_context.common_indications),
             }
+        skill_ids = enabled_skills if enabled_skills is not None else list(spec.default_skills)
         prompt = compose_system_prompt(
             agent_id,
-            list(spec.default_skills),
+            skill_ids,
+            custom_skill_bodies=custom_skill_bodies,
             template_variables=variables,
         )
         cls = self._import_class(spec)
@@ -239,7 +243,7 @@ class AgentRegistry:
         custom = custom_skills or []
         agents: list[BaseAgent] = []
         for spec in self._specs.values():
-            if not spec.debate:
+            if not spec.debate or spec.is_department_agent:
                 continue
             if not enabled_map.get(spec.agent_id, spec.default_enabled):
                 continue

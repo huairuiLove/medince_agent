@@ -19,6 +19,33 @@ from src.yuan_fallback.rule_engine import check_interactions_by_rules
 logger = logging.getLogger("chat-service")
 
 
+def _rule_engine_kwargs(req: ChatRequest) -> dict:
+    """Build optional patient-context kwargs for the rule engine fallback."""
+    ctx = req.patient_context
+    if not ctx:
+        return {}
+
+    age = ctx.age or 0
+    preg = (ctx.pregnancy_status or "unknown").strip().lower()
+    is_pregnant = "是" if preg in {"yes", "pregnant", "是", "true", "1"} else "否"
+    conditions = " ".join(
+        str(d.get("name", "")).strip()
+        for d in ctx.diagnoses
+        if isinstance(d, dict) and d.get("name")
+    )
+    extra_drugs = [
+        str(m.get("name", "")).strip()
+        for m in ctx.current_medications
+        if isinstance(m, dict) and m.get("name")
+    ]
+    return {
+        "patient_age": int(age) if age else 0,
+        "is_pregnant": is_pregnant,
+        "conditions": conditions,
+        "extra_drugs": extra_drugs,
+    }
+
+
 def extract_citations(tool_results: list[dict]) -> list[dict]:
     """Parse structured citations from tool call results."""
     citations: list[dict] = []
@@ -81,8 +108,9 @@ async def chat_event_stream(req: ChatRequest) -> AsyncGenerator[str, None]:
         )
 
         if level in ("rule_fallback", "offline"):
+            rule_kwargs = _rule_engine_kwargs(req)
             result_text = (
-                check_interactions_by_rules(user_msg)
+                check_interactions_by_rules(user_msg, **rule_kwargs)
                 if level == "rule_fallback"
                 else offline_drug_check(user_msg)
             )
@@ -127,7 +155,7 @@ async def chat_event_stream(req: ChatRequest) -> AsyncGenerator[str, None]:
             logger.error("LLM call failed: %s", llm_exc)
             await state_machine.report_llm_failure()
             yield f"event: error\ndata: {json.dumps({'message': f'AI 服务暂时不可用，已切换到本地规则引擎：{llm_exc}'}, ensure_ascii=False)}\n\n"
-            result_text = check_interactions_by_rules(user_msg)
+            result_text = check_interactions_by_rules(user_msg, **_rule_engine_kwargs(req))
             for char in result_text:
                 yield f"event: token\ndata: {json.dumps({'token': char}, ensure_ascii=False)}\n\n"
                 await asyncio.sleep(0.002)

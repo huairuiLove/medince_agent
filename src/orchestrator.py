@@ -1,6 +1,8 @@
 """Multi-agent drug safety review orchestrator."""
 from __future__ import annotations
 
+from typing import Any
+
 from src.agents.chief_reviewer import ChiefReviewerAgent
 from src.agents.coordinator import CoordinatorAgent
 from src.agents.department_specialist import DepartmentSpecialistAgent
@@ -13,10 +15,8 @@ from src.debate.safety_panel import SafetyPanel
 from src.drug_catalog.catalog_service import get_drug_catalog_service
 from src.drug_catalog.terminology import CatalogAwareKnowledgeBase
 from src.llm.client import get_llm_client
-from src.llm.errors import LLMNotConfiguredError
 from src.review_engine import ReviewEngine
 from src.schemas import (
-    AgentOpinion,
     ArbitrationResult,
     CandidateDrug,
     ClarifyOutput,
@@ -36,11 +36,6 @@ class MultiAgentOrchestrator:
         catalog = get_drug_catalog_service()
         kb = CatalogAwareKnowledgeBase(catalog=catalog) if catalog.is_loaded() else None
         self.review_engine = ReviewEngine(kb=kb) if kb else ReviewEngine()
-        self.pharmacist = None
-        self.attending = None
-        self.allergy = None
-        self.pharmacy = None
-        self.specialist = None
         self.chief = None
         self.coordinator = None
         self.debate_engine = None
@@ -51,15 +46,9 @@ class MultiAgentOrchestrator:
             self._llm = get_llm_client()
         return self._llm
 
-    def _ensure_agents(self) -> None:
-        if self.pharmacist is not None:
+    def _ensure_core(self) -> None:
+        if self.chief is not None:
             return
-        registry = get_agent_registry()
-        self.pharmacist = registry.create_agent("clinical_pharmacist", self.llm)
-        self.attending = registry.create_agent("internal_medicine", self.llm)
-        self.allergy = registry.create_agent("allergy_specialist", self.llm)
-        self.pharmacy = registry.create_agent("pharmacy_inventory", self.llm)
-        self.specialist = registry.create_agent("specialist", self.llm)
         self.chief = ChiefReviewerAgent(self.llm, rule_strict=self.rule_strict)
         self.coordinator = CoordinatorAgent(self.llm)
         self.debate_engine = DebateEngine(
@@ -68,33 +57,95 @@ class MultiAgentOrchestrator:
             safety_panel=SafetyPanel(self.review_engine),
         )
 
+    def _default_runtime_config(self) -> dict[str, Any]:
+        registry = get_agent_registry()
+        agent_enabled: dict[str, bool] = {}
+        skills_enabled: dict[str, list[str]] = {}
+        for spec in registry.list_specs():
+            if not spec.debate or spec.is_department_agent:
+                continue
+            agent_enabled[spec.agent_id] = spec.default_enabled
+            skills_enabled[spec.agent_id] = list(spec.default_skills)
+        for spec in registry.list_department_agent_specs():
+            agent_enabled[spec.agent_id] = spec.default_enabled
+            skills_enabled[spec.agent_id] = list(spec.default_skills)
+        return {
+            "agent_enabled": agent_enabled,
+            "skills_enabled": skills_enabled,
+            "custom_skill_bodies": [],
+        }
+
     def _resolve_department_context(self, patient_context: PatientContext) -> DepartmentContext | None:
         dept_id = (patient_context.department or "").strip()
         return get_department_context(dept_id) if dept_id else None
+
+    def _agent_enabled(self, runtime_config: dict[str, Any], agent_id: str, default: bool) -> bool:
+        return bool(runtime_config.get("agent_enabled", {}).get(agent_id, default))
+
+    def _enabled_skills(self, runtime_config: dict[str, Any], agent_id: str, default: list[str]) -> list[str]:
+        return list(runtime_config.get("skills_enabled", {}).get(agent_id, default))
+
+    def _custom_bodies_for(self, runtime_config: dict[str, Any], agent_id: str) -> list[str]:
+        custom = runtime_config.get("custom_skill_bodies") or []
+        return [c["content_md"] for c in custom if c.get("agent_id") == agent_id and c.get("content_md")]
 
     def _active_agents(
         self,
         patient_context: PatientContext,
         candidate_drugs: list[CandidateDrug],
         department_context: DepartmentContext | None = None,
+        runtime_config: dict[str, Any] | None = None,
     ) -> list:
-        self._ensure_agents()
-        agents = [self.pharmacist, self.attending, self.allergy, self.pharmacy]
-        if SpecialistAgent.should_activate(patient_context, candidate_drugs):
-            agents.append(self.specialist)
-
+        self._ensure_core()
         registry = get_agent_registry()
+        cfg = runtime_config or self._default_runtime_config()
         dept_ctx = department_context or self._resolve_department_context(patient_context)
+
+        agents = registry.create_debate_agents(
+            self.llm,
+            agent_enabled=cfg.get("agent_enabled"),
+            skills_enabled=cfg.get("skills_enabled"),
+            custom_skills=cfg.get("custom_skill_bodies"),
+        )
+
+        specialist_spec = registry.get_spec("specialist")
+        if (
+            specialist_spec
+            and SpecialistAgent.should_activate(patient_context, candidate_drugs)
+            and self._agent_enabled(cfg, "specialist", specialist_spec.default_enabled)
+        ):
+            skill_ids = self._enabled_skills(cfg, "specialist", list(specialist_spec.default_skills))
+            agents.append(
+                registry.create_agent(
+                    "specialist",
+                    self.llm,
+                    enabled_skills=skill_ids,
+                    custom_skill_bodies=self._custom_bodies_for(cfg, "specialist"),
+                )
+            )
+
         for spec in registry.list_department_agent_specs():
-            if DepartmentSpecialistAgent.should_activate(
+            if not DepartmentSpecialistAgent.should_activate(
                 spec.agent_id,
                 patient_context,
                 candidate_drugs,
                 dept_ctx,
             ):
-                agent = registry.create_department_agent(spec.agent_id, self.llm, dept_ctx)
-                if agent:
-                    agents.append(agent)
+                continue
+            if not self._agent_enabled(cfg, spec.agent_id, spec.default_enabled):
+                continue
+            skill_ids = self._enabled_skills(cfg, spec.agent_id, list(spec.default_skills))
+            agent = registry.create_department_agent(
+                spec.agent_id,
+                self.llm,
+                dept_ctx,
+                enabled_skills=skill_ids,
+                custom_skill_bodies=self._custom_bodies_for(cfg, spec.agent_id),
+            )
+            if agent:
+                agents.append(agent)
+
+        agents.sort(key=lambda a: a.agent_id)
         return agents
 
     def run(
@@ -104,8 +155,9 @@ class MultiAgentOrchestrator:
         unable_to_answer: bool = False,
         skip_clarify: bool = False,
         rule_output: ReviewOutput | None = None,
+        runtime_config: dict[str, Any] | None = None,
     ) -> MultiReviewResponse:
-        self._ensure_agents()
+        self._ensure_core()
         dept_ctx = self._resolve_department_context(patient_context)
         if rule_output is None:
             rule_output = self.review_engine.review(
@@ -114,7 +166,12 @@ class MultiAgentOrchestrator:
                 department=patient_context.department or None,
                 priority_categories=dept_ctx.priority_categories if dept_ctx else None,
             )
-        agents = self._active_agents(patient_context, candidate_drugs, department_context=dept_ctx)
+        agents = self._active_agents(
+            patient_context,
+            candidate_drugs,
+            department_context=dept_ctx,
+            runtime_config=runtime_config,
+        )
 
         self.debate_engine.agents = agents
         agent_opinions, debate, safety_panel = self.debate_engine.run(
@@ -170,14 +227,14 @@ class MultiAgentOrchestrator:
         )
 
     def list_agents(self) -> list[dict]:
-        self._ensure_agents()
-        roster = [
-            self.pharmacist,
-            self.attending,
-            self.allergy,
-            self.pharmacy,
-            self.specialist,
-            self.chief,
-            self.coordinator,
+        registry = get_agent_registry()
+        return [
+            {
+                "agent_id": spec.agent_id,
+                "agent_name": spec.agent_name,
+                "role": spec.role,
+                "is_department_agent": spec.is_department_agent,
+            }
+            for spec in registry.list_specs()
+            if spec.debate
         ]
-        return [{"agent_id": a.agent_id, "agent_name": a.agent_name, "role": a.role} for a in roster]

@@ -15,15 +15,19 @@ agents:
     - id: base
       title: 基础角色
       file: base.md
+      description: 专科医生身份、职责边界与会诊输出规范
     - id: ddi_review
       title: 药物相互作用审查
       file: ddi_review.md
+      description: CYP、QT、药效学相互作用审查
     - id: dose_review
       title: 剂量与给药途径
       file: dose_review.md
+      description: 剂量、途径、频次与肾功能调整
     - id: duplicate_review
       title: 重复用药审查
       file: duplicate_review.md
+      description: 重复成分与同类药叠加
   internal_medicine:
     module: src.agents.internal_medicine
     class: InternalMedicineAgent
@@ -39,12 +43,15 @@ agents:
     - id: base
       title: 基础角色
       file: base.md
+      description: 专科医生身份、职责边界与会诊输出规范
     - id: indication_match
       title: 适应证匹配
       file: indication_match.md
+      description: 候选药与诊断/适应证一致性
     - id: comorbidity
       title: 合并症评估
       file: comorbidity.md
+      description: 多病共存下的用药路径与 off-label
   allergy_specialist:
     module: src.agents.allergy_specialist
     class: AllergySpecialistAgent
@@ -60,12 +67,15 @@ agents:
     - id: base
       title: 基础角色
       file: base.md
+      description: 专科医生身份、职责边界与会诊输出规范
     - id: cross_allergy
       title: 交叉过敏
       file: cross_allergy.md
+      description: 同类/交叉结构过敏与替代
     - id: adr_history
       title: 既往 ADR
       file: adr_history.md
+      description: 既往不良反应与再暴露风险
   pharmacy_inventory:
     module: src.agents.pharmacy_inventory
     class: PharmacyInventoryAgent
@@ -82,8 +92,9 @@ agents:
       title: 基础角色
       file: base.md
     - id: formulary_check
-      title: Formulary 审查
+      title: 院目录审查
       file: formulary_check.md
+      description: 候选药是否在院 formulary、目录偏差
     - id: stock_alternative
       title: 缺货替代
       file: stock_alternative.md
@@ -91,8 +102,8 @@ agents:
     module: src.agents.specialist_router
     class: SpecialistAgent
     agent_id: specialist
-    agent_name: 专科医生
-    role: 专科禁忌（妊娠/抗凝/老年/感染等）
+    agent_name: 特殊人群审查专员
+    role: 妊娠/哺乳、抗凝、老年等特殊人群专科禁忌审查
     debate: true
     default_enabled: false
     default_skills:
@@ -110,17 +121,21 @@ agents:
       age_gte: 65
     skills:
     - id: base
-      title: 基础角色
+      title: 专科基础能力
       file: base.md
+      description: 专科医生身份、职责边界与会诊输出规范
     - id: pregnancy
       title: 妊娠用药
       file: pregnancy.md
+      description: FDA 分级、致畸风险与替代方案
     - id: anticoagulation
-      title: 抗凝桥接
+      title: 抗凝管理
       file: anticoagulation.md
+      description: 华法林/DOAC 桥接、出血与监测
     - id: geriatric
       title: 老年用药
       file: geriatric.md
+      description: Beers 准则、跌倒与肾功能调整
   chief_reviewer:
     module: src.agents.chief_reviewer
     class: ChiefReviewerAgent
@@ -151,10 +166,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - heart_failure
-    - acs_protocol
-    - anticoag_bridge
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: heart_failure
+      title: 心衰多药联合
+      description: ACEI/ARB/ARNI、螺内酯、SGLT2i 与地高辛浓度监测
+      file: heart_failure.md
+    - id: acs_protocol
+      title: ACS 抗栓方案
+      description: DAPT 时长、P2Y12 与 PPI 联用、他汀与 CYP3A4 抑制剂
+      file: acs_protocol.md
+    - id: anticoag_bridge
+      title: 抗凝桥接
+      description: 围术期华法林/DOAC 桥接与出血-血栓平衡
+      file: anticoag_bridge.md
     activate_when:
       departments:
       - cardiology
@@ -167,6 +194,11 @@ department_agents:
       - digoxin
       - clopidogrel
       - ticagrelor
+    default_skills:
+    - base
+    - heart_failure
+    - acs_protocol
+    - anticoag_bridge
   neurology_specialist:
     agent_id: neurology_specialist
     agent_name: 神经专科
@@ -176,10 +208,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - epilepsy_combo
-    - parkinson_ddi
-    - stroke_prevention
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: epilepsy_combo
+      title: 抗癫痫联合用药
+      description: 多药联合、血药浓度与 CYP 诱导/抑制
+      file: epilepsy_combo.md
+    - id: parkinson_ddi
+      title: 帕金森药物交互
+      description: 左旋多巴、MAO-B 抑制剂与抗精神病药交互
+      file: parkinson_ddi.md
+    - id: stroke_prevention
+      title: 卒中二级预防
+      description: 抗血小板/抗凝、他汀与血压目标管理
+      file: stroke_prevention.md
     activate_when:
       departments:
       - neurology
@@ -189,6 +233,11 @@ department_agents:
       - carbamazepine
       - levodopa
       - phenytoin
+    default_skills:
+    - base
+    - epilepsy_combo
+    - parkinson_ddi
+    - stroke_prevention
   oncology_specialist:
     agent_id: oncology_specialist
     agent_name: 肿瘤专科
@@ -198,10 +247,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - chemo_ddi
-    - immunosuppress
-    - antiemetic_combo
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: chemo_ddi
+      title: 化疗药物交互
+      description: 细胞毒药物与 CYP/QT/骨髓抑制叠加
+      file: chemo_ddi.md
+    - id: immunosuppress
+      title: 免疫抑制管理
+      description: 化疗/生物制剂与感染、TB 筛查及疫苗
+      file: immunosuppress.md
+    - id: antiemetic_combo
+      title: 止吐方案联合
+      description: 5-HT3、NK1 与 QT/镇静叠加
+      file: antiemetic_combo.md
     activate_when:
       departments:
       - oncology
@@ -213,6 +274,11 @@ department_agents:
       - imatinib
       - cyclophosphamide
       - methotrexate
+    default_skills:
+    - base
+    - chemo_ddi
+    - immunosuppress
+    - antiemetic_combo
   pediatrics_specialist:
     agent_id: pediatrics_specialist
     agent_name: 儿科专科
@@ -222,14 +288,31 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - pediatric_dosing
-    - growth_impact
-    - vaccine_interaction
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: pediatric_dosing
+      title: 儿科剂量换算
+      description: 按体重/体表面积换算与年龄禁忌
+      file: pediatric_dosing.md
+    - id: growth_impact
+      title: 生长发育影响
+      description: 激素、抗癫痫药对生长与发育的影响
+      file: growth_impact.md
+    - id: vaccine_interaction
+      title: 疫苗接种交互
+      description: 活疫苗与免疫抑制、接种时机
+      file: vaccine_interaction.md
     activate_when:
       departments:
       - pediatrics
       age_lt: 18
+    default_skills:
+    - base
+    - pediatric_dosing
+    - growth_impact
+    - vaccine_interaction
   obgyn_specialist:
     agent_id: obgyn_specialist
     agent_name: 妇产专科
@@ -239,14 +322,31 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - teratogen
-    - lactation_safety
-    - tocolysis
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: teratogen
+      title: 致畸风险审查
+      description: FDA 分级、致畸药物与避孕要求
+      file: teratogen.md
+    - id: lactation_safety
+      title: 哺乳期用药安全
+      description: 乳汁排泄、婴儿暴露与替代方案
+      file: lactation_safety.md
+    - id: tocolysis
+      title: 宫缩抑制剂审查
+      description: β 激动剂、镁剂与母胎安全
+      file: tocolysis.md
     activate_when:
       departments:
       - obstetrics_gynecology
       pregnancy_active: true
+    default_skills:
+    - base
+    - teratogen
+    - lactation_safety
+    - tocolysis
   icu_specialist:
     agent_id: icu_specialist
     agent_name: 重症专科
@@ -256,10 +356,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - vasoactive
-    - sedation_protocol
-    - crrt_adjustment
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: vasoactive
+      title: 血管活性药物
+      description: 升压/正性肌力药联用与心律失常风险
+      file: vasoactive.md
+    - id: sedation_protocol
+      title: 镇静镇痛方案
+      description: 阿片+苯二氮䓬呼吸抑制与撤药
+      file: sedation_protocol.md
+    - id: crrt_adjustment
+      title: CRRT 剂量调整
+      description: CRRT 日给药时机与肾排泄药物
+      file: crrt_adjustment.md
     activate_when:
       departments:
       - icu
@@ -270,6 +382,11 @@ department_agents:
       - midazolam
       - fentanyl
       - meropenem
+    default_skills:
+    - base
+    - vasoactive
+    - sedation_protocol
+    - crrt_adjustment
   respiratory_specialist:
     agent_id: respiratory_specialist
     agent_name: 呼吸专科
@@ -279,10 +396,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - copd_management
-    - inhaled_therapy
-    - respiratory_antibiotic
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: copd_management
+      title: COPD 综合管理
+      description: ICS/LABA/LAMA 联合与急性加重抗感染
+      file: copd_management.md
+    - id: inhaled_therapy
+      title: 吸入治疗审查
+      description: 吸入激素与 CYP3A4 抑制剂全身暴露
+      file: inhaled_therapy.md
+    - id: respiratory_antibiotic
+      title: 呼吸抗感染
+      description: 社区/院内肺炎抗菌谱与 QT/过敏
+      file: respiratory_antibiotic.md
     activate_when:
       departments:
       - respiratory
@@ -292,6 +421,11 @@ department_agents:
       - salbutamol
       - budesonide
       - montelukast
+    default_skills:
+    - base
+    - copd_management
+    - inhaled_therapy
+    - respiratory_antibiotic
   neurosurgery_specialist:
     agent_id: neurosurgery_specialist
     agent_name: 神经外科专科
@@ -301,10 +435,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - perioperative_anticoag
-    - intracranial_htn
-    - seizure_prophylaxis
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: perioperative_anticoag
+      title: 颅脑围术期抗凝
+      description: 颅脑手术抗凝桥接与再出血风险
+      file: perioperative_anticoag.md
+    - id: intracranial_htn
+      title: 颅内压管理用药
+      description: 地塞米松、甘露醇与电解质监测
+      file: intracranial_htn.md
+    - id: seizure_prophylaxis
+      title: 癫痫预防用药
+      description: 围术期抗癫痫药选择与浓度监测
+      file: seizure_prophylaxis.md
     activate_when:
       departments:
       - neurosurgery
@@ -313,6 +459,11 @@ department_agents:
       - dexamethasone
       - phenytoin
       - mannitol
+    default_skills:
+    - base
+    - perioperative_anticoag
+    - intracranial_htn
+    - seizure_prophylaxis
   radiology_specialist:
     agent_id: radiology_specialist
     agent_name: 放射专科
@@ -322,10 +473,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - contrast_safety
-    - metformin_hold
-    - allergy_premedication
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: contrast_safety
+      title: 造影剂安全
+      description: 碘/钆造影剂过敏、肾功能与 eGFR 阈值
+      file: contrast_safety.md
+    - id: metformin_hold
+      title: 二甲双胍暂停
+      description: 增强 CT 前后暂停/恢复与乳酸酸中毒
+      file: metformin_hold.md
+    - id: allergy_premedication
+      title: 造影剂过敏预处理
+      description: 预处理方案与 β 阻滞剂/哮喘交互
+      file: allergy_premedication.md
     activate_when:
       departments:
       - radiology
@@ -334,6 +497,11 @@ department_agents:
       - iodixanol
       - gadolinium
       - metformin
+    default_skills:
+    - base
+    - contrast_safety
+    - metformin_hold
+    - allergy_premedication
   gastroenterology_specialist:
     agent_id: gastroenterology_specialist
     agent_name: 消化专科
@@ -343,10 +511,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - ppi_antiplatelet
-    - ibd_immunosuppress
-    - hepatic_metabolism
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: ppi_antiplatelet
+      title: PPI 与抗血小板
+      description: PPI 与氯吡格雷 CYP2C19 及 GI 保护
+      file: ppi_antiplatelet.md
+    - id: ibd_immunosuppress
+      title: IBD 免疫抑制
+      description: 生物制剂/硫嘌呤与感染、TB 筛查
+      file: ibd_immunosuppress.md
+    - id: hepatic_metabolism
+      title: 肝代谢与剂量
+      description: Child-Pugh 分级下剂量与肝毒性上限
+      file: hepatic_metabolism.md
     activate_when:
       departments:
       - gastroenterology
@@ -355,6 +535,11 @@ department_agents:
       - pantoprazole
       - infliximab
       - mesalazine
+    default_skills:
+    - base
+    - ppi_antiplatelet
+    - ibd_immunosuppress
+    - hepatic_metabolism
   emergency_specialist:
     agent_id: emergency_specialist
     agent_name: 急诊专科
@@ -364,10 +549,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - acute_toxicology
-    - resuscitation_drugs
-    - analgesia_sedation
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: acute_toxicology
+      title: 急性中毒处理
+      description: NAC、阿片/苯二氮䓬拮抗与再中毒
+      file: acute_toxicology.md
+    - id: resuscitation_drugs
+      title: 复苏用药
+      description: 肾上腺素、钙剂与 β 阻滞剂/洋地黄交互
+      file: resuscitation_drugs.md
+    - id: analgesia_sedation
+      title: 急诊镇痛镇静
+      description: 阿片+苯二氮䓬呼吸抑制与休克下选择
+      file: analgesia_sedation.md
     activate_when:
       departments:
       - emergency
@@ -377,6 +574,11 @@ department_agents:
       - morphine
       - midazolam
       - flumazenil
+    default_skills:
+    - base
+    - acute_toxicology
+    - resuscitation_drugs
+    - analgesia_sedation
   pharmacy_specialist:
     agent_id: pharmacy_specialist
     agent_name: 药学专科
@@ -386,10 +588,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - high_alert_review
-    - formulary_alignment
-    - pharmacy_ddi
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: high_alert_review
+      title: 高警示药品
+      description: 抗凝、胰岛素、化疗、阿片双重核对
+      file: high_alert_review.md
+    - id: formulary_alignment
+      title: 院目录一致性
+      description: 院内外购药偏差、替代与库存
+      file: formulary_alignment.md
+    - id: pharmacy_ddi
+      title: 药学 DDI 复核
+      description: 跨科室复杂 DDI 与剂量/途径合理性
+      file: pharmacy_ddi.md
     activate_when:
       departments:
       - pharmacy
@@ -399,6 +613,11 @@ department_agents:
       - methotrexate
       - morphine
       - amiodarone
+    default_skills:
+    - base
+    - high_alert_review
+    - formulary_alignment
+    - pharmacy_ddi
   general_internal_specialist:
     agent_id: general_internal_specialist
     agent_name: 普内专科
@@ -408,10 +627,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - polypharmacy
-    - chronic_disease_combo
-    - comorbidity_risk
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: polypharmacy
+      title: 多重用药审查
+      description: ≥5 种药物时重复成分与抗胆碱负荷
+      file: polypharmacy.md
+    - id: chronic_disease_combo
+      title: 慢病联合用药
+      description: 三高联合与 eGFR 相关调整
+      file: chronic_disease_combo.md
+    - id: comorbidity_risk
+      title: 合并症风险
+      description: CKD、肝病、心衰时的剂量与禁忌
+      file: comorbidity_risk.md
     activate_when:
       departments:
       - general_internal
@@ -420,6 +651,11 @@ department_agents:
       - lisinopril
       - metformin
       - atorvastatin
+    default_skills:
+    - base
+    - polypharmacy
+    - chronic_disease_combo
+    - comorbidity_risk
   nephrology_specialist:
     agent_id: nephrology_specialist
     agent_name: 肾内专科
@@ -429,10 +665,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - renal_dose_adjust
-    - hyperkalemia_risk
-    - dialysis_medication
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: renal_dose_adjust
+      title: 肾剂量调整
+      description: 按 eGFR 调整 DOAC、氨基糖苷等
+      file: renal_dose_adjust.md
+    - id: hyperkalemia_risk
+      title: 高钾风险
+      description: ACEI/ARB+螺内酯+保钾利尿剂叠加
+      file: hyperkalemia_risk.md
+    - id: dialysis_medication
+      title: 透析用药
+      description: 透析日给药时机与造影剂肾病预防
+      file: dialysis_medication.md
     activate_when:
       departments:
       - nephrology
@@ -441,6 +689,11 @@ department_agents:
       - spironolactone
       - sevelamer
       - calcitriol
+    default_skills:
+    - base
+    - renal_dose_adjust
+    - hyperkalemia_risk
+    - dialysis_medication
   endocrinology_specialist:
     agent_id: endocrinology_specialist
     agent_name: 内分泌专科
@@ -450,10 +703,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - diabetes_combo
-    - thyroid_ddi
-    - steroid_management
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: diabetes_combo
+      title: 糖尿病多药联合
+      description: 磺脲重复、胰岛素+SGLT2 低血糖/脱水
+      file: diabetes_combo.md
+    - id: thyroid_ddi
+      title: 甲状腺用药
+      description: 左甲状腺素吸收间隔与胺碘酮致甲功异常
+      file: thyroid_ddi.md
+    - id: steroid_management
+      title: 激素管理
+      description: 应激剂量、库欣与降糖方案调整
+      file: steroid_management.md
     activate_when:
       departments:
       - endocrinology
@@ -462,6 +727,11 @@ department_agents:
       - glibenclamide
       - levothyroxine
       - insulin
+    default_skills:
+    - base
+    - diabetes_combo
+    - thyroid_ddi
+    - steroid_management
   geriatrics_specialist:
     agent_id: geriatrics_specialist
     agent_name: 老年专科
@@ -471,10 +741,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - beers_criteria
-    - fall_risk
-    - deprescribing
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: beers_criteria
+      title: Beers 准则
+      description: 苯二氮䓬、抗胆碱能药等老年禁忌
+      file: beers_criteria.md
+    - id: fall_risk
+      title: 跌倒风险
+      description: 镇静/降压/α 阻滞剂致体位性低血压
+      file: fall_risk.md
+    - id: deprescribing
+      title: 去处方化
+      description: 冗余 PPI、苯二氮䓬与重复成分精简
+      file: deprescribing.md
     activate_when:
       departments:
       - geriatrics
@@ -483,6 +765,11 @@ department_agents:
       - diphenhydramine
       - glyburide
       - tramadol
+    default_skills:
+    - base
+    - beers_criteria
+    - fall_risk
+    - deprescribing
   rheumatology_specialist:
     agent_id: rheumatology_specialist
     agent_name: 风湿专科
@@ -492,10 +779,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - mtx_monitoring
-    - biologic_infection
-    - nsaid_gi_risk
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: mtx_monitoring
+      title: MTX 监测
+      description: MTX+NSAIDs/甲氧苄啶毒性；叶酸与 LFT
+      file: mtx_monitoring.md
+    - id: biologic_infection
+      title: 生物制剂感染
+      description: TNF 抑制剂与活动性感染/TB；活疫苗
+      file: biologic_infection.md
+    - id: nsaid_gi_risk
+      title: NSAIDs 胃肠道风险
+      description: NSAIDs+抗凝/激素 GI 出血与肾毒性
+      file: nsaid_gi_risk.md
     activate_when:
       departments:
       - rheumatology
@@ -504,6 +803,11 @@ department_agents:
       - leflunomide
       - infliximab
       - adalimumab
+    default_skills:
+    - base
+    - mtx_monitoring
+    - biologic_infection
+    - nsaid_gi_risk
   infectious_disease_specialist:
     agent_id: infectious_disease_specialist
     agent_name: 感染专科
@@ -513,10 +817,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - antibiotic_spectrum
-    - resistance_stewardship
-    - hiv_tb_antifungal
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: antibiotic_spectrum
+      title: 抗感染谱系
+      description: 经验/目标治疗谱系与交叉过敏
+      file: antibiotic_spectrum.md
+    - id: resistance_stewardship
+      title: 耐药管理
+      description: 碳青霉烯/万古霉素/利奈唑胺指征与 TDM
+      file: resistance_stewardship.md
+    - id: hiv_tb_antifungal
+      title: HIV/TB/真菌 DDI
+      description: 抗结核/HIV/抗真菌与 CYP 强抑制/诱导
+      file: hiv_tb_antifungal.md
     activate_when:
       departments:
       - infectious_disease
@@ -525,6 +841,11 @@ department_agents:
       - meropenem
       - linezolid
       - fluconazole
+    default_skills:
+    - base
+    - antibiotic_spectrum
+    - resistance_stewardship
+    - hiv_tb_antifungal
   orthopedic_specialist:
     agent_id: orthopedic_specialist
     agent_name: 骨科专科
@@ -534,10 +855,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - perioperative_anticoag
-    - nsaid_bone_healing
-    - vte_prophylaxis
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: perioperative_anticoag
+      title: 骨科围术期抗凝
+      description: 关节/脊柱手术抗凝桥接与出血平衡
+      file: perioperative_anticoag.md
+    - id: nsaid_bone_healing
+      title: NSAIDs 与骨愈合
+      description: NSAIDs 对骨愈合影响及出血风险
+      file: nsaid_bone_healing.md
+    - id: vte_prophylaxis
+      title: VTE 预防
+      description: LMWH/DOAC 剂量、肾功能与硬膜外禁忌
+      file: vte_prophylaxis.md
     activate_when:
       departments:
       - orthopedic
@@ -546,6 +879,11 @@ department_agents:
       - enoxaparin
       - warfarin
       - celecoxib
+    default_skills:
+    - base
+    - perioperative_anticoag
+    - nsaid_bone_healing
+    - vte_prophylaxis
   urology_specialist:
     agent_id: urology_specialist
     agent_name: 泌尿专科
@@ -555,10 +893,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - alpha_blocker_hypotension
-    - anticoag_prostate
-    - renal_stone_analgesia
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: alpha_blocker_hypotension
+      title: α 阻滞剂低血压
+      description: 多种 α 阻滞剂与 PDE5 抑制剂
+      file: alpha_blocker_hypotension.md
+    - id: anticoag_prostate
+      title: 前列腺围术期抗凝
+      description: 前列腺手术/活检围术期抗凝管理
+      file: anticoag_prostate.md
+    - id: renal_stone_analgesia
+      title: 泌尿系绞痛镇痛
+      description: 结石 NSAIDs/阿片与肾毒性药物
+      file: renal_stone_analgesia.md
     activate_when:
       departments:
       - urology
@@ -567,6 +917,11 @@ department_agents:
       - finasteride
       - doxazosin
       - sildenafil
+    default_skills:
+    - base
+    - alpha_blocker_hypotension
+    - anticoag_prostate
+    - renal_stone_analgesia
   anesthesiology_specialist:
     agent_id: anesthesiology_specialist
     agent_name: 麻醉专科
@@ -576,10 +931,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - induction_agents
-    - anticoag_periop
-    - malignant_hyperthermia
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: induction_agents
+      title: 麻醉诱导用药
+      description: 诱导药+阿片/苯二氮䓬呼吸抑制与 QT
+      file: induction_agents.md
+    - id: anticoag_periop
+      title: 麻醉围术期抗凝
+      description: 区域麻醉与抗凝/抗血小板时间窗
+      file: anticoag_periop.md
+    - id: malignant_hyperthermia
+      title: 恶性高热
+      description: 挥发性麻醉/琥珀胆碱与丹曲林准备
+      file: malignant_hyperthermia.md
     activate_when:
       departments:
       - anesthesiology
@@ -588,6 +955,11 @@ department_agents:
       - midazolam
       - succinylcholine
       - sevoflurane
+    default_skills:
+    - base
+    - induction_agents
+    - anticoag_periop
+    - malignant_hyperthermia
   psychiatry_specialist:
     agent_id: psychiatry_specialist
     agent_name: 精神专科
@@ -597,10 +969,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - serotonergic_syndrome
-    - qt_psychotropics
-    - mood_stabilizer
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: serotonergic_syndrome
+      title: 五羟色胺综合征
+      description: SSRI+曲马多/MAOI/利奈唑胺等
+      file: serotonergic_syndrome.md
+    - id: qt_psychotropics
+      title: 精神药物 QT 延长
+      description: 抗精神病+大环内酯/氟喹诺酮 QT 风险
+      file: qt_psychotropics.md
+    - id: mood_stabilizer
+      title: 心境稳定剂
+      description: 锂盐+NSAIDs/ACEI 致锂中毒；丙戊酸交互
+      file: mood_stabilizer.md
     activate_when:
       departments:
       - psychiatry
@@ -610,6 +994,11 @@ department_agents:
       - quetiapine
       - lithium
       - risperidone
+    default_skills:
+    - base
+    - serotonergic_syndrome
+    - qt_psychotropics
+    - mood_stabilizer
   dermatology_specialist:
     agent_id: dermatology_specialist
     agent_name: 皮肤专科
@@ -619,10 +1008,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - systemic_immunosuppress
-    - retinoid_teratogenicity
-    - topical_systemic
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: systemic_immunosuppress
+      title: 系统免疫抑制
+      description: MTX/环孢素与感染、肝毒性
+      file: systemic_immunosuppress.md
+    - id: retinoid_teratogenicity
+      title: 维 A 酸致畸
+      description: 异维 A 酸/阿维 A 酯致畸与避孕
+      file: retinoid_teratogenicity.md
+    - id: topical_systemic
+      title: 外用与全身叠加
+      description: 外用激素/β 阻滞剂与系统用药叠加
+      file: topical_systemic.md
     activate_when:
       departments:
       - dermatology
@@ -631,6 +1032,11 @@ department_agents:
       - acitretin
       - cyclosporine
       - isotretinoin
+    default_skills:
+    - base
+    - systemic_immunosuppress
+    - retinoid_teratogenicity
+    - topical_systemic
   ophthalmology_specialist:
     agent_id: ophthalmology_specialist
     agent_name: 眼科专科
@@ -640,10 +1046,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - ocular_toxicity
-    - topical_beta_blocker
-    - glaucoma_systemic
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: ocular_toxicity
+      title: 眼毒性审查
+      description: 胺碘酮/羟氯喹等药物性视网膜/角膜病变
+      file: ocular_toxicity.md
+    - id: topical_beta_blocker
+      title: 局部 β 阻滞剂
+      description: 噻吗洛尔滴眼液+口服 β 阻滞剂
+      file: topical_beta_blocker.md
+    - id: glaucoma_systemic
+      title: 青光眼系统用药
+      description: 碳酸酐酶抑制剂与磺胺过敏
+      file: glaucoma_systemic.md
     activate_when:
       departments:
       - ophthalmology
@@ -652,6 +1070,11 @@ department_agents:
       - latanoprost
       - acetazolamide
       - amiodarone
+    default_skills:
+    - base
+    - ocular_toxicity
+    - topical_beta_blocker
+    - glaucoma_systemic
   ent_specialist:
     agent_id: ent_specialist
     agent_name: 耳鼻喉专科
@@ -661,10 +1084,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - ototoxicity
-    - airway_sedation
-    - postop_analgesia
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: ototoxicity
+      title: 耳毒性
+      description: 氨基糖苷/袢利尿剂耳毒性与听力监测
+      file: ototoxicity.md
+    - id: airway_sedation
+      title: 气道与镇静
+      description: 上气道手术镇静与误吸风险
+      file: airway_sedation.md
+    - id: postop_analgesia
+      title: 头颈术后镇痛
+      description: NSAIDs/阿片与抗凝出血平衡
+      file: postop_analgesia.md
     activate_when:
       departments:
       - ent
@@ -673,6 +1108,11 @@ department_agents:
       - amoxicillin
       - dexamethasone
       - pseudoephedrine
+    default_skills:
+    - base
+    - ototoxicity
+    - airway_sedation
+    - postop_analgesia
   rehabilitation_specialist:
     agent_id: rehabilitation_specialist
     agent_name: 康复专科
@@ -682,10 +1122,22 @@ department_agents:
     debate: true
     default_enabled: false
     skills:
-    - base
-    - stroke_secondary_prevention
-    - spasticity_mgmt
-    - long_term_polypharmacy
+    - id: base
+      title: 专科基础能力
+      description: 专科医生身份、职责边界与会诊输出规范
+      file: base.md
+    - id: stroke_secondary_prevention
+      title: 卒中二级预防
+      description: 抗血小板/抗凝、他汀与出血风险
+      file: stroke_secondary_prevention.md
+    - id: spasticity_mgmt
+      title: 痉挛管理
+      description: 巴氯芬/替扎尼定与镇静、肝毒性
+      file: spasticity_mgmt.md
+    - id: long_term_polypharmacy
+      title: 长期多重用药
+      description: 康复期去处方化与功能优化
+      file: long_term_polypharmacy.md
     activate_when:
       departments:
       - rehabilitation
@@ -694,3 +1146,8 @@ department_agents:
       - clopidogrel
       - aspirin
       - tizanidine
+    default_skills:
+    - base
+    - stroke_secondary_prevention
+    - spasticity_mgmt
+    - long_term_polypharmacy

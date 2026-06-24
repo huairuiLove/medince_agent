@@ -9,7 +9,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src.mimic_store import MimicStore, _REQUIRED_RAW_TABLES
+from src.mimic_io import resolve_table_path, table_exists
+from src.mimic_store import MimicStore
+
+_RAW_TABLE_BASES = (
+    "PATIENTS.csv",
+    "ADMISSIONS.csv",
+    "PRESCRIPTIONS.csv",
+    "DIAGNOSES_ICD.csv",
+    "D_ICD_DIAGNOSES.csv",
+    "NOTEEVENTS.csv",
+    "LABEVENTS.csv",
+    "ICUSTAYS.csv",
+)
 
 FULL_MIMIC_PRESCRIPTION_BYTES = 50_000_000
 
@@ -31,20 +43,21 @@ def validate(*, strict: bool = False) -> int:
     if not raw_dir.is_dir():
         issues.append(f"raw_dir missing: {raw_dir}")
     else:
-        for table in _REQUIRED_RAW_TABLES:
-            path = raw_dir / table
-            if not path.is_file():
+        for table in _RAW_TABLE_BASES:
+            path = resolve_table_path(raw_dir, table)
+            if path is None:
                 issues.append(f"missing table: {table}")
                 continue
             size_mb = path.stat().st_size / (1024 * 1024)
             rows = _count_csv_rows(path)
-            ok_lines.append(f"  OK {table}: {rows:,} rows, {size_mb:.1f} MB")
+            ok_lines.append(f"  OK {path.name}: {rows:,} rows, {size_mb:.1f} MB")
 
         all_csv = sorted(p.name for p in raw_dir.glob("*.csv"))
-        ok_lines.append(f"  total CSV tables: {len(all_csv)}")
+        all_gz = sorted(p.name for p in raw_dir.glob("*.csv.gz"))
+        ok_lines.append(f"  total CSV tables: {len(all_csv)} (+ {len(all_gz)} gzipped)")
 
-        rx = raw_dir / "PRESCRIPTIONS.csv"
-        if rx.is_file():
+        rx = resolve_table_path(raw_dir, "PRESCRIPTIONS.csv")
+        if rx is not None:
             if rx.stat().st_size >= FULL_MIMIC_PRESCRIPTION_BYTES:
                 ok_lines.append("  dataset tier: full MIMIC-III 1.4")
             else:
@@ -66,13 +79,16 @@ def validate(*, strict: bool = False) -> int:
         print(f"  with clinical notes: {stats.with_clinical_notes}")
         print(f"  with medications: {stats.with_medications}")
         print(f"  with diagnoses: {stats.with_diagnoses}")
+        print(f"  with labs: {stats.with_labs}")
+        print(f"  with ICU: {stats.with_icu}")
+        print(f"  with imaging: {stats.with_imaging}")
+        print(f"  dataset tier: {stats.dataset_tier}")
         if stats.age_min is not None:
             print(f"  age range: {stats.age_min}~{stats.age_max}")
         if stats.context_count == 0:
             issues.append("processed file empty")
         if strict and stats.with_clinical_notes == 0:
-            rx = raw_dir / "NOTEEVENTS.csv.gz"
-            if (raw_dir / "NOTEEVENTS.csv").is_file() or rx.is_file():
+            if table_exists(raw_dir, "NOTEEVENTS.csv"):
                 issues.append("full NOTEEVENTS present but contexts lack chief_complaint — rebuild with notes")
     else:
         issues.append(f"processed contexts missing: run `python -m src.cli build-mimic`")

@@ -80,6 +80,18 @@ curl -s http://localhost:8000/api/v1/drug-catalog/stats | python -m json.tool
 
 MedSafe 支持 **PIS 药事系统 CSV 导出** 作为院目录数据源（试点医院最常见方式）。
 
+### MIMIC-III 完整临床数据
+
+若已下载 PhysioNet MIMIC-III 1.4，放置于 `datasets/mimic-iii-clinical-database-1.4/` 后：
+
+```bash
+source .venv/bin/activate
+python scripts/validate_mimic_data.py
+python -m src.cli build-mimic --max-samples 0   # 全量 ETL（约 30–90 分钟）
+```
+
+构建后在 **会诊页** 可浏览/载入真实住院记录；API：`GET /api/v1/mimic/patients`。详见 [docs/MIMIC_III_SETUP.md](docs/MIMIC_III_SETUP.md)。
+
 ### CSV 格式
 
 模板见 `datasets/hospital/formulary_sample.csv`（最小样例）与 `datasets/hospital/formulary_demo.csv`（**1120 行演示库**）。

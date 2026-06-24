@@ -13,9 +13,9 @@ from src.prompts import SPECIALIST_SYSTEM_PROMPT, pretty_json
 from src.schemas import AgentOpinion, CandidateDrug, PatientContext, RuleEvidence
 
 _SPECIALIST_INSTRUCTION = (
-    "你是专科医生，仅审查妊娠/哺乳、老年、肝肾功能等特殊人群禁忌与专科场景规则。"
+    "你是特殊人群审查专员，仅审查妊娠/哺乳、老年、肝肾功能等特殊人群禁忌与场景规则。"
     "不要写 DDI/CYP、一般适应证、过敏、库存/formulary 等内容。"
-    "若无专科规则命中，block_decision 应为 false，risk_level 通常为 low。"
+    "若无相关规则命中，block_decision 应为 false，risk_level 通常为 low。"
 )
 
 _FOREIGN_MARKERS = (
@@ -31,8 +31,8 @@ _FOREIGN_MARKERS = (
 
 class SpecialistAgent(LLMAgent):
     agent_id = "specialist"
-    agent_name = "专科医生"
-    role = "专科禁忌审查（妊娠/抗凝/感染等）"
+    agent_name = "特殊人群审查专员"
+    role = "妊娠/哺乳、抗凝、老年等特殊人群专科禁忌审查"
     system_prompt = SPECIALIST_SYSTEM_PROMPT
 
     def __init__(self, llm: LLMClient, system_prompt: str | None = None) -> None:

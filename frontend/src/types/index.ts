@@ -11,6 +11,8 @@ export interface DrugItem {
 }
 
 export interface PatientContext {
+  subject_id?: number
+  hadm_id?: number
   gender: string
   age?: number | null
   pregnancy_status?: string
@@ -18,9 +20,59 @@ export interface PatientContext {
   current_medications?: DrugItem[]
   missing_fields?: string[]
   chief_complaint?: string
+  history_present_illness?: string
+  past_medical_history?: string[]
   symptoms_or_complaints?: string[]
   diagnoses?: { name: string; icd9_code?: string }[]
   source_text?: string
+  admission_type?: string
+  department?: string
+  egfr?: number | null
+  labs?: Record<string, number>
+  icu_stay?: boolean
+  has_imaging?: boolean
+}
+
+export interface MimicPatientSummary {
+  subject_id: number
+  hadm_id: number
+  gender: string
+  age?: number | null
+  admission_type?: string
+  diagnosis_count: number
+  medication_count: number
+  has_chief_complaint: boolean
+  has_allergies: boolean
+  icu_stay: boolean
+  has_imaging: boolean
+  egfr?: number | null
+  primary_diagnosis?: string
+}
+
+export interface MimicPatientListResponse {
+  total: number
+  offset: number
+  limit: number
+  items: MimicPatientSummary[]
+}
+
+export interface MimicDataStatsResponse {
+  raw_dir: string
+  raw_available: boolean
+  raw_tables_present: number
+  raw_tables_required: number
+  processed_path: string
+  processed_available: boolean
+  context_count: number
+  with_clinical_notes: number
+  with_medications: number
+  with_diagnoses: number
+  with_labs: number
+  with_icu: number
+  with_imaging: number
+  age_min?: number | null
+  age_max?: number | null
+  dataset_tier: string
 }
 
 export interface RuleEvidence {
@@ -189,6 +241,18 @@ export interface CaseSummary {
   agent_count: number
 }
 
+export interface KnowledgeBaseStats {
+  version?: string
+  path?: string
+  total_rules: number
+  interaction_rules: number
+  duplicate_ingredient_rules: number
+  population_rules: number
+  allergy_rules: number
+  scenario_rules: number
+  drug_aliases: number
+}
+
 export interface HealthResponse {
   status: string
   version: string
@@ -196,6 +260,7 @@ export interface HealthResponse {
   llm_configured?: boolean
   llm_provider: string
   vision_llm_configured?: boolean
+  knowledge_base?: KnowledgeBaseStats
 }
 
 export interface AgentInfo {
@@ -272,6 +337,16 @@ export interface SegmentResultItem {
   notes: string
 }
 
+export interface SegmentResponse {
+  results: SegmentResultItem[]
+  memory_peak_mb: number
+  run_id?: string
+  image_key?: string
+  compute_mode?: 'local' | 'remote'
+  fallback_from_remote?: boolean
+  compute_message?: string
+}
+
 export interface SegmentRunRecord {
   run_id: string
   patient_id: string
@@ -292,7 +367,7 @@ export interface VlmAnalysis {
   clinical_analysis?: string
   imaging_findings?: string
   medication_recommendation?: string
-  recommended_drugs?: DrugItem[]
+  recommended_drugs?: Array<DrugItem | string>
   allergies?: string[]
   diagnoses?: string[]
   symptoms?: string[]
@@ -341,6 +416,21 @@ export interface DepartmentInfo {
   dept_id: string
   name_cn: string
   name_en?: string
+  imaging_sources?: string[]
+  default_models?: string[]
+  recommended_datasets?: Array<{
+    id: string
+    name: string
+    modality?: string
+    notes?: string
+    url?: string
+  }>
+  vision_models?: Array<{
+    model_id: string
+    name: string
+    task?: string
+    download?: string
+  }>
   nav_routes?: string[]
   description?: string
 }
@@ -391,10 +481,17 @@ export interface AgentConfigInfo {
   enabled_skills?: string[]
 }
 
+export interface CustomSkillInfo {
+  skill_id: string
+  agent_id: string
+  title: string
+  content_md: string
+}
+
 export interface DoctorWorkspace {
   profile: UserProfile
   agents: AgentConfigInfo[]
-  custom_skills: Record<string, unknown>[]
+  custom_skills: CustomSkillInfo[]
 }
 
 export interface TokenResponse {

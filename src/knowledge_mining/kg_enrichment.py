@@ -153,7 +153,7 @@ def enrich_knowledge_graph(
             drug_id,
             class_id,
             "BELONGS_TO_CLASS",
-            {"evidence_level": "A", "source": "formulary_atc"},
+            {"evidence_level": "A", "provenance": "formulary_atc"},
         )
 
         for prefix, condition_id in ATC_INDICATION_MAP.items():

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useMultiConsult } from '@/composables/useMultiConsult'
 import type { PatientContext, DrugItem, CaseTemplate } from '@/types'
 import { drugsWithoutIndication, drugDetailParts, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
+import MimicPatientPicker from '@/components/consult/MimicPatientPicker.vue'
 import AgentOpinionCard from '@/components/consult/AgentOpinionCard.vue'
 import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
 import ClarifyPanel from '@/components/consult/ClarifyPanel.vue'
@@ -94,6 +95,25 @@ function loadTemplate(templateId: string) {
 
 function onTemplateSelect() {
   if (selectedTemplateId.value) loadTemplate(selectedTemplateId.value)
+}
+
+function onMimicLoaded(ctx: PatientContext) {
+  inputMode.value = 'form'
+  selectedTemplateId.value = ''
+  patient.value = {
+    ...ctx,
+    diagnoses: [...(ctx.diagnoses ?? [])],
+    current_medications: [...(ctx.current_medications ?? [])],
+    allergies: [...(ctx.allergies ?? [])],
+    department: auth.profile?.dept_id ?? ctx.department ?? '',
+  }
+  if (ctx.source_text?.trim()) {
+    clinicalText.value = ctx.source_text
+  } else if (ctx.chief_complaint || ctx.history_present_illness) {
+    clinicalText.value = [ctx.chief_complaint, ctx.history_present_illness].filter(Boolean).join('\n')
+  }
+  drugs.value = []
+  reset()
 }
 
 function clearForm() {
@@ -202,6 +222,8 @@ const arb = computed(() => result.value?.arbitration)
 
     <div class="grid-2">
       <section class="card input-panel">
+        <MimicPatientPicker @loaded="onMimicLoaded" />
+
         <div v-if="myDeptId || templates.length" class="template-row">
           <label class="label">
             载入病例模板（{{ auth.department?.name_cn ?? '本科室' }}）

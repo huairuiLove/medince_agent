@@ -24,6 +24,37 @@ def get_default_kb_path() -> Path:
     return path
 
 
+def summarize_kb_stats(data: dict[str, Any]) -> dict[str, Any]:
+    aliases = data.get("drug_aliases") or {}
+    interaction = data.get("interaction_rules") or []
+    return {
+        "interaction_rules": len(interaction),
+        "duplicate_ingredient_rules": len(data.get("duplicate_ingredient_rules") or []),
+        "population_rules": len(data.get("population_rules") or []),
+        "allergy_rules": len(data.get("allergy_rules") or []),
+        "scenario_rules": len(data.get("scenario_rules") or []),
+        "drug_aliases": len(aliases) if isinstance(aliases, dict) else 0,
+        "total_rules": (
+            len(interaction)
+            + len(data.get("duplicate_ingredient_rules") or [])
+            + len(data.get("population_rules") or [])
+            + len(data.get("allergy_rules") or [])
+            + len(data.get("scenario_rules") or [])
+        ),
+    }
+
+
+def load_kb_stats(kb_path: str | Path | None = None) -> dict[str, Any]:
+    path = Path(kb_path) if kb_path else get_default_kb_path()
+    from src.config import get_config
+
+    version = get_config().get("clinical_knowledge", {}).get("version", path.stem)
+    stats = summarize_kb_stats(load_json(path))
+    stats["version"] = version
+    stats["path"] = path.name
+    return stats
+
+
 class SafetyKnowledgeBase:
     def __init__(self, kb_path: str | Path | None = None) -> None:
         self.kb_path = Path(kb_path) if kb_path else get_default_kb_path()
@@ -44,6 +75,18 @@ class SafetyKnowledgeBase:
             alias_map[ingredient] = ingredient
             for alias in rule.get("aliases", []):
                 alias_map[normalize_text(alias)] = ingredient
+
+        from src.config import datasets_path
+
+        inn_path = datasets_path("knowledge/drug_inn_map.json")
+        if inn_path.exists():
+            inn_data = load_json(inn_path)
+            for cn, en in (inn_data.get("map") or {}).items():
+                canonical = normalize_text(str(en))
+                if not canonical:
+                    continue
+                alias_map[normalize_text(str(cn))] = canonical
+                alias_map[canonical] = canonical
 
         return alias_map
 

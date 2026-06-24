@@ -177,42 +177,55 @@
     },
     {
       "case_id": "clinical_oncology_chemo_01",
-      "title": "化疗 DDI：顺铂 + 酮康唑",
-      "description": "顺铂方案联用强 CYP3A4 抑制剂酮康唑，需评估毒性叠加",
+      "title": "晚期 NSCLC：免疫 + 铂类联合化疗多药审查",
+      "description": "非小细胞肺癌一线 pembrolizumab + 卡铂/培美曲塞，合并止吐/激素/抗凝/PPI，审查 DDI 与骨髓抑制叠加",
       "department": "oncology",
       "category": "oncology",
       "request": {
         "patient_context": {
-          "subject_id": 60007,
-          "hadm_id": 70007,
-          "age": 58,
-          "gender": "M",
+          "subject_id": 60032,
+          "hadm_id": 70032,
+          "age": 64,
+          "gender": "F",
           "department": "oncology",
           "admission_type": "INPATIENT",
-          "source_text": "58岁男性，非小细胞肺癌接受含顺铂化疗，因真菌感染预防拟加用酮康唑。",
-          "chief_complaint": "肺癌化疗第 2 周期",
-          "history_present_illness": "化疗耐受尚可，中性粒细胞 2.1×10⁹/L；既往无肝肾功能衰竭。",
+          "source_text": "64岁女性，IV 期非鳞 NSCLC（腺癌），ECOG 1，拟第 1 周期 pembrolizumab + 卡铂 + 培美曲塞；既往 VTE 长期华法林；为预防 CINV 拟地塞米松 + 昂丹司琼，并加奥美拉唑护胃。",
+          "chief_complaint": "肺癌第 1 周期化疗入院",
+          "history_present_illness": "PET-CT 示多发骨转移；中性粒细胞 3.8×10⁹/L，PLT 210×10⁹/L；INR 2.4。",
           "symptoms_or_complaints": [
             "乏力",
-            "轻度恶心"
+            "咳嗽",
+            "骨痛"
           ],
           "past_medical_history": [
             "非小细胞肺癌",
-            "化疗中"
+            "深静脉血栓",
+            "华法林抗凝"
           ],
           "diagnoses": [
             {
               "icd9_code": "162.9",
               "name": "非小细胞肺癌"
+            },
+            {
+              "icd9_code": "453.41",
+              "name": "深静脉血栓"
             }
           ],
           "current_medications": [
             {
-              "name": "cisplatin",
-              "ingredient": "cisplatin",
-              "dose": "75 mg/m²",
-              "route": "IV",
-              "frequency": "q3w"
+              "name": "warfarin",
+              "ingredient": "warfarin",
+              "dose": "3 mg",
+              "route": "PO",
+              "frequency": "qd"
+            },
+            {
+              "name": "morphine",
+              "ingredient": "morphine",
+              "dose": "5 mg",
+              "route": "PO",
+              "frequency": "q4h prn"
             }
           ],
           "allergies": [
@@ -221,16 +234,281 @@
           "pregnancy_status": "not_applicable",
           "lactation_status": "not_lactating",
           "missing_fields": [],
-          "egfr": 78.0
+          "egfr": 72.0,
+          "weight_kg": 58.0
         },
         "candidate_drugs": [
           {
-            "name": "ketoconazole",
-            "ingredient": "ketoconazole",
+            "name": "pembrolizumab",
+            "ingredient": "pembrolizumab",
             "dose": "200 mg",
+            "route": "IV",
+            "frequency": "q3w",
+            "indication": "NSCLC 免疫治疗",
+            "source": "candidate"
+          },
+          {
+            "name": "carboplatin",
+            "ingredient": "carboplatin",
+            "dose": "AUC 5",
+            "route": "IV",
+            "frequency": "q3w",
+            "indication": "NSCLC 化疗",
+            "source": "candidate"
+          },
+          {
+            "name": "pemetrexed",
+            "ingredient": "pemetrexed",
+            "dose": "500 mg/m²",
+            "route": "IV",
+            "frequency": "q3w",
+            "indication": "NSCLC 化疗",
+            "source": "candidate"
+          },
+          {
+            "name": "dexamethasone",
+            "ingredient": "dexamethasone",
+            "dose": "8 mg",
+            "route": "IV",
+            "frequency": "qd",
+            "indication": "CINV 预防",
+            "source": "candidate"
+          },
+          {
+            "name": "ondansetron",
+            "ingredient": "ondansetron",
+            "dose": "8 mg",
+            "route": "IV",
+            "frequency": "qd",
+            "indication": "CINV 预防",
+            "source": "candidate"
+          },
+          {
+            "name": "omeprazole",
+            "ingredient": "omeprazole",
+            "dose": "20 mg",
             "route": "PO",
             "frequency": "qd",
-            "indication": "真菌感染预防",
+            "indication": "护胃",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
+      }
+    },
+    {
+      "case_id": "clinical_respiratory_severe_01",
+      "title": "重症肺炎/ARDS：广谱抗感染 + 茶碱 + 大环内酯",
+      "description": "ICU 重症社区获得性肺炎，已用万古霉素/哌拉西林他唑巴坦/激素；拟加左氧氟沙星、氨茶碱及克拉霉素，审查重复抗感染与 CYP/QT 风险",
+      "department": "respiratory",
+      "category": "respiratory",
+      "request": {
+        "patient_context": {
+          "subject_id": 60031,
+          "hadm_id": 70031,
+          "age": 62,
+          "gender": "M",
+          "department": "respiratory",
+          "admission_type": "ICU",
+          "source_text": "62岁男性，重症社区获得性肺炎合并 ARDS 收住 ICU，机械通气；已用万古霉素、哌拉西林他唑巴坦及甲泼尼龙；拟加左氧氟沙星覆盖非典型病原体，并加氨茶碱平喘、克拉霉素抗非典型菌。",
+          "chief_complaint": "高热、呼吸困难、低氧",
+          "history_present_illness": "PaO₂/FiO₂ 110，双肺弥漫渗出；CRP 186 mg/L，PCT 8.2 ng/ml；既往 COPD GOLD II。",
+          "symptoms_or_complaints": [
+            "高热",
+            "呼吸困难",
+            "低氧",
+            "咳脓痰"
+          ],
+          "past_medical_history": [
+            "COPD",
+            "吸烟史",
+            "2 型糖尿病"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "486",
+              "name": "重症社区获得性肺炎"
+            },
+            {
+              "icd9_code": "518.81",
+              "name": "ARDS"
+            },
+            {
+              "icd9_code": "491.21",
+              "name": "COPD"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "vancomycin",
+              "ingredient": "vancomycin",
+              "dose": "1 g",
+              "route": "IV",
+              "frequency": "q12h"
+            },
+            {
+              "name": "piperacillin-tazobactam",
+              "ingredient": "piperacillin-tazobactam",
+              "dose": "4.5 g",
+              "route": "IV",
+              "frequency": "q8h"
+            },
+            {
+              "name": "methylprednisolone",
+              "ingredient": "methylprednisolone",
+              "dose": "40 mg",
+              "route": "IV",
+              "frequency": "qd"
+            },
+            {
+              "name": "salbutamol",
+              "ingredient": "salbutamol",
+              "dose": "2.5 mg",
+              "route": "INH",
+              "frequency": "q6h"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "weight_kg": 70.0
+        },
+        "candidate_drugs": [
+          {
+            "name": "levofloxacin",
+            "ingredient": "levofloxacin",
+            "dose": "750 mg",
+            "route": "IV",
+            "frequency": "qd",
+            "indication": "重症肺炎抗感染",
+            "source": "candidate"
+          },
+          {
+            "name": "theophylline",
+            "ingredient": "theophylline",
+            "dose": "200 mg",
+            "route": "PO",
+            "frequency": "bid",
+            "indication": "COPD 平喘",
+            "source": "candidate"
+          },
+          {
+            "name": "clarithromycin",
+            "ingredient": "clarithromycin",
+            "dose": "500 mg",
+            "route": "IV",
+            "frequency": "bid",
+            "indication": "非典型病原体覆盖",
+            "source": "candidate"
+          }
+        ],
+        "persist": false
+      }
+    },
+    {
+      "case_id": "clinical_infectious_severe_01",
+      "title": "重症 HAP/VAP：抗感染升阶梯 + 伏立康唑",
+      "description": "院内获得性肺炎机械通气，已用头孢曲松；拟升阶梯美罗培南 + 利奈唑胺 + 伏立康唑，审查重复覆盖与 QT/骨髓抑制",
+      "department": "infectious_disease",
+      "category": "infectious_disease",
+      "request": {
+        "patient_context": {
+          "subject_id": 60033,
+          "hadm_id": 70033,
+          "age": 71,
+          "gender": "M",
+          "department": "infectious_disease",
+          "admission_type": "ICU",
+          "source_text": "71岁男性，卒中后吸入性肺炎进展为 VAP，机械通气 5 天；已用头孢曲松；痰培养 ESBL 阴性、MRSA 阳性、曲霉抗原阳性；拟升阶梯美罗培南 + 利奈唑胺 + 伏立康唑。",
+          "chief_complaint": "VAP 抗感染方案调整",
+          "history_present_illness": "体温 38.8℃，WBC 18×10⁹/L；PaO₂/FiO₂ 135；既往无伏立康唑过敏。",
+          "symptoms_or_complaints": [
+            "发热",
+            "脓痰",
+            "低氧"
+          ],
+          "past_medical_history": [
+            "脑梗死",
+            "吸入性肺炎",
+            "糖尿病"
+          ],
+          "diagnoses": [
+            {
+              "icd9_code": "482.84",
+              "name": "院内获得性肺炎"
+            },
+            {
+              "icd9_code": "518.81",
+              "name": "机械通气"
+            },
+            {
+              "icd9_code": "117.3",
+              "name": "曲霉感染疑诊"
+            }
+          ],
+          "current_medications": [
+            {
+              "name": "ceftriaxone",
+              "ingredient": "ceftriaxone",
+              "dose": "2 g",
+              "route": "IV",
+              "frequency": "qd"
+            },
+            {
+              "name": "insulin glargine",
+              "ingredient": "insulin glargine",
+              "dose": "18 U",
+              "route": "SC",
+              "frequency": "qd"
+            }
+          ],
+          "allergies": [
+            "NKDA"
+          ],
+          "pregnancy_status": "not_applicable",
+          "lactation_status": "not_lactating",
+          "missing_fields": [],
+          "egfr": 55.0,
+          "weight_kg": 68.0
+        },
+        "candidate_drugs": [
+          {
+            "name": "meropenem",
+            "ingredient": "meropenem",
+            "dose": "1 g",
+            "route": "IV",
+            "frequency": "q8h",
+            "indication": "VAP 升阶梯抗感染",
+            "source": "candidate"
+          },
+          {
+            "name": "linezolid",
+            "ingredient": "linezolid",
+            "dose": "600 mg",
+            "route": "IV",
+            "frequency": "q12h",
+            "indication": "MRSA 覆盖",
+            "source": "candidate"
+          },
+          {
+            "name": "voriconazole",
+            "ingredient": "voriconazole",
+            "dose": "200 mg",
+            "route": "PO",
+            "frequency": "bid",
+            "indication": "侵袭性曲霉病",
+            "source": "candidate"
+          },
+          {
+            "name": "levofloxacin",
+            "ingredient": "levofloxacin",
+            "dose": "750 mg",
+            "route": "IV",
+            "frequency": "qd",
+            "indication": "非典型菌覆盖",
             "source": "candidate"
           }
         ],

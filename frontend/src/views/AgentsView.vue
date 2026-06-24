@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { enabledSkillTitles } from '@/utils/agentSkills'
 
 const auth = useAuthStore()
 
@@ -18,45 +19,45 @@ onMounted(async () => {
     <h1>智能体阵容</h1>
     <p class="sub">
       科室：{{ auth.department?.name_cn ?? '—' }} —
-      启用的 Agent 与 Skill 会在多智能体会诊时注入 prompt。
+      启用的专科智能体与审查专长会在多智能体会诊时注入 prompt。
       在 <RouterLink to="/settings">个人配置</RouterLink> 中修改。
     </p>
 
     <section v-if="deptAgents.length">
-      <h2>科室专属 Agent</h2>
+      <h2>科室专科智能体</h2>
+      <p class="section-hint">代表本科室临床路径与指南，按病例条件自动参与会诊。</p>
       <div class="grid">
         <article v-for="a in deptAgents" :key="a.agent_id" class="card agent dept">
           <div class="head">
             <h3>{{ a.agent_name }}</h3>
-            <span class="badge dept-badge">科室</span>
+            <span class="badge dept-badge">科室专科</span>
             <span class="badge" :class="{ off: !a.enabled }">{{ a.enabled ? '已启用' : '已关闭' }}</span>
           </div>
-          <code>{{ a.agent_id }}</code>
           <p class="role">{{ a.role }}</p>
-          <p class="skills">
-            Skills:
-            <span v-for="sid in a.enabled_skills" :key="sid" class="chip">{{ sid }}</span>
-          </p>
+          <div class="skills">
+            <span class="skills-label">审查专长</span>
+            <span v-for="title in enabledSkillTitles(a).filter(t => t !== '专科基础能力' && t !== '基础角色')" :key="title" class="chip">{{ title }}</span>
+            <span v-if="!enabledSkillTitles(a).filter(t => t !== '专科基础能力' && t !== '基础角色').length" class="muted">未启用专长模块</span>
+          </div>
         </article>
       </div>
     </section>
 
     <section>
-      <h2>核心 Agent</h2>
+      <h2>核心会诊角色</h2>
       <div class="grid">
         <article v-for="a in coreAgents" :key="a.agent_id" class="card agent">
-        <div class="head">
-          <h3>{{ a.agent_name }}</h3>
-          <span class="badge" :class="{ off: !a.enabled }">{{ a.enabled ? '已启用' : '已关闭' }}</span>
-        </div>
-        <code>{{ a.agent_id }}</code>
-        <p class="role">{{ a.role }}</p>
-        <p class="skills">
-          Skills:
-          <span v-for="sid in a.enabled_skills" :key="sid" class="chip">{{ sid }}</span>
-          <span v-if="!a.enabled_skills.length" class="muted">无</span>
-        </p>
-      </article>
+          <div class="head">
+            <h3>{{ a.agent_name }}</h3>
+            <span class="badge" :class="{ off: !a.enabled }">{{ a.enabled ? '已启用' : '已关闭' }}</span>
+          </div>
+          <p class="role">{{ a.role }}</p>
+          <div class="skills">
+            <span class="skills-label">审查专长</span>
+            <span v-for="title in enabledSkillTitles(a).filter(t => t !== '专科基础能力' && t !== '基础角色')" :key="title" class="chip">{{ title }}</span>
+            <span v-if="!enabledSkillTitles(a).filter(t => t !== '专科基础能力' && t !== '基础角色').length" class="muted">未启用专长模块</span>
+          </div>
+        </article>
       </div>
     </section>
   </div>
@@ -64,16 +65,18 @@ onMounted(async () => {
 
 <style scoped>
 .sub { color: var(--text-muted); margin-bottom: 1.5rem; }
+.section-hint { font-size: 0.85rem; color: var(--text-muted); margin: -0.5rem 0 0.75rem; }
 h2 { font-size: 1rem; margin: 1.25rem 0 0.75rem; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
 .head { display: flex; justify-content: flex-start; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
 .badge { font-size: 0.72rem; background: var(--primary-light); color: var(--primary-dark); padding: 0.15rem 0.45rem; border-radius: 999px; }
 .badge.dept-badge { background: #e8f4ea; color: #1b5e20; }
 .badge.off { background: var(--surface-2); color: var(--text-muted); }
 .agent h3 { margin-bottom: 0.35rem; }
-code { font-size: 0.78rem; color: var(--text-muted); font-family: var(--mono); }
-.role { font-size: 0.88rem; margin: 0.5rem 0; }
-.skills { font-size: 0.82rem; }
-.chip { display: inline-block; background: var(--surface-2); padding: 0.1rem 0.4rem; border-radius: 4px; margin: 0.15rem 0.15rem 0 0; font-size: 0.75rem; }
-.muted { color: var(--text-muted); }
+.agent.dept { border-color: #a5d6a7; }
+.role { font-size: 0.88rem; margin: 0.5rem 0; color: var(--text-muted); }
+.skills { font-size: 0.82rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
+.skills-label { color: var(--text-muted); margin-right: 0.25rem; }
+.chip { display: inline-block; background: var(--surface-2); padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; }
+.muted { color: var(--text-muted); font-size: 0.78rem; }
 </style>

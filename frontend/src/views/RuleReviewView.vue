@@ -88,7 +88,10 @@ async function runReview() {
   error.value = ''
   review.value = null
   try {
-    const res = await medsafeApi.ruleReview(patient.value, drugs.value)
+    const res = await medsafeApi.ruleReview(
+      { ...patient.value, department: patient.value.department || myDeptId.value || '' },
+      drugs.value,
+    )
     review.value = res.review_output
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)

@@ -55,7 +55,7 @@ async function submit() {
   <div class="login-page">
     <div class="card login-card">
       <h1>MedSafe 医生工作台</h1>
-      <p class="sub">登录后按科室加载影像数据，并持久化您的 Agent / Skill 配置</p>
+      <p class="sub">登录后按科室加载影像数据，并保存您的专科智能体与审查专长配置</p>
 
       <div class="tabs">
         <button type="button" :class="{ active: mode === 'login' }" @click="mode = 'login'">登录</button>

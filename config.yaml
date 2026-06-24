@@ -22,6 +22,13 @@ data:
   case_templates_dir: datasets/case_templates
   knowledge_base: datasets/knowledge/hospital_production_v5.json
   formulary: datasets/knowledge/pharmacy_formulary.json
+  mimic:
+    max_samples: 0
+    require_medications: true
+    include_labs: true
+    include_icu: true
+    include_imaging: true
+    skip_notes: false
 server:
   host: 0.0.0.0
   port: 8000
@@ -137,6 +144,16 @@ imaging:
   default_lesion_models:
     mimic_cxr: cxr_lesion
     brats2024: brats_tumor
+  remote:
+    enabled: false
+    base_url: ''
+    api_token: ''
+    timeout_seconds: 600
+    fallback_to_local: true
+    health_cache_seconds: 30
+    worker:
+      host: 127.0.0.1
+      port: 9000
 fhir:
   enabled: true
   base_path: /api/v1/fhir

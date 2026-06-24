@@ -321,7 +321,15 @@ def is_full_mimic_dataset(raw_dir: Path) -> bool:
     return rx.is_file() and rx.stat().st_size >= 50_000_000
 
 
-def generate_mimic_patient_contexts(*, max_samples: int = 2000, skip_notes: bool = False) -> None:
+def generate_mimic_patient_contexts(
+    *,
+    max_samples: int = 0,
+    skip_notes: bool = False,
+    require_medications: bool = True,
+    include_labs: bool = True,
+    include_icu: bool = True,
+    include_imaging: bool = True,
+) -> None:
     """Build patient contexts from real MIMIC-III CSV tables (no synthetic fallback)."""
     raw_dir = resolve_mimic_raw_dir()
     if raw_dir is None:
@@ -344,12 +352,23 @@ def generate_mimic_patient_contexts(*, max_samples: int = 2000, skip_notes: bool
         str(output_path),
         "--max_samples",
         str(max_samples),
-        "--require-medications",
     ]
     if skip_notes:
         cmd.append("--skip-notes")
+    if require_medications:
+        cmd.append("--require-medications")
+    if include_labs:
+        cmd.append("--include-labs")
+    else:
+        cmd.append("--no-labs")
+    if include_icu:
+        cmd.append("--include-icu")
+    if include_imaging:
+        cmd.append("--include-imaging")
 
     print(f"Building patient contexts from {raw_dir.relative_to(PROJECT_ROOT)} ...")
+    if max_samples == 0:
+        print("  max_samples=0 → exporting ALL admissions matching filters (may take 30–90 min on full 1.4)")
     subprocess.run(cmd, check=True, cwd=PROJECT_ROOT)
 
     with open(output_path, encoding="utf-8") as f:
@@ -357,12 +376,16 @@ def generate_mimic_patient_contexts(*, max_samples: int = 2000, skip_notes: bool
 
     with_meds = sum(1 for c in contexts if c.get("current_medications"))
     with_diag = sum(1 for c in contexts if c.get("diagnoses"))
+    with_labs = sum(1 for c in contexts if c.get("labs"))
+    with_notes = sum(1 for c in contexts if c.get("chief_complaint"))
     ages = [c["age"] for c in contexts if c.get("age") is not None]
     print(f"Created {len(contexts)} MIMIC-III patient contexts → {output_path.relative_to(PROJECT_ROOT)}")
     if ages:
         print(f"  - Ages: {min(ages)}~{max(ages)}")
     print(f"  - With medications: {with_meds}")
     print(f"  - With diagnoses: {with_diag}")
+    print(f"  - With labs: {with_labs}")
+    print(f"  - With clinical notes: {with_notes}")
     print(f"  - Female: {sum(1 for c in contexts if c.get('gender') == 'F')}, "
           f"Male: {sum(1 for c in contexts if c.get('gender') == 'M')}")
 
@@ -376,5 +399,6 @@ if __name__ == "__main__":
     if raw_dir:
         tier = "full 1.4" if use_notes else "demo/partial"
         print(f"MIMIC source: {raw_dir.relative_to(PROJECT_ROOT)} ({tier})")
-    generate_mimic_patient_contexts(max_samples=2000, skip_notes=not use_notes)
+    # Demo fixture generation uses a small sample; full build: python -m src.cli build-mimic
+    generate_mimic_patient_contexts(max_samples=500 if use_notes else 2000, skip_notes=not use_notes)
     print("\nAll case templates and MIMIC patient contexts generated successfully.")

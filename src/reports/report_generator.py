@@ -4,6 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from src.imaging.report_cache import ImagingReportCacheStore
+from src.imaging.warm_analysis import find_study, get_or_run_study_analysis, resolve_study_source_images
 from src.imaging.volume_io import resolve_vlm_image_paths
 from src.llm.vision_client import get_deepseek_client, get_qwen_vlm_client
 from src.config import project_root
@@ -38,29 +40,60 @@ class ReportGenerator:
         self.store = ReportStore()
 
     def generate(self, req: GenerateReportRequest, *, user_id: str) -> ClinicalReport:
-        qwen_vlm = get_qwen_vlm_client()
         image_paths = [_project_rel_path(p) for p in req.image_paths]
         screenshot_paths = [_project_rel_path(p) for p in req.screenshot_paths]
-        overlay_paths = [_project_rel_path(p) for p in req.overlay_paths]
+        overlay_paths: list[str] = []
 
-        if overlay_paths:
-            all_visual = dedupe_paths(
-                ([image_paths[0]] if req.include_source_image and image_paths else [])
-                + screenshot_paths
-                + overlay_paths
+        study_id = req.imaging_session_label.strip()
+        study = find_study(req.patient_id, study_id) if study_id else None
+
+        if req.use_analysis_cache and study and not req.force_refresh:
+            cached_report = ImagingReportCacheStore().get(study.source, req.patient_id, study.study_id)
+            if cached_report and cached_report.metadata.get("medication_review_ran"):
+                return self._adopt_cached_report(cached_report, req, user_id=user_id)
+
+        from_cache = False
+        cache_entry = None
+        if req.use_analysis_cache and study:
+            cache_entry, from_cache = get_or_run_study_analysis(
+                study,
+                clinical_text=req.clinical_text,
+                use_cache=True,
+                force_refresh=req.force_refresh,
+                include_deepseek=True,
             )
+
+        if cache_entry:
+            vlm_analysis = cache_entry.vlm_analysis
+            deepseek_synthesis: dict[str, Any] = dict(cache_entry.deepseek_synthesis or {})
+            all_visual = list(cache_entry.image_paths)
+            image_paths = list(cache_entry.image_paths)
+            vlm_model_name = cache_entry.vlm_model
         else:
             all_visual = dedupe_paths(image_paths + screenshot_paths)
+            abs_visual = [str((project_root() / p).resolve()) for p in all_visual if p]
+            resolved_visual = resolve_vlm_image_paths(abs_visual)
+            if not resolved_visual and study:
+                resolved_visual = resolve_study_source_images(study)
+                all_visual = [_project_rel_path(p) for p in resolved_visual]
+                image_paths = list(all_visual)
+            if not resolved_visual:
+                from src.llm.errors import VisionLLMError
 
-        resolved_visual = resolve_vlm_image_paths(all_visual)
-        if not resolved_visual:
-            from src.llm.errors import VisionLLMError
-
-            raise VisionLLMError(
-                "Qwen VLM",
-                "未找到可读取的影像文件",
-                hint="请先运行分割并勾选 overlay，或提交截图后再生成报告。",
+                raise VisionLLMError(
+                    "Qwen VLM",
+                    "未找到可读取的影像原片",
+                    hint="请确认 catalog 有 PNG 预览，或运行 scripts/warm_imaging_analysis_cache.py。",
+                )
+            qwen_vlm = get_qwen_vlm_client()
+            vlm_analysis = qwen_vlm.analyze_images(
+                images=resolved_visual[:12],
+                patient_summary=self._vlm_summary(req),
+                modality=req.primary_modality,
+                task="clinical_and_medication",
             )
+            vlm_model_name = qwen_vlm.model_name
+            deepseek_synthesis = {}
 
         session_id = ReportStore.make_imaging_session_id(
             req.primary_modality,
@@ -68,15 +101,7 @@ class ReportGenerator:
             req.imaging_session_label,
         )
 
-        vlm_analysis = qwen_vlm.analyze_images(
-            images=resolved_visual[:12],
-            patient_summary=self._vlm_summary(req),
-            modality=req.primary_modality,
-            task="clinical_and_medication",
-        )
-
         multi_agent = None
-        deepseek_synthesis: dict[str, Any] = {}
         rule_output = None
         med_review_error: str | None = None
         candidate_drugs = list(req.candidate_drugs)
@@ -118,6 +143,19 @@ class ReportGenerator:
             except Exception as exc:
                 med_review_error = str(exc)
                 run_med_review = multi_agent is not None
+        elif not deepseek_synthesis:
+            try:
+                deepseek = get_deepseek_client()
+                deepseek_synthesis = deepseek.synthesize_report(
+                    clinical_text=req.clinical_text,
+                    vlm_analysis=vlm_analysis,
+                    agent_opinions=[],
+                    arbitration={},
+                    rule_output={},
+                    chain_hint=str(vlm_analysis.get("reasoning", "")),
+                )
+            except Exception:
+                deepseek_synthesis = {}
 
         paragraphs = self._build_paragraphs(
             req=req,
@@ -136,14 +174,23 @@ class ReportGenerator:
 
         metadata: dict[str, Any] = {
             "models_used": req.models_used,
-            "vlm_model": qwen_vlm.model_name,
+            "vlm_model": vlm_model_name,
             "segmentation_summary": req.segmentation_summary,
             "medication_review_ran": run_med_review,
             "medication_review_error": med_review_error,
+            "analysis_from_cache": from_cache,
             "review_pipeline": (
-                ["vlm_recommendation", "rule_layer_0", "multi_agent_review"]
-                if run_med_review
-                else (["vlm_recommendation"] if req.run_medication_review else ["vlm_only"])
+                ["cached_vlm", "cached_deepseek", "rule_layer_0", "multi_agent_review"]
+                if from_cache and run_med_review
+                else (
+                    ["cached_vlm", "cached_deepseek"]
+                    if from_cache
+                    else (
+                        ["vlm_recommendation", "rule_layer_0", "multi_agent_review"]
+                        if run_med_review
+                        else (["vlm_recommendation"] if req.run_medication_review else ["vlm_only"])
+                    )
+                )
             ),
             "vlm_analysis": vlm_analysis,
             "candidate_drugs": [d.model_dump() for d in candidate_drugs],
@@ -165,7 +212,7 @@ class ReportGenerator:
             except Exception:
                 metadata["deepseek_model"] = None
 
-        return self.store.create_or_replace_session_report(
+        report = self.store.create_or_replace_session_report(
             user_id=user_id,
             patient_id=req.patient_id,
             imaging_session_id=session_id,
@@ -176,6 +223,40 @@ class ReportGenerator:
             overlay_paths=overlay_paths,
             screenshot_paths=screenshot_paths,
             metadata=metadata,
+        )
+        if study and run_med_review and multi_agent is not None and not med_review_error:
+            ImagingReportCacheStore().save(report, study.source, study.study_id)
+        return report
+
+    def _adopt_cached_report(
+        self,
+        cached: ClinicalReport,
+        req: GenerateReportRequest,
+        *,
+        user_id: str,
+    ) -> ClinicalReport:
+        """Serve batch-warmed report to the current user (copy into their ReportStore)."""
+        session_id = cached.imaging_session_id or ReportStore.make_imaging_session_id(
+            req.primary_modality,
+            cached.image_paths,
+            req.imaging_session_label,
+        )
+        if cached.user_id == user_id:
+            existing = self.store.find_report_by_session(user_id, req.patient_id, session_id)
+            if existing:
+                return existing
+        adopted = cached.model_copy(update={"user_id": user_id})
+        return self.store.create_or_replace_session_report(
+            user_id=user_id,
+            patient_id=adopted.patient_id,
+            imaging_session_id=session_id,
+            modalities=adopted.modalities,
+            paragraphs=adopted.paragraphs,
+            chain_of_thought=adopted.chain_of_thought,
+            image_paths=adopted.image_paths,
+            overlay_paths=adopted.overlay_paths,
+            screenshot_paths=adopted.screenshot_paths,
+            metadata=adopted.metadata,
         )
 
     @staticmethod
@@ -385,12 +466,49 @@ class ReportGenerator:
 
     @staticmethod
     def _drugs_from_vlm(vlm: dict) -> list[CandidateDrug]:
+        import re
+
         drugs: list[CandidateDrug] = []
+        seen: set[str] = set()
+
+        def add(name: str, **kwargs: object) -> None:
+            cleaned = name.strip().strip("，。；;、")
+            if not cleaned or len(cleaned) < 2:
+                return
+            key = cleaned.lower()
+            if key in seen:
+                return
+            seen.add(key)
+            drugs.append(CandidateDrug(name=cleaned, **kwargs))  # type: ignore[arg-type]
+
         for item in vlm.get("recommended_drugs", []):
             if isinstance(item, str):
-                drugs.append(CandidateDrug(name=item))
+                add(item)
             elif isinstance(item, dict):
-                drugs.append(CandidateDrug(**{k: v for k, v in item.items() if k in CandidateDrug.model_fields}))
+                add(
+                    str(item.get("name") or ""),
+                    **{k: v for k, v in item.items() if k in CandidateDrug.model_fields and k != "name"},
+                )
+
+        if drugs:
+            return drugs
+
+        text = "\n".join(
+            str(vlm.get(key) or "")
+            for key in ("medication_recommendation", "clinical_analysis", "reasoning")
+        )
+        for m in re.finditer(r"[-•*]\s*([^\n:：,，;；]{2,48})", text):
+            add(m.group(1))
+        for m in re.finditer(
+            r"(?:可选用|推荐使用|建议|加用|给予|选用|调整为|换用|启动)\s*([A-Za-z0-9\u4e00-\u9fff\-/（）()]{2,32})",
+            text,
+        ):
+            add(m.group(1))
+        for m in re.finditer(
+            r"([A-Za-z][A-Za-z0-9\-]{2,24})\s*(?:\d+\s*mg|\d+\s*g|片|胶囊|注射液)",
+            text,
+        ):
+            add(m.group(1))
         return drugs
 
 

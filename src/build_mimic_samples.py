@@ -4,11 +4,13 @@ import argparse
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Set
 
 import pandas as pd
 from tqdm import tqdm
 
+from src.imaging.cxr_manifest import is_mimic_cxr_jpg_patient, load_manifest
+from src.mimic_io import cxr_patient_folder, estimate_egfr_mg_dl, read_table, resolve_table_path, table_exists
 from src.schemas import DiagnosisItem, DrugItem, PatientContext
 from src.utils import dedupe_preserve_order, save_json
 
@@ -33,7 +35,7 @@ SECTION_PATTERNS = {
 }
 
 PATIENT_COLS = ["SUBJECT_ID", "GENDER", "DOB"]
-ADMISSION_COLS = ["SUBJECT_ID", "HADM_ID", "ADMITTIME", "ADMISSION_TYPE"]
+ADMISSION_COLS = ["SUBJECT_ID", "HADM_ID", "ADMITTIME", "ADMISSION_TYPE", "ETHNICITY"]
 DIAGNOSIS_COLS = ["SUBJECT_ID", "HADM_ID", "ICD9_CODE"]
 D_ICD_COLS = ["ICD9_CODE", "SHORT_TITLE"]
 PRESCRIPTION_COLS = [
@@ -45,6 +47,20 @@ PRESCRIPTION_COLS = [
     "ROUTE",
 ]
 NOTEEVENT_COLS = ["SUBJECT_ID", "HADM_ID", "CATEGORY", "CHARTDATE", "CHARTTIME", "TEXT"]
+ICUSTAY_COLS = ["SUBJECT_ID", "HADM_ID"]
+LABEVENT_COLS = ["SUBJECT_ID", "HADM_ID", "ITEMID", "CHARTTIME", "VALUENUM"]
+
+# MIMIC-III D_LABITEMS common chemistry / coagulation itemids
+LAB_ITEM_MAP: dict[int, str] = {
+    50912: "creatinine_mg_dl",
+    50971: "potassium_meq_l",
+    51237: "inr",
+    50931: "glucose_mg_dl",
+    51006: "bun_mg_dl",
+    51222: "hemoglobin_g_dl",
+    50983: "sodium_meq_l",
+    50813: "lactate_mmol_l",
+}
 
 
 def clean_text(text: str) -> str:
@@ -104,16 +120,9 @@ def infer_pregnancy_status(gender: str, note_text: str) -> str:
     return "unknown"
 
 
-def read_csv(path: Path, usecols: Iterable[str]) -> pd.DataFrame:
-    return pd.read_csv(path, usecols=list(usecols), low_memory=False)
-
-
-def resolve_noteevents_path(raw_dir: Path) -> Path | None:
-    for name in ("NOTEEVENTS.csv.gz", "NOTEEVENTS.csv"):
-        candidate = raw_dir / name
-        if candidate.is_file():
-            return candidate
-    return None
+def is_black_ethnicity(ethnicity: str) -> bool:
+    text = (ethnicity or "").upper()
+    return "BLACK" in text or "AFRICAN" in text
 
 
 def build_note_map_from_path(path: Path, *, chunk_size: int = 50_000) -> dict[tuple[int, int], str]:
@@ -152,29 +161,6 @@ def build_note_map_from_path(path: Path, *, chunk_size: int = 50_000) -> dict[tu
                 note_map[key] = str(row.get("TEXT", "") or "")
                 sort_meta[key] = meta
 
-    return note_map
-
-
-def build_note_map(noteevents: pd.DataFrame) -> dict[tuple[int, int], str]:
-    discharge_notes = noteevents[
-        noteevents["CATEGORY"].astype(str).str.lower() == "discharge summary"
-    ].copy()
-    discharge_notes = discharge_notes.dropna(subset=["SUBJECT_ID", "HADM_ID"])
-
-    for col in ("CHARTDATE", "CHARTTIME"):
-        if col in discharge_notes.columns:
-            discharge_notes[col] = pd.to_datetime(discharge_notes[col], errors="coerce")
-
-    sort_cols = [col for col in ["SUBJECT_ID", "HADM_ID", "CHARTDATE", "CHARTTIME"] if col in discharge_notes.columns]
-    if sort_cols:
-        discharge_notes = discharge_notes.sort_values(sort_cols)
-
-    discharge_notes = discharge_notes.drop_duplicates(["SUBJECT_ID", "HADM_ID"], keep="last")
-
-    note_map: dict[tuple[int, int], str] = {}
-    for _, row in discharge_notes.iterrows():
-        key = (int(row["SUBJECT_ID"]), int(row["HADM_ID"]))
-        note_map[key] = str(row.get("TEXT", "") or "")
     return note_map
 
 
@@ -227,24 +213,109 @@ def build_medication_map(prescriptions: pd.DataFrame) -> Dict[tuple[int, int], L
     return grouped
 
 
+def build_icu_admission_set(raw_dir: Path) -> Set[tuple[int, int]]:
+    if not table_exists(raw_dir, "ICUSTAYS.csv"):
+        return set()
+    icustays = read_table(raw_dir, "ICUSTAYS.csv", ICUSTAY_COLS)
+    icustays = icustays.dropna(subset=["SUBJECT_ID", "HADM_ID"])
+    return {
+        (int(row["SUBJECT_ID"]), int(row["HADM_ID"]))
+        for _, row in icustays.iterrows()
+    }
+
+
+def build_lab_map(
+    raw_dir: Path,
+    target_keys: Set[tuple[int, int]],
+    *,
+    chunk_size: int = 200_000,
+) -> dict[tuple[int, int], dict[str, float]]:
+    """Latest lab value per admission for selected ITEMIDs."""
+    if not target_keys or not table_exists(raw_dir, "LABEVENTS.csv"):
+        return {}
+
+    item_ids = set(LAB_ITEM_MAP.keys())
+    lab_map: dict[tuple[int, int], dict[str, float]] = {}
+    sort_meta: dict[tuple[int, int], dict[str, pd.Timestamp]] = defaultdict(dict)
+
+    reader = read_table(raw_dir, "LABEVENTS.csv", LABEVENT_COLS, chunksize=chunk_size)
+    for chunk in tqdm(reader, desc="Reading lab events"):
+        chunk = chunk.dropna(subset=["SUBJECT_ID", "HADM_ID", "ITEMID", "VALUENUM"])
+        chunk = chunk[chunk["ITEMID"].isin(item_ids)]
+        if chunk.empty:
+            continue
+        chunk["CHARTTIME"] = pd.to_datetime(chunk["CHARTTIME"], errors="coerce")
+
+        for _, row in chunk.iterrows():
+            key = (int(row["SUBJECT_ID"]), int(row["HADM_ID"]))
+            if key not in target_keys:
+                continue
+            item_id = int(row["ITEMID"])
+            field = LAB_ITEM_MAP.get(item_id)
+            if not field:
+                continue
+            value = float(row["VALUENUM"])
+            charttime = row.get("CHARTTIME")
+            if pd.isna(charttime):
+                charttime = pd.Timestamp.min
+            prev_time = sort_meta[key].get(field, pd.Timestamp.min)
+            if field not in lab_map.get(key, {}) or charttime >= prev_time:
+                lab_map.setdefault(key, {})[field] = value
+                sort_meta[key][field] = charttime
+
+    return lab_map
+
+
+def load_cxr_patient_index() -> Set[str]:
+    """Patient folder IDs (p########) with indexed CXR studies on disk."""
+    indexed: Set[str] = set()
+    manifest = load_manifest()
+    studies = manifest.get("studies") or {}
+    if isinstance(studies, dict):
+        for study in studies.values():
+            if not isinstance(study, dict):
+                continue
+            patient_id = str(study.get("patient_id", "") or "")
+            if is_mimic_cxr_jpg_patient(patient_id):
+                indexed.add(patient_id)
+    from src.config import datasets_path
+
+    root = datasets_path("mimic")
+    if root.is_dir():
+        for patient_dir in root.iterdir():
+            if patient_dir.is_dir() and is_mimic_cxr_jpg_patient(patient_dir.name):
+                indexed.add(patient_dir.name)
+    return indexed
+
+
+def note_excerpt(note_text: str, limit: int = 2000) -> str:
+    text = clean_text(note_text)
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3] + "..."
+
+
 def main(args: argparse.Namespace) -> None:
     raw_dir = Path(args.raw_dir)
     out_path = Path(args.out_path)
 
-    patients = read_csv(raw_dir / "PATIENTS.csv", PATIENT_COLS)
-    admissions = read_csv(raw_dir / "ADMISSIONS.csv", ADMISSION_COLS)
-    diagnoses = read_csv(raw_dir / "DIAGNOSES_ICD.csv", DIAGNOSIS_COLS)
-    d_icd = read_csv(raw_dir / "D_ICD_DIAGNOSES.csv", D_ICD_COLS)
-    prescriptions = read_csv(raw_dir / "PRESCRIPTIONS.csv", PRESCRIPTION_COLS)
+    patients = read_table(raw_dir, "PATIENTS.csv", PATIENT_COLS)
+    admissions = read_table(raw_dir, "ADMISSIONS.csv", ADMISSION_COLS)
+    diagnoses = read_table(raw_dir, "DIAGNOSES_ICD.csv", DIAGNOSIS_COLS)
+    d_icd = read_table(raw_dir, "D_ICD_DIAGNOSES.csv", D_ICD_COLS)
+    prescriptions = read_table(raw_dir, "PRESCRIPTIONS.csv", PRESCRIPTION_COLS)
 
     note_map: dict[tuple[int, int], str] = {}
     if not args.skip_notes:
-        notes_path = resolve_noteevents_path(raw_dir)
+        notes_path = resolve_table_path(raw_dir, "NOTEEVENTS.csv")
         if notes_path is None:
             print("WARNING: NOTEEVENTS not found; continuing without clinical notes.")
         else:
             print(f"Loading discharge summaries from {notes_path.name} ...")
             note_map = build_note_map_from_path(notes_path, chunk_size=args.note_chunk_size)
+
+    icu_set = build_icu_admission_set(raw_dir) if args.include_icu else set()
+    cxr_patients = load_cxr_patient_index() if args.include_imaging else set()
 
     patients["DOB"] = pd.to_datetime(patients["DOB"], errors="coerce")
     admissions["ADMITTIME"] = pd.to_datetime(admissions["ADMITTIME"], errors="coerce")
@@ -263,6 +334,17 @@ def main(args: argparse.Namespace) -> None:
             )
         ]
 
+    admission_keys: Set[tuple[int, int]] = set()
+    for _, row in merged.iterrows():
+        if pd.isna(row.get("HADM_ID")) or pd.isna(row.get("SUBJECT_ID")):
+            continue
+        admission_keys.add((int(row["SUBJECT_ID"]), int(row["HADM_ID"])))
+
+    lab_group: dict[tuple[int, int], dict[str, float]] = {}
+    if args.include_labs and admission_keys:
+        print(f"Loading labs for {len(admission_keys):,} admissions ...")
+        lab_group = build_lab_map(raw_dir, admission_keys, chunk_size=args.lab_chunk_size)
+
     samples: list[dict] = []
     for _, row in tqdm(merged.iterrows(), total=len(merged), desc="Building patient contexts"):
         if pd.isna(row.get("HADM_ID")) or pd.isna(row.get("SUBJECT_ID")):
@@ -280,6 +362,17 @@ def main(args: argparse.Namespace) -> None:
         age = compute_age(row.get("ADMITTIME"), row.get("DOB"))
         gender = str(row.get("GENDER", "unknown") or "unknown").strip()
         admission_type = str(row.get("ADMISSION_TYPE", "") or "").strip()
+        labs = lab_group.get(key, {})
+        creatinine = labs.get("creatinine_mg_dl")
+        ethnicity = str(row.get("ETHNICITY", "") or "")
+        egfr = None
+        if creatinine is not None and age is not None:
+            egfr = estimate_egfr_mg_dl(
+                creatinine,
+                age,
+                gender,
+                is_black=is_black_ethnicity(ethnicity),
+            )
 
         missing_fields: list[str] = []
         if not chief:
@@ -292,6 +385,8 @@ def main(args: argparse.Namespace) -> None:
             missing_fields.append("allergies")
         if not med_group.get(key):
             missing_fields.append("current_medications")
+        if egfr is None:
+            missing_fields.append("egfr")
 
         sample = PatientContext(
             subject_id=sid,
@@ -299,6 +394,7 @@ def main(args: argparse.Namespace) -> None:
             gender=gender,
             age=age,
             admission_type=admission_type,
+            source_text=note_excerpt(note_text),
             chief_complaint=chief,
             history_present_illness=hpi,
             past_medical_history=pmh[:10],
@@ -306,6 +402,10 @@ def main(args: argparse.Namespace) -> None:
             current_medications=med_group.get(key, [])[:20],
             allergies=allergies[:10],
             pregnancy_status=infer_pregnancy_status(gender, note_text),
+            labs=labs,
+            egfr=egfr,
+            icu_stay=key in icu_set,
+            has_imaging=cxr_patient_folder(sid) in cxr_patients,
             missing_fields=dedupe_preserve_order(missing_fields),
         )
         samples.append(sample.model_dump())
@@ -314,14 +414,27 @@ def main(args: argparse.Namespace) -> None:
             break
 
     save_json(samples, out_path)
+    with_labs = sum(1 for s in samples if s.get("labs"))
+    with_notes = sum(1 for s in samples if s.get("chief_complaint"))
+    with_icu = sum(1 for s in samples if s.get("icu_stay"))
+    with_imaging = sum(1 for s in samples if s.get("has_imaging"))
     print(f"saved {len(samples)} samples to {out_path}")
+    print(f"  with clinical notes: {with_notes}")
+    print(f"  with labs: {with_labs}")
+    print(f"  with ICU stay: {with_icu}")
+    print(f"  with CXR on disk: {with_imaging}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build patient-context samples from MIMIC-III.")
     parser.add_argument("--raw_dir", type=str, required=True)
     parser.add_argument("--out_path", type=str, required=True)
-    parser.add_argument("--max_samples", type=int, default=2000)
+    parser.add_argument(
+        "--max_samples",
+        type=int,
+        default=0,
+        help="Max admissions to export (0 = all matching filters).",
+    )
     parser.add_argument(
         "--skip-notes",
         action="store_true",
@@ -333,9 +446,41 @@ if __name__ == "__main__":
         help="Only include admissions with at least one prescription.",
     )
     parser.add_argument(
+        "--include-labs",
+        action="store_true",
+        default=True,
+        help="Include LABEVENTS chemistry/coagulation values (default: on).",
+    )
+    parser.add_argument(
+        "--no-labs",
+        action="store_true",
+        help="Skip LABEVENTS (faster build).",
+    )
+    parser.add_argument(
+        "--include-icu",
+        action="store_true",
+        default=True,
+        help="Mark ICU admissions from ICUSTAYS.csv (default: on).",
+    )
+    parser.add_argument(
+        "--include-imaging",
+        action="store_true",
+        default=True,
+        help="Set has_imaging when MIMIC-CXR-JPG folder exists (default: on).",
+    )
+    parser.add_argument(
         "--note-chunk-size",
         type=int,
         default=50_000,
         help="Chunk size when streaming NOTEEVENTS.",
     )
-    main(parser.parse_args())
+    parser.add_argument(
+        "--lab-chunk-size",
+        type=int,
+        default=200_000,
+        help="Chunk size when streaming LABEVENTS.",
+    )
+    ns = parser.parse_args()
+    if ns.no_labs:
+        ns.include_labs = False
+    main(ns)

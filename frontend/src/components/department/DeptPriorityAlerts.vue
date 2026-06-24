@@ -8,7 +8,7 @@ const props = defineProps<{
 
 function isFocus(alert: CpoeReviewAlert) {
   if (!props.focusCategories.length) return false
-  return props.focusCategories.includes(alert.category)
+  return props.focusCategories.includes(alert.category ?? '')
 }
 </script>
 

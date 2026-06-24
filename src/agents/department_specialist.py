@@ -80,10 +80,11 @@ class DepartmentSpecialistAgent(LLMAgent):
     ) -> str:
         scoped = self._scoped_evidence(rule_evidence)
         instruction = (
-            f"你是{self.agent_name}（{self.department or '科室专科'}），"
-            f"仅审查本科室常见适应证（{', '.join(self.common_indications[:6]) or '见 common_indications'}）"
+            f"你是{self.agent_name}（{self.department or '本科室'}专科医生），"
+            f"以本科室临床路径审查常见适应证（{', '.join(self.common_indications[:6]) or '见 common_indications'}）"
             "与科室相关场景/人群规则。"
-            "不要重复 DDI、过敏、库存/formulary 审查（已由其他 Agent 负责）。"
+            "输出应体现专科判断：风险分层、监测指标、路径内替代方案。"
+            "不要重复 DDI、过敏、库存/formulary 审查（已由临床药师/过敏专员/库管负责）。"
         )
         return pretty_json(
             scoped_user_payload(

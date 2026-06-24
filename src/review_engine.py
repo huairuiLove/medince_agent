@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from typing import Iterable
 
@@ -9,6 +10,8 @@ from src.schemas import CandidateDrug, PatientContext, ReviewOutput, RuleEvidenc
 from src.utils import dedupe_preserve_order, normalize_text
 
 from src.safety_models.ddi_classifier import get_ddi_classifier, is_ddi_bert_enabled
+
+logger = logging.getLogger(__name__)
 
 
 RISK_ORDER = {"none": 0, "low": 1, "medium": 2, "high": 3, "unknown": 4}
@@ -133,7 +136,14 @@ class ReviewEngine:
     ) -> list[RuleEvidence]:
         if not is_ddi_bert_enabled():
             return []
-        classifier = get_ddi_classifier().require_ready()
+        classifier = get_ddi_classifier()
+        if not classifier._ensure_loaded():
+            logger.warning(
+                "DDI-BERT unavailable (%s); JSON rules still apply. "
+                "Run: python scripts/download_models.py --ddi-bert",
+                getattr(classifier, "_load_error", None) or "model not loaded",
+            )
+            return []
 
         covered_canonical: set[tuple[str, str]] = set()
         for item in existing_evidence:
@@ -520,7 +530,10 @@ class ReviewEngine:
         elif risk_level == "low":
             final_recommendation = "当前方案命中低风险提示，可继续人工确认后使用。"
         else:
-            final_recommendation = "规则库未命中明显高风险项，可继续结合临床上下文审阅。"
+            final_recommendation = (
+                "审查通过：知识库未命中已知高危规则（risk=none，非系统失败）。"
+                "多数药物组合无预置 DDI 条目；可结合 DDI 模型补充层与人工复核。"
+            )
 
         return ReviewOutput(
             risk_level=risk_level,

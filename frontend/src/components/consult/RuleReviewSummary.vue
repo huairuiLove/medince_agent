@@ -1,11 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { ReviewOutput } from '@/types'
+import { computed, onMounted, ref } from 'vue'
+import type { KnowledgeBaseStats, ReviewOutput } from '@/types'
+import { medsafeApi } from '@/api/medsafe'
 import RiskBadge from '@/components/common/RiskBadge.vue'
 import RuleEvidencePanel from '@/components/consult/RuleEvidencePanel.vue'
 import { sanitizeReviewText } from '@/utils/reviewText'
 
 const props = defineProps<{ ruleOutput: ReviewOutput }>()
+const kbStats = ref<KnowledgeBaseStats | null>(null)
+
+onMounted(async () => {
+  try {
+    const health = await medsafeApi.health()
+    kbStats.value = health.knowledge_base ?? null
+  } catch {
+    kbStats.value = null
+  }
+})
 
 const finalText = computed(() => sanitizeReviewText(props.ruleOutput.final_recommendation))
 </script>
@@ -37,6 +48,7 @@ const finalText = computed(() => sanitizeReviewText(props.ruleOutput.final_recom
     <RuleEvidencePanel
       :evidence="ruleOutput.evidence"
       :clarification-targets="ruleOutput.need_clarification ? ruleOutput.clarification_targets : []"
+      :kb-stats="kbStats"
     />
   </section>
 </template>

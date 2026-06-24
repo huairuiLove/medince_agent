@@ -15,6 +15,8 @@ import type {
   DoctorWorkspace,
   HealthResponse,
   ImagingStudy,
+  MimicDataStatsResponse,
+  MimicPatientListResponse,
   ModelId,
   MultiConsultResponse,
   OverrideAuditLog,
@@ -26,6 +28,7 @@ import type {
   ReviewOutput,
   RiskAcceptance,
   SegModelInfo,
+  SegmentResponse,
   SegmentResultItem,
   SegmentRunRecord,
   AtcTreeNode,
@@ -308,7 +311,7 @@ export const medsafeApi = {
     study_id?: string
     persist?: boolean
   }) =>
-    request<{ results: SegmentResultItem[]; memory_peak_mb: number; run_id?: string; image_key?: string }>(
+    requestLong<SegmentResponse>(
       '/api/v1/imaging/segment',
       { method: 'POST', body: JSON.stringify(body) },
     ),
@@ -334,13 +337,39 @@ export const medsafeApi = {
     )
   },
 
+  getImagingAnalysisCache: (patientId: string, studyId: string, source?: string) => {
+    const q = source ? `?source=${encodeURIComponent(source)}` : ''
+    return request<{
+      cached: boolean
+      from_cache: boolean
+      full_report_cached?: boolean
+      entry?: {
+        patient_id: string
+        study_id: string
+        source: string
+        image_paths: string[]
+        vlm_analysis: VlmAnalysis
+        vlm_model: string
+        deepseek_synthesis?: Record<string, unknown>
+        deepseek_model?: string
+        updated_at?: string
+      } | null
+      clinical_report?: ClinicalReport | null
+    }>(`/api/v1/imaging/analysis-cache/${encodeURIComponent(patientId)}/${encodeURIComponent(studyId)}${q}`)
+  },
+
   analyzeWithVlm: (body: {
     clinical_text: string
     primary_modality: string
+    patient_id?: string
+    study_id?: string
+    source?: string
     image_paths?: string[]
-    overlay_paths: string[]
+    overlay_paths?: string[]
     segmentation_summary?: string
     include_source_image?: boolean
+    use_cache?: boolean
+    force_refresh?: boolean
   }) =>
     request<{
       case_id?: string | null
@@ -351,6 +380,9 @@ export const medsafeApi = {
       overlay_count: number
       source_count: number
       duration_ms: number
+      from_cache?: boolean
+      deepseek_synthesis?: Record<string, unknown>
+      deepseek_model?: string
     }>(
       '/api/v1/imaging/vlm/analyze',
       { method: 'POST', body: JSON.stringify(body) },
@@ -378,12 +410,14 @@ export const medsafeApi = {
     modalities: string[]
     imaging_session_label?: string
     image_paths: string[]
-    overlay_paths: string[]
-    screenshot_paths: string[]
-    models_used: string[]
+    overlay_paths?: string[]
+    screenshot_paths?: string[]
+    models_used?: string[]
     segmentation_summary?: string
     include_source_image?: boolean
     run_medication_review?: boolean
+    use_analysis_cache?: boolean
+    force_refresh?: boolean
     candidate_drugs?: DrugItem[]
     patient_context?: PatientContext
   }) =>
@@ -412,6 +446,43 @@ export const medsafeApi = {
   },
 
   getCaseTemplate: (id: string) => request<CaseTemplate>(`/api/v1/case-templates/${id}`),
+
+  mimicStats: () => request<MimicDataStatsResponse>('/api/v1/mimic/stats'),
+
+  listMimicPatients: (params?: {
+    offset?: number
+    limit?: number
+    q?: string
+    gender?: string
+    min_medications?: number
+    icu_only?: boolean
+    has_imaging?: boolean
+    min_age?: number
+    max_age?: number
+    admission_type?: string
+  }) => {
+    const q = new URLSearchParams()
+    if (params?.offset != null) q.set('offset', String(params.offset))
+    if (params?.limit != null) q.set('limit', String(params.limit))
+    if (params?.q) q.set('q', params.q)
+    if (params?.gender) q.set('gender', params.gender)
+    if (params?.min_medications != null) q.set('min_medications', String(params.min_medications))
+    if (params?.icu_only) q.set('icu_only', 'true')
+    if (params?.has_imaging != null) q.set('has_imaging', String(params.has_imaging))
+    if (params?.min_age != null) q.set('min_age', String(params.min_age))
+    if (params?.max_age != null) q.set('max_age', String(params.max_age))
+    if (params?.admission_type) q.set('admission_type', params.admission_type)
+    const suffix = q.toString() ? `?${q}` : ''
+    return request<MimicPatientListResponse>(`/api/v1/mimic/patients${suffix}`)
+  },
+
+  getMimicPatient: (subjectId: number, hadmId: number) =>
+    request<PatientContext>(`/api/v1/mimic/patients/${subjectId}/${hadmId}`),
+
+  getMimicPatientImaging: (subjectId: number, hadmId: number) =>
+    request<{ subject_id: number; hadm_id: number; cxr_patient_id: string; has_imaging: boolean; studies: ImagingStudy[] }>(
+      `/api/v1/mimic/patients/${subjectId}/${hadmId}/imaging`,
+    ),
 
   getDrugCatalogStats: () => request<DrugCatalogStats>('/api/v1/drug-catalog/stats'),
 

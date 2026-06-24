@@ -78,6 +78,9 @@ class PatientContext(BaseModel):
     lactation_status: str = Field(default="unknown")
     weight_kg: Optional[float] = None
     egfr: Optional[float] = Field(default=None, description="eGFR mL/min/1.73m²")
+    labs: Dict[str, float] = Field(default_factory=dict, description="Latest admission labs from MIMIC LABEVENTS")
+    icu_stay: bool = Field(default=False, description="Admission included an ICU stay (ICUSTAYS)")
+    has_imaging: bool = Field(default=False, description="MIMIC-CXR-JPG studies indexed for this subject")
     department: str = Field(default="", description="用户/患者所属科室 dept_id")
     missing_fields: List[str] = Field(default_factory=list)
 
@@ -476,10 +479,50 @@ class ListSegmentRunsResponse(BaseModel):
 class VlmAnalyzeRequest(BaseModel):
     clinical_text: str = Field(default="")
     primary_modality: str = Field(default="CT")
+    patient_id: str = Field(default="")
+    study_id: str = Field(default="")
+    source: str = Field(default="")
     image_paths: List[str] = Field(default_factory=list)
     overlay_paths: List[str] = Field(default_factory=list)
     segmentation_summary: str = Field(default="")
-    include_source_image: bool = Field(default=False)
+    include_source_image: bool = Field(default=True)
+    use_cache: bool = Field(default=True)
+    force_refresh: bool = Field(default=False)
+
+
+class ImagingAnalysisCacheEntry(BaseModel):
+    patient_id: str
+    study_id: str
+    source: str = ""
+    modality: str = ""
+    title: str = ""
+    image_paths: List[str] = Field(default_factory=list)
+    clinical_text: str = ""
+    vlm_analysis: Dict[str, Any] = Field(default_factory=dict)
+    vlm_model: str = ""
+    vlm_duration_ms: float = 0.0
+    deepseek_synthesis: Dict[str, Any] = Field(default_factory=dict)
+    deepseek_model: str = ""
+    created_at: str = ""
+    updated_at: str = ""
+    cache_version: str = "1"
+
+
+class ImagingAnalysisCacheResponse(BaseModel):
+    cached: bool
+    from_cache: bool = False
+    entry: Optional[ImagingAnalysisCacheEntry] = None
+    clinical_report: Optional[ClinicalReport] = None
+    full_report_cached: bool = False
+
+
+class WarmImagingAnalysisRequest(BaseModel):
+    patient_id: str
+    study_id: str
+    source: str = Field(default="")
+    clinical_text: str = Field(default="")
+    force: bool = Field(default=False)
+    include_deepseek: bool = Field(default=True)
 
 
 class VlmAnalyzeResponse(BaseModel):
@@ -491,6 +534,9 @@ class VlmAnalyzeResponse(BaseModel):
     overlay_count: int = 0
     source_count: int = 0
     duration_ms: float = 0.0
+    from_cache: bool = False
+    deepseek_synthesis: Dict[str, Any] = Field(default_factory=dict)
+    deepseek_model: str = ""
 
 
 class VolumeMetaResponse(BaseModel):
@@ -506,6 +552,9 @@ class SegmentResponse(BaseModel):
     memory_peak_mb: float = 0.0
     run_id: Optional[str] = None
     image_key: Optional[str] = None
+    compute_mode: str = Field(default="local", description="local | remote")
+    fallback_from_remote: bool = Field(default=False)
+    compute_message: str = Field(default="")
 
 
 class SaveScreenshotRequest(BaseModel):
@@ -529,8 +578,10 @@ class GenerateReportRequest(BaseModel):
     segmentation_summary: str = Field(default="")
     patient_context: Optional[PatientContext] = None
     candidate_drugs: List[CandidateDrug] = Field(default_factory=list)
-    include_source_image: bool = Field(default=False)
+    include_source_image: bool = Field(default=True)
     run_medication_review: bool = Field(default=False)
+    use_analysis_cache: bool = Field(default=True)
+    force_refresh: bool = Field(default=False)
 
 
 class ReportAskRequest(BaseModel):
@@ -656,6 +707,10 @@ class MimicPatientSummary(BaseModel):
     medication_count: int = 0
     has_chief_complaint: bool = False
     has_allergies: bool = False
+    icu_stay: bool = False
+    has_imaging: bool = False
+    egfr: Optional[float] = None
+    primary_diagnosis: str = Field(default="")
 
 
 class MimicPatientListResponse(BaseModel):
@@ -676,5 +731,9 @@ class MimicDataStatsResponse(BaseModel):
     with_clinical_notes: int = 0
     with_medications: int = 0
     with_diagnoses: int = 0
+    with_labs: int = 0
+    with_icu: int = 0
+    with_imaging: int = 0
     age_min: Optional[int] = None
     age_max: Optional[int] = None
+    dataset_tier: str = Field(default="unknown")

@@ -71,16 +71,19 @@ function removeExistingMed(i: number) {
 }
 
 function addOrder() {
-  const name = newOrder.value.display_name.trim() || newOrder.value.ingredient.trim()
-  if (!name && !newOrder.value.hospital_drug_id.trim()) {
+  const displayName = (newOrder.value.display_name ?? '').trim()
+  const ingredient = (newOrder.value.ingredient ?? '').trim()
+  const hospitalDrugId = (newOrder.value.hospital_drug_id ?? '').trim()
+  const name = displayName || ingredient
+  if (!name && !hospitalDrugId) {
     error.value = '请填写院内码或药品名称'
     return
   }
   error.value = ''
   orders.value.push({
     ...newOrder.value,
-    order_id: newOrder.value.order_id.trim() || `ord_${Date.now()}_${orders.value.length + 1}`,
-    display_name: newOrder.value.display_name.trim() || newOrder.value.ingredient.trim(),
+    order_id: (newOrder.value.order_id ?? '').trim() || `ord_${Date.now()}_${orders.value.length + 1}`,
+    display_name: name,
   })
   newOrder.value = {
     order_id: '',

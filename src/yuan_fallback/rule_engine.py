@@ -261,105 +261,14 @@ def _match_drug(drug_name: str, patterns: list[str]) -> bool:
 # 规则引擎主接口
 # ============================================================
 
-def check_interactions_by_rules(drug_list_str: str) -> str:
-    """
-    使用硬编码规则检查药物相互作用（不需要 LLM、不需要 KG）
-
-    Args:
-        drug_list_str: 逗号分隔的药物名称
-    Returns:
-        格式化的相互作用检查报告
-    """
-    drugs = [d.strip() for d in drug_list_str.replace("、", ",").split(",") if d.strip()]
-
-    matched: list[dict[str, Any]] = []
-
-    # 检查药物-药物相互作用
-    for i in range(len(drugs)):
-        for j in range(i + 1, len(drugs)):
-            for rule in CRITICAL_INTERACTIONS:
-                patterns_a, patterns_b, sev, mech, effect, rec, ev = rule
-                a_matches_b = _match_drug(drugs[i], patterns_a) and _match_drug(drugs[j], patterns_b)
-                b_matches_a = _match_drug(drugs[j], patterns_a) and _match_drug(drugs[i], patterns_b)
-                if a_matches_b or b_matches_a:
-                    matched.append({
-                        "drug_a": drugs[i],
-                        "drug_b": drugs[j],
-                        "severity": sev,
-                        "mechanism": mech,
-                        "effect": effect,
-                        "recommendation": rec,
-                        "evidence": ev,
-                    })
-                    break  # 每对只匹配第一个命中的规则
-
-    # 检查人群/疾病禁忌
-    population_matches: list[dict] = []
-    # 这里需要 context 参数，暂时只做药物间检查
-
-    # 构建输出
-    if not matched:
-        return (
-            "## 规则引擎检查结果\n\n"
-            f"已检查药物：{'、'.join(drugs)}\n\n"
-            "✅ 基于内置规则库，未发现已知的严重药物相互作用。\n\n"
-            "> ⚠️ 注意：规则引擎仅覆盖最常见的高危相互作用组合，"
-            "不排除存在未被收录的相互作用。本结果仅供参考，不可替代专业药师判断。"
-        )
-
-    lines = [
-        "## 规则引擎 — 药物安全性检查（离线模式）",
-        "",
-        f"已检查：{'、'.join(drugs)}",
-        "",
-        "> ⚠️ 当前系统运行在规则引擎降级模式（LLM 不可用）。",
-        "> 以下结果基于内置的安全规则库，仅覆盖关键高危相互作用。",
-        "",
-    ]
-
-    severe_found = [m for m in matched if m["severity"] in ("severe", "contraindicated")]
-    if severe_found:
-        lines.append(f"### 🚨 发现 {len(severe_found)} 个严重/禁忌相互作用！")
-        lines.append("")
-
-    for m in matched:
-        sev_icon = {
-            "severe": "🔴 严重",
-            "contraindicated": "🚫 禁忌",
-            "moderate": "🟡 中等",
-            "mild": "🟢 轻微",
-        }.get(m["severity"], m["severity"])
-
-        lines.append(f"### {m['drug_a']} ↔ {m['drug_b']} [{sev_icon}]")
-        lines.append(f"- **机制**: {m['mechanism']}")
-        lines.append(f"- **后果**: {m['effect']}")
-        lines.append(f"- **建议**: {m['recommendation']}")
-        lines.append(f"- **证据等级**: {m['evidence']}")
-        lines.append("")
-
-    lines.append("---")
-    lines.append("> 💡 规则引擎模式无法提供个性化分析。如需完整的患者特异性评估，请等待系统恢复后重试。")
-    lines.append("> 紧急情况请拨打 120 或前往就近医院。")
-
-    return "\n".join(lines)
-
-
-def check_contraindications_by_rules(
+def _find_population_contraindications(
     drug_name: str,
     patient_age: int = 0,
     is_pregnant: str = "否",
     conditions: str = "",
-) -> str:
-    """
-    使用硬编码规则检查特定药物的禁忌症（离线模式）
-
-    Args:
-        drug_name: 药物名称
-        patient_age: 年龄
-        is_pregnant: 是否妊娠（是/否）
-        conditions: 现有疾病
-    """
-    matched: list[dict] = []
+) -> list[dict[str, Any]]:
+    """Return population/disease contraindication matches for a single drug."""
+    matched: list[dict[str, Any]] = []
     conditions_lower = conditions.lower()
 
     for rule in POPULATION_RULES:
@@ -367,7 +276,6 @@ def check_contraindications_by_rules(
         if not _match_drug(drug_name, patterns):
             continue
 
-        # 检查人群/疾病是否匹配
         matched_cond = False
         match_reason = ""
 
@@ -392,6 +300,154 @@ def check_contraindications_by_rules(
                 "mechanism": mech,
                 "recommendation": rec,
             })
+
+    return matched
+
+
+def check_interactions_by_rules(
+    drug_list_str: str,
+    *,
+    patient_age: int = 0,
+    is_pregnant: str = "否",
+    conditions: str = "",
+    extra_drugs: list[str] | None = None,
+) -> str:
+    """
+    使用硬编码规则检查药物相互作用与人群禁忌（不需要 LLM、不需要 KG）
+
+    Args:
+        drug_list_str: 逗号分隔的药物名称
+        patient_age: 患者年龄（用于老年/儿童规则）
+        is_pregnant: 是否妊娠（是/否）
+        conditions: 现有疾病描述
+        extra_drugs: 额外纳入检查的药物（如当前用药列表）
+    Returns:
+        格式化的相互作用检查报告
+    """
+    drugs = [d.strip() for d in drug_list_str.replace("、", ",").split(",") if d.strip()]
+    if extra_drugs:
+        for drug in extra_drugs:
+            name = drug.strip()
+            if name and name not in drugs:
+                drugs.append(name)
+
+    matched: list[dict[str, Any]] = []
+
+    # 检查药物-药物相互作用
+    for i in range(len(drugs)):
+        for j in range(i + 1, len(drugs)):
+            for rule in CRITICAL_INTERACTIONS:
+                patterns_a, patterns_b, sev, mech, effect, rec, ev = rule
+                a_matches_b = _match_drug(drugs[i], patterns_a) and _match_drug(drugs[j], patterns_b)
+                b_matches_a = _match_drug(drugs[j], patterns_a) and _match_drug(drugs[i], patterns_b)
+                if a_matches_b or b_matches_a:
+                    matched.append({
+                        "drug_a": drugs[i],
+                        "drug_b": drugs[j],
+                        "severity": sev,
+                        "mechanism": mech,
+                        "effect": effect,
+                        "recommendation": rec,
+                        "evidence": ev,
+                    })
+                    break  # 每对只匹配第一个命中的规则
+
+    population_matches: list[dict[str, Any]] = []
+    has_patient_context = patient_age > 0 or is_pregnant == "是" or bool(conditions.strip())
+    if has_patient_context:
+        for drug in drugs:
+            for hit in _find_population_contraindications(drug, patient_age, is_pregnant, conditions):
+                population_matches.append({"drug": drug, **hit})
+
+    drug_label = "、".join(drugs) if drugs else "（未识别到药物名称）"
+
+    if not matched and not population_matches:
+        return (
+            "## 规则引擎检查结果\n\n"
+            f"已检查药物：{drug_label}\n\n"
+            "✅ 基于内置规则库，未发现已知的严重药物相互作用"
+            + ("或人群禁忌。" if has_patient_context else "。")
+            + "\n\n"
+            "> ⚠️ 注意：规则引擎仅覆盖最常见的高危相互作用组合，"
+            "不排除存在未被收录的相互作用。本结果仅供参考，不可替代专业药师判断。"
+        )
+
+    lines = [
+        "## 规则引擎 — 药物安全性检查（离线模式）",
+        "",
+        f"已检查：{drug_label}",
+        "",
+        "> ⚠️ 当前系统运行在规则引擎降级模式（LLM 不可用）。",
+        "> 以下结果基于内置的安全规则库，仅覆盖关键高危相互作用与人群禁忌。",
+        "",
+    ]
+
+    if has_patient_context:
+        ctx_bits = []
+        if patient_age > 0:
+            ctx_bits.append(f"年龄 {patient_age} 岁")
+        if is_pregnant == "是":
+            ctx_bits.append("妊娠期")
+        if conditions.strip():
+            ctx_bits.append(f"疾病/状态: {conditions.strip()}")
+        if ctx_bits:
+            lines.append(f"**患者画像**: {'；'.join(ctx_bits)}")
+            lines.append("")
+
+    severe_found = [m for m in matched if m["severity"] in ("severe", "contraindicated")]
+    if severe_found:
+        lines.append(f"### 🚨 发现 {len(severe_found)} 个严重/禁忌相互作用！")
+        lines.append("")
+
+    for m in matched:
+        sev_icon = {
+            "severe": "🔴 严重",
+            "contraindicated": "🚫 禁忌",
+            "moderate": "🟡 中等",
+            "mild": "🟢 轻微",
+        }.get(m["severity"], m["severity"])
+
+        lines.append(f"### {m['drug_a']} ↔ {m['drug_b']} [{sev_icon}]")
+        lines.append(f"- **机制**: {m['mechanism']}")
+        lines.append(f"- **后果**: {m['effect']}")
+        lines.append(f"- **建议**: {m['recommendation']}")
+        lines.append(f"- **证据等级**: {m['evidence']}")
+        lines.append("")
+
+    if population_matches:
+        lines.append(f"### ⚠️ 发现 {len(population_matches)} 条人群/疾病禁忌")
+        lines.append("")
+        for m in population_matches:
+            sev_label = "🚫 禁忌" if m["severity"] == "contraindicated" else "⚠️ 慎用/避免"
+            lines.append(f"### {m['drug']} — {sev_label}: {m['condition']}")
+            lines.append(f"- 匹配原因: {m['match_reason']}")
+            lines.append(f"- 机制: {m['mechanism']}")
+            lines.append(f"- 建议: {m['recommendation']}")
+            lines.append("")
+
+    lines.append("---")
+    lines.append("> 💡 规则引擎模式无法提供个性化分析。如需完整的患者特异性评估，请等待系统恢复后重试。")
+    lines.append("> 紧急情况请拨打 120 或前往就近医院。")
+
+    return "\n".join(lines)
+
+
+def check_contraindications_by_rules(
+    drug_name: str,
+    patient_age: int = 0,
+    is_pregnant: str = "否",
+    conditions: str = "",
+) -> str:
+    """
+    使用硬编码规则检查特定药物的禁忌症（离线模式）
+
+    Args:
+        drug_name: 药物名称
+        patient_age: 年龄
+        is_pregnant: 是否妊娠（是/否）
+        conditions: 现有疾病
+    """
+    matched = _find_population_contraindications(drug_name, patient_age, is_pregnant, conditions)
 
     if not matched:
         return (

@@ -18,11 +18,20 @@ class ChatMessage(BaseModel):
     name: str | None = None
 
 
+class PatientContextLite(BaseModel):
+    """Optional patient context for rule-engine fallback checks."""
+    age: int | None = None
+    pregnancy_status: str = "unknown"
+    diagnoses: list[dict[str, Any]] = Field(default_factory=list)
+    current_medications: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class ChatRequest(BaseModel):
     """POST /api/chat/stream 请求体"""
     messages: list[ChatMessage]
     stream: bool = Field(default=True, description="是否流式返回")
     role: str = Field(default="patient", description="用户角色: doctor / patient")
+    patient_context: PatientContextLite | None = None
 
 
 # ============================================================

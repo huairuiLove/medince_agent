@@ -15,6 +15,8 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from src.agents.extract_agent import ExtractAgent
 from src.case_store import CaseStore, resolve_case_department
+from src.imaging.case_persist import persist_imaging_report_case as _persist_imaging_report_case_impl
+from src.knowledge_base import load_kb_stats
 from src.case_templates import CaseTemplateListResponse, get_case_template, list_case_templates
 from src.mimic_store import get_mimic_store
 from src.clarify_engine import ClarifyEngine
@@ -74,7 +76,8 @@ from src.schemas import (
     ExtractRequest,
     ExtractResponse,
     ExtractionOutput,
-    GenerateReportRequest,
+    ImagingAnalysisCacheResponse,
+    WarmImagingAnalysisRequest,
     ListSegmentRunsResponse,
     MultiConsultRequest,
     MultiConsultResponse,
@@ -94,7 +97,10 @@ from src.schemas import (
     VlmAnalyzeResponse,
 )
 from src.imaging.catalog import ImagingCatalog
+from src.imaging.warm_analysis import find_study, get_or_run_study_analysis, resolve_study_source_images, warm_study_analysis
 from src.imaging.memory_monitor import rss_mb
+from src.imaging.remote_client import remote_segment_status
+from src.imaging.segment_orchestrator import run_segment_with_fallback
 from src.imaging.segment_service import SegmentService
 from src.imaging.segment_store import SegmentStore, make_image_key
 from src.imaging.volume_io import decode_base64_image, export_volume_slice, get_volume_meta, is_nifti, resolve_vlm_image_paths
@@ -123,7 +129,7 @@ MedSafe — 基于 MIMIC-III 场景的多智能体用药安全审查系统。
 ## 核心流程
 - **Extract** — LLM API 从病历文本抽取结构化信息
 - **Rule Gate** — 确定性规则库预筛（硬安全底线）
-- **Multi-Agent Review** — 临床药师 / 内科主治 / 过敏专员 / 药房库管 / 专科医生
+- **Multi-Agent Review** — 临床药师 / 内科主治 / 过敏专员 / 药房库管 / 科室专科 / 特殊人群审查
 - **Arbitration** — 会诊主席汇总仲裁
 - **Clarify** — 信息协调员追问补全
 """
@@ -279,51 +285,17 @@ def _persist_imaging_report_case(
     req: GenerateReportRequest,
     user: UserProfile,
 ) -> None:
-    meta = report.metadata or {}
-    vlm = meta.get("vlm_analysis")
-    vlm_dict = vlm if isinstance(vlm, dict) else {}
     dept = _department_for_user(user, req.patient_context)
     patient = req.patient_context
-    if patient is None:
-        patient = _patient_context_from_vlm(
-            clinical_text=req.clinical_text,
-            analysis=vlm_dict,
-            department=dept,
-        )
-    else:
+    if patient is not None:
         patient = _patient_context_with_department(patient, user)
-
-    agent_opinions = meta.get("agent_opinions") or []
-    final = str(meta.get("final_recommendation") or "").strip()
-    if not final:
-        if agent_opinions and meta.get("arbitration"):
-            final = str(meta["arbitration"].get("final_recommendation") or "")
-        if not final:
-            final = _vlm_final_recommendation(vlm_dict)
-
-    patch: dict = {
-        "case_kind": "imaging_report",
-        "patient_context": patient.model_dump(),
-        "candidate_drugs": meta.get("candidate_drugs") or [],
-        "vlm_analysis": vlm_dict or None,
-        "imaging_report_id": report.report_id,
-        "imaging_session_id": report.imaging_session_id,
-        "raw_input_text": req.clinical_text,
-        "review_output": meta.get("rule_output"),
-        "agent_opinions": agent_opinions,
-        "debate": meta.get("debate"),
-        "safety_panel": meta.get("safety_panel"),
-        "arbitration": meta.get("arbitration"),
-        "final_recommendation": final,
-        "status": "complete",
-    }
-    CASE_STORE.upsert_case(
-        case_id=req.case_id,
-        patch=patch,
-        stage="imaging_report",
-        payload={"report_id": report.report_id, "modalities": report.modalities},
+        req = req.model_copy(update={"patient_context": patient})
+    _persist_imaging_report_case_impl(
+        report,
+        req,
         user_id=user.user_id,
         department=dept,
+        case_id=req.case_id,
     )
 
 
@@ -424,6 +396,10 @@ def health() -> dict:
             "ddi_bert": get_ddi_classifier().status(),
         },
         "embedding": embedding_status(),
+        "knowledge_base": load_kb_stats(),
+        "imaging": {
+            "remote": remote_segment_status(),
+        },
     }
 
 
@@ -471,6 +447,12 @@ def api_mimic_patients(
     limit: int = 25,
     gender: Optional[str] = None,
     min_medications: int = 0,
+    q: Optional[str] = None,
+    icu_only: bool = False,
+    has_imaging: Optional[bool] = None,
+    min_age: Optional[int] = None,
+    max_age: Optional[int] = None,
+    admission_type: Optional[str] = None,
 ) -> MimicPatientListResponse:
     if limit < 1 or limit > 200:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
@@ -479,14 +461,40 @@ def api_mimic_patients(
     if not MIMIC_STORE.is_processed_available():
         raise HTTPException(
             status_code=503,
-            detail="MIMIC-III patient contexts not built. Run: python -m src.cli build-mimic",
+            detail="MIMIC-III patient contexts not built. Run: python -m src.cli build-mimic --max-samples 0",
         )
     return MIMIC_STORE.list_patients(
         offset=offset,
         limit=limit,
         gender=gender,
         min_medications=min_medications,
+        q=q,
+        icu_only=icu_only,
+        has_imaging=has_imaging,
+        min_age=min_age,
+        max_age=max_age,
+        admission_type=admission_type,
     )
+
+
+@app.get("/api/v1/mimic/patients/{subject_id}/{hadm_id}/imaging", tags=["MIMIC"])
+def api_mimic_patient_imaging(subject_id: int, hadm_id: int) -> dict:
+    if not MIMIC_STORE.is_processed_available():
+        raise HTTPException(
+            status_code=503,
+            detail="MIMIC-III patient contexts not built. Run: python -m src.cli build-mimic --max-samples 0",
+        )
+    ctx = MIMIC_STORE.get_patient(subject_id, hadm_id)
+    if ctx is None:
+        raise HTTPException(status_code=404, detail=f"Admission {subject_id}/{hadm_id} not in processed index.")
+    studies = MIMIC_STORE.list_imaging_studies(subject_id)
+    return {
+        "subject_id": subject_id,
+        "hadm_id": hadm_id,
+        "cxr_patient_id": f"p{subject_id:08d}",
+        "has_imaging": ctx.has_imaging,
+        "studies": [s.model_dump() for s in studies],
+    }
 
 
 @app.get("/api/v1/mimic/patients/{subject_id}/{hadm_id}", response_model=PatientContext, tags=["MIMIC"])
@@ -838,10 +846,18 @@ def clarify_case(
 # ── Multi-Agent ──────────────────────────────────────────────────────────
 
 @app.post("/api/v1/multi-review", response_model=MultiReviewResponse, tags=["Multi-Agent"])
-def multi_review(req: MultiReviewRequest, request: Request) -> MultiReviewResponse:
+def multi_review(
+    req: MultiReviewRequest,
+    request: Request,
+    user: Annotated[UserProfile | None, Depends(get_optional_user)] = None,
+) -> MultiReviewResponse:
     _REQUEST_COUNTS["multi_review"] += 1
+    runtime_config = get_auth_service().build_agent_runtime_config(user.user_id) if user else None
     result = ORCHESTRATOR.run(
-        req.patient_context, req.candidate_drugs, unable_to_answer=req.unable_to_answer
+        req.patient_context,
+        req.candidate_drugs,
+        unable_to_answer=req.unable_to_answer,
+        runtime_config=runtime_config,
     )
     if req.persist:
         case = CASE_STORE.upsert_case(
@@ -903,7 +919,13 @@ def multi_consult(
 
     patient_context = _patient_context_with_department(patient_context, user)
 
-    result = ORCHESTRATOR.run(patient_context, req.candidate_drugs, unable_to_answer=req.unable_to_answer)
+    runtime_config = get_auth_service().build_agent_runtime_config(user.user_id) if user else None
+    result = ORCHESTRATOR.run(
+        patient_context,
+        req.candidate_drugs,
+        unable_to_answer=req.unable_to_answer,
+        runtime_config=runtime_config,
+    )
 
     dept_id = _department_for_user(user, patient_context)
     if result.agent_opinions or result.rule_output:
@@ -1210,10 +1232,23 @@ def run_segmentation(
         kwargs["bbox"] = tuple(req.bbox[:4])
 
     image_key = make_image_key(req.image_path, req.volume_path, req.slice_axis, req.slice_index)
-    peak_before = rss_mb()
-    results = SEGMENT_SERVICE.segment_serial(visual, req.model_ids, **kwargs)
-    peak_after = rss_mb()
-    memory_peak = max(peak_before, peak_after)
+    root = resolve_path(".")
+    visual_abs = (root / visual).resolve() if not Path(visual).is_absolute() else Path(visual).resolve()
+    volume_abs = (root / req.volume_path).resolve() if req.volume_path else None
+
+    results, memory_peak, compute_mode, compute_message, fallback_from_remote = run_segment_with_fallback(
+        segment_service=SEGMENT_SERVICE,
+        visual=visual,
+        model_ids=req.model_ids,
+        image_abs=visual_abs,
+        volume_abs=volume_abs,
+        kwargs=kwargs,
+        organ=req.organ,
+        slice_axis=req.slice_axis,
+        slice_index=req.slice_index,
+        point=req.point,
+        bbox=req.bbox,
+    )
 
     result_payload = [{
         "model_id": r.model_id,
@@ -1249,6 +1284,9 @@ def run_segmentation(
         memory_peak_mb=memory_peak,
         run_id=run_id,
         image_key=image_key,
+        compute_mode=compute_mode,
+        fallback_from_remote=fallback_from_remote,
+        compute_message=compute_message,
     )
 
 
@@ -1313,6 +1351,58 @@ def imaging_vlm_config():
     }
 
 
+@app.get("/api/v1/imaging/analysis-cache/{patient_id}/{study_id}", response_model=ImagingAnalysisCacheResponse, tags=["Imaging"])
+def get_imaging_analysis_cache(
+    patient_id: str,
+    study_id: str,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+    source: str = "",
+) -> ImagingAnalysisCacheResponse:
+    _require_study_access(patient_id, study_id, user)
+    study = find_study(patient_id, study_id, source)
+    if not study:
+        raise HTTPException(status_code=404, detail="Study not found in catalog.")
+    from src.imaging.analysis_cache import ImagingAnalysisCacheStore
+
+    entry = ImagingAnalysisCacheStore().get(study.source, patient_id, study_id)
+    from src.imaging.report_cache import ImagingReportCacheStore
+
+    clinical_report = ImagingReportCacheStore().get(study.source, patient_id, study_id)
+    full_report_cached = bool(
+        clinical_report and clinical_report.metadata.get("medication_review_ran")
+    )
+    return ImagingAnalysisCacheResponse(
+        cached=entry is not None or full_report_cached,
+        from_cache=entry is not None,
+        entry=entry,
+        clinical_report=clinical_report if full_report_cached else None,
+        full_report_cached=full_report_cached,
+    )
+
+
+@app.post("/api/v1/imaging/analysis-cache/warm", response_model=ImagingAnalysisCacheResponse, tags=["Imaging"])
+def warm_imaging_analysis_cache(
+    req: WarmImagingAnalysisRequest,
+    user: Annotated[UserProfile, Depends(get_current_user)],
+) -> ImagingAnalysisCacheResponse:
+    _require_study_access(req.patient_id, req.study_id, user)
+    study = find_study(req.patient_id, req.study_id, req.source)
+    if not study:
+        raise HTTPException(status_code=404, detail="Study not found in catalog.")
+    try:
+        entry = warm_study_analysis(
+            study,
+            clinical_text=req.clinical_text,
+            force=req.force,
+            include_deepseek=req.include_deepseek,
+        )
+    except LLMNotConfiguredError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ImagingAnalysisCacheResponse(cached=True, from_cache=not req.force, entry=entry)
+
+
 @app.post("/api/v1/imaging/vlm/analyze", response_model=VlmAnalyzeResponse, tags=["Imaging"])
 def analyze_with_vlm(
     req: VlmAnalyzeRequest,
@@ -1320,44 +1410,55 @@ def analyze_with_vlm(
     user: Annotated[UserProfile, Depends(get_current_user)],
 ) -> VlmAnalyzeResponse:
     _REQUEST_COUNTS["imaging_vlm"] += 1
-    _require_imaging_paths(req.image_paths + req.overlay_paths, user)
     root = resolve_path(".")
-    source_paths = _resolve_existing_visual_paths(req.image_paths)
-    overlay_paths = _resolve_existing_visual_paths(req.overlay_paths)
 
-    if overlay_paths:
-        all_visual = overlay_paths
-        if req.include_source_image:
-            all_visual = dedupe_paths(source_paths + overlay_paths)
+    study = None
+    from_cache = False
+    deepseek_synthesis: dict = {}
+    ds_model = ""
+    rel_paths: list[str] = []
+    if req.patient_id and req.study_id:
+        _require_study_access(req.patient_id, req.study_id, user)
+        study = find_study(req.patient_id, req.study_id, req.source)
+
+    if study:
+        entry, from_cache = get_or_run_study_analysis(
+            study,
+            clinical_text=req.clinical_text,
+            use_cache=req.use_cache,
+            force_refresh=req.force_refresh,
+            include_deepseek=True,
+        )
+        analysis = entry.vlm_analysis
+        deepseek_synthesis = entry.deepseek_synthesis or {}
+        vlm_model = entry.vlm_model
+        duration_ms = entry.vlm_duration_ms
+        rel_paths = list(entry.image_paths)
+        ds_model = entry.deepseek_model
     else:
-        all_visual = source_paths
-
-    if not all_visual:
-        raise HTTPException(status_code=400, detail="No valid image or overlay paths provided.")
-
-    client = get_qwen_vlm_client()
-    summary = req.clinical_text
-    if req.segmentation_summary:
-        summary = f"{summary}\n\n分割摘要：{req.segmentation_summary}".strip()
-
-    t0 = time.perf_counter()
-    analysis = client.analyze_images(
-        images=all_visual[:12],
-        patient_summary=summary,
-        modality=req.primary_modality,
-        task="clinical_and_medication",
-    )
-    duration_ms = (time.perf_counter() - t0) * 1000
-
-    rel_paths = []
-    for p in all_visual[:12]:
-        try:
-            rel_paths.append(str(Path(p).resolve().relative_to(root.resolve())))
-        except ValueError:
-            rel_paths.append(p)
-
-    source_used = [p for p in all_visual if p in source_paths]
-    overlay_used = [p for p in all_visual if p in overlay_paths]
+        source_paths = _resolve_existing_visual_paths(req.image_paths)
+        if not source_paths:
+            raise HTTPException(status_code=400, detail="No valid source image paths provided.")
+        _require_imaging_paths(source_paths, user)
+        client = get_qwen_vlm_client()
+        summary = req.clinical_text
+        if req.segmentation_summary:
+            summary = f"{summary}\n\n分割摘要：{req.segmentation_summary}".strip()
+        t0 = time.perf_counter()
+        analysis = client.analyze_images(
+            images=source_paths[:12],
+            patient_summary=summary,
+            modality=req.primary_modality,
+            task="clinical_and_medication",
+        )
+        duration_ms = round((time.perf_counter() - t0) * 1000, 1)
+        vlm_model = client.model_name
+        ds_model = ""
+        for p in source_paths[:12]:
+            try:
+                rel_paths.append(str(Path(p).resolve().relative_to(root.resolve())))
+            except ValueError:
+                rel_paths.append(p)
 
     dept_id = user.dept_id
     patient_context = _patient_context_from_vlm(
@@ -1378,7 +1479,8 @@ def analyze_with_vlm(
         payload={
             "modality": req.primary_modality,
             "images_used": rel_paths,
-            "model": client.model_name,
+            "model": vlm_model,
+            "from_cache": from_cache,
         },
         user_id=user.user_id,
         department=dept_id,
@@ -1388,11 +1490,14 @@ def analyze_with_vlm(
         case_id=imaging_case.case_id,
         analysis=analysis,
         images_used=rel_paths,
-        model=client.model_name,
+        model=vlm_model,
         configured=True,
-        overlay_count=len(overlay_used),
-        source_count=len(source_used),
-        duration_ms=round(duration_ms, 1),
+        overlay_count=0,
+        source_count=len(rel_paths),
+        duration_ms=duration_ms,
+        from_cache=from_cache,
+        deepseek_synthesis=deepseek_synthesis,
+        deepseek_model=ds_model if study else "",
     )
 
 

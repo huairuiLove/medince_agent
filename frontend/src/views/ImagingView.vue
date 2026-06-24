@@ -1,24 +1,37 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import VolumeMprViewer from '@/components/imaging/VolumeMprViewer.vue'
 import ImagingFileImage from '@/components/imaging/ImagingFileImage.vue'
 import RuleReviewSummary from '@/components/consult/RuleReviewSummary.vue'
+import AgentOpinionCard from '@/components/consult/AgentOpinionCard.vue'
+import DebatePanel from '@/components/consult/DebatePanel.vue'
+import RiskBadge from '@/components/common/RiskBadge.vue'
 import { medsafeApi } from '@/api/medsafe'
 import { useAuthStore } from '@/stores/auth'
+import { useMultiConsult } from '@/composables/useMultiConsult'
 import type {
+  AgentOpinion,
+  ArbitrationResult,
   ClinicalReport,
+  DebateResult,
+  DrugItem,
   ImagingStudy,
   ModelId,
+  MultiConsultResponse,
+  PatientContext,
   ReviewOutput,
+  SafetyPanelResult,
   SegModelInfo,
   SegmentResultItem,
   SegmentRunRecord,
   VolumeAxis,
   VlmAnalysis,
 } from '@/types'
+import { drugDetailParts, drugsWithoutIndication, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
 
 const auth = useAuthStore()
+const route = useRoute()
 
 const SOURCE_LABELS: Record<string, string> = {
   mimic_cxr: '胸片 XR',
@@ -65,17 +78,45 @@ const vlmHint = ref('')
 const vlmImagesUsed = ref<string[]>([])
 const vlmDurationMs = ref(0)
 const vlmCaseId = ref<string | null>(null)
+const analysisFromCache = ref(false)
 const reportDurationMs = ref(0)
 const reportTask = ref<'vlm' | 'report' | null>(null)
 const taskElapsedMs = ref(0)
 let taskTimer: ReturnType<typeof setInterval> | null = null
-const includeSourceImage = ref(false)
 const runMedicationReview = ref(true)
-const candidateDrugText = ref('')
+const candidateDrugs = ref<DrugItem[]>([])
+const newDrugName = ref('')
+const newDiagnosis = ref('')
+const newAllergy = ref('')
+const newCurrentMed = ref('')
+
+function emptyImagingPatient(): PatientContext {
+  return {
+    gender: 'unknown',
+    pregnancy_status: 'unknown',
+    allergies: [],
+    current_medications: [],
+    missing_fields: [],
+    diagnoses: [],
+  }
+}
+
+const imagingPatient = ref<PatientContext>(emptyImagingPatient())
+
+const {
+  loading: medConsultLoading,
+  error: medConsultError,
+  result: medConsultResult,
+  run: runMedConsult,
+  reset: resetMedConsult,
+} = useMultiConsult()
+
+const medConsultArb = computed(() => medConsultResult.value?.arbitration ?? null)
 const qaQuestion = ref('')
 const qaAnswer = ref('')
 const viewerRef = ref<HTMLDivElement | null>(null)
 const memoryPeak = ref(0)
+const segmentComputeMessage = ref('')
 const volumeMaskPath = ref<string | null>(null)
 
 const filteredStudies = computed(() => {
@@ -116,6 +157,14 @@ async function loadStudies() {
     sourceFilter.value === 'all' ? undefined : sourceFilter.value,
   )
   studies.value = res.studies
+  const patientQuery = typeof route.query.patient === 'string' ? route.query.patient : ''
+  if (patientQuery) {
+    const match = studies.value.find(s => s.patient_id === patientQuery)
+    if (match) {
+      selectStudy(match)
+      return
+    }
+  }
   if (!studies.value.some(s => s.study_id === selectedStudy.value?.study_id)) {
     if (studies.value.length) selectStudy(studies.value[0])
     else selectedStudy.value = null
@@ -173,15 +222,14 @@ function isVisualImagePath(path: string): boolean {
   return /\.(png|jpe?g|webp|bmp)$/i.test(path)
 }
 
-/** Raster paths safe for Qwen VLM — never NIfTI volumes. */
+/** 提交 Qwen/DS 的原片路径（catalog 预览 PNG，不含分割 overlay） */
 const vlmSourceImagePaths = computed(() => {
-  if (!includeSourceImage.value) return [] as string[]
-  if (viewMode.value === 'mpr' && selectedStudy.value?.volume_path) {
-    return [] as string[]
-  }
-  const p = currentImage.value
-  return p && isVisualImagePath(p) ? [p] : []
+  const s = selectedStudy.value
+  if (!s?.image_paths?.length) return [] as string[]
+  return s.image_paths.filter(isVisualImagePath).slice(0, 4)
 })
+
+const hasVlmSourceImages = computed(() => vlmSourceImagePaths.value.length > 0)
 
 const currentSegmentImagePath = computed(() => {
   if (viewMode.value === 'mpr' && selectedStudy.value?.volume_path) {
@@ -204,18 +252,6 @@ const selectedOverlayPaths = computed(() => {
     }
   }
   return paths
-})
-
-const selectedSegmentSummary = computed(() => {
-  const parts: string[] = []
-  for (const run of segmentHistory.value) {
-    for (const r of run.results) {
-      if (selectedOverlayKeys.value.has(overlayKey(run.run_id, r.model_id))) {
-        parts.push(`${r.model_id} (${run.created_at.slice(0, 16)}): ${r.notes}`)
-      }
-    }
-  }
-  return parts.join('; ')
 })
 
 const vista3dOverlayMask = computed(() => {
@@ -315,9 +351,17 @@ function selectStudy(s: ImagingStudy) {
   savedReports.value = []
   reportDurationMs.value = 0
   vlmAnalysis.value = null
+  analysisFromCache.value = false
   volumeMaskPath.value = null
   qaAnswer.value = ''
   qaQuestion.value = ''
+  candidateDrugs.value = []
+  imagingPatient.value = emptyImagingPatient()
+  resetMedConsult()
+  newDrugName.value = ''
+  newDiagnosis.value = ''
+  newAllergy.value = ''
+  newCurrentMed.value = ''
   selectedModels.value = defaultModelsForStudy(s)
   organ.value = defaultTargetForStudy(s)
   clinicalText.value = s.report_text?.trim()
@@ -325,6 +369,51 @@ function selectStudy(s: ImagingStudy) {
     : `${s.title} — ${s.modality} 影像会诊`
   void loadSegmentHistory()
   void loadPatientReports()
+  void loadAnalysisCache()
+}
+
+async function loadAnalysisCache() {
+  if (!selectedStudy.value) return
+  const s = selectedStudy.value
+  try {
+    const res = await medsafeApi.getImagingAnalysisCache(s.patient_id, s.study_id, s.source)
+    if (res.cached && res.entry?.vlm_analysis) {
+      vlmAnalysis.value = res.entry.vlm_analysis
+      vlmModel.value = res.entry.vlm_model
+      vlmImagesUsed.value = res.entry.image_paths ?? []
+      analysisFromCache.value = true
+      syncImagingFormFromVlm(res.entry.vlm_analysis)
+    }
+    if (res.full_report_cached && res.clinical_report) {
+      report.value = res.clinical_report
+      applyMedConsultFromReport(res.clinical_report)
+      analysisFromCache.value = true
+    }
+  } catch {
+    /* optional preload */
+  }
+}
+
+function applyMedConsultFromReport(r: ClinicalReport) {
+  const meta = r.metadata ?? {}
+  if (!meta.medication_review_ran) {
+    resetMedConsult()
+    return
+  }
+  const ruleOutput = meta.rule_output as ReviewOutput | undefined
+  const arbitration = meta.arbitration as ArbitrationResult | undefined
+  if (!ruleOutput || !arbitration) {
+    resetMedConsult()
+    return
+  }
+  medConsultResult.value = {
+    rule_output: ruleOutput,
+    agent_opinions: (meta.agent_opinions as AgentOpinion[]) ?? [],
+    debate: (meta.debate as DebateResult | null) ?? null,
+    safety_panel: (meta.safety_panel as SafetyPanelResult | null) ?? null,
+    arbitration,
+    final_recommendation: String(meta.final_recommendation ?? arbitration.final_recommendation ?? ''),
+  } satisfies MultiConsultResponse
 }
 
 async function loadPatientReports() {
@@ -384,6 +473,7 @@ async function runSegmentation() {
 
   segmenting.value = true
   error.value = ''
+  segmentComputeMessage.value = ''
   try {
     const imagePath = viewMode.value === 'mpr'
       ? (selectedStudy.value!.volume_path as string)
@@ -402,6 +492,7 @@ async function runSegmentation() {
     })
     segmentResults.value = res.results
     memoryPeak.value = res.memory_peak_mb
+    segmentComputeMessage.value = res.compute_message ?? ''
     const vista = res.results.find(r => r.model_id === 'vista3d' || r.model_id === 'brats_tumor')
     const mask = vista?.stats?.volume_mask_path
     if (typeof mask === 'string') volumeMaskPath.value = mask
@@ -440,22 +531,137 @@ async function captureScreenshot() {
   screenshots.value.push({ path: res.path, caption: res.caption })
 }
 
-function drugsToCandidateText(drugs: VlmAnalysis['recommended_drugs']): string {
-  if (!drugs?.length) return ''
+function vlmToDrugItems(drugs: VlmAnalysis['recommended_drugs']): DrugItem[] {
+  if (!drugs?.length) return []
   return drugs
     .map(d => {
-      if (typeof d === 'string') return d
-      return [d.name, d.dose, d.route].filter(Boolean).join(' ')
+      if (typeof d === 'string') return { name: d.trim() }
+      return {
+        name: d.name?.trim() ?? '',
+        dose: d.dose,
+        route: d.route,
+        frequency: d.frequency,
+        indication: d.indication,
+      }
     })
-    .join('；')
+    .filter(d => d.name)
 }
 
-function syncCandidateDrugsFromVlm(analysis: VlmAnalysis | null) {
-  const text = drugsToCandidateText(analysis?.recommended_drugs)
-  if (text) candidateDrugText.value = text
+function syncImagingFormFromVlm(analysis: VlmAnalysis | null) {
+  if (!analysis) return
+  const drugs = vlmToDrugItems(analysis.recommended_drugs)
+  if (drugs.length) candidateDrugs.value = drugs
+
+  const dxFromVlm = (analysis.diagnoses ?? [])
+    .map(d => (typeof d === 'string' ? { name: d } : d))
+    .filter(d => d.name?.trim())
+
+  imagingPatient.value = {
+    ...imagingPatient.value,
+    gender: imagingPatient.value.gender ?? 'unknown',
+    chief_complaint: analysis.chief_complaint ?? imagingPatient.value.chief_complaint,
+    symptoms_or_complaints: analysis.symptoms ?? imagingPatient.value.symptoms_or_complaints ?? [],
+    allergies: analysis.allergies?.length
+      ? [...analysis.allergies]
+      : imagingPatient.value.allergies ?? [],
+    diagnoses: dxFromVlm.length ? dxFromVlm : imagingPatient.value.diagnoses ?? [],
+    department: auth.profile?.dept_id ?? imagingPatient.value.department ?? '',
+    source_text: clinicalText.value,
+    history_present_illness: [
+      analysis.clinical_analysis,
+      analysis.imaging_findings,
+      analysis.medication_recommendation,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  }
+  if (drugs.length) mergeDrugIndicationsIntoDiagnoses(imagingPatient.value, drugs)
 }
 
-watch(vlmAnalysis, analysis => syncCandidateDrugsFromVlm(analysis))
+function addCandidateDrug() {
+  const name = newDrugName.value.trim()
+  if (!name) return
+  candidateDrugs.value.push({ name })
+  newDrugName.value = ''
+}
+
+function removeCandidateDrug(i: number) {
+  candidateDrugs.value.splice(i, 1)
+}
+
+function addImagingDiagnosis() {
+  const name = newDiagnosis.value.trim()
+  if (!name) return
+  if (!imagingPatient.value.diagnoses) imagingPatient.value.diagnoses = []
+  if (!imagingPatient.value.diagnoses.some(d => d.name === name)) {
+    imagingPatient.value.diagnoses.push({ name })
+  }
+  newDiagnosis.value = ''
+}
+
+function removeImagingDiagnosis(i: number) {
+  imagingPatient.value.diagnoses?.splice(i, 1)
+}
+
+function addImagingAllergy() {
+  const val = newAllergy.value.trim()
+  if (!val) return
+  if (!imagingPatient.value.allergies) imagingPatient.value.allergies = []
+  if (!imagingPatient.value.allergies.includes(val)) {
+    imagingPatient.value.allergies.push(val)
+  }
+  newAllergy.value = ''
+}
+
+function removeImagingAllergy(i: number) {
+  imagingPatient.value.allergies?.splice(i, 1)
+}
+
+function addCurrentMedication() {
+  const name = newCurrentMed.value.trim()
+  if (!name) return
+  if (!imagingPatient.value.current_medications) imagingPatient.value.current_medications = []
+  imagingPatient.value.current_medications.push({ name })
+  newCurrentMed.value = ''
+}
+
+function removeCurrentMedication(i: number) {
+  imagingPatient.value.current_medications?.splice(i, 1)
+}
+
+function buildImagingPatientContext(): PatientContext {
+  const vlm = vlmAnalysis.value
+  const narrative = [
+    clinicalText.value,
+    vlm?.clinical_analysis,
+    vlm?.imaging_findings,
+    vlm?.medication_recommendation,
+    vlm?.reasoning ? `推理：${vlm.reasoning}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+  return {
+    ...imagingPatient.value,
+    department: auth.profile?.dept_id ?? imagingPatient.value.department ?? '',
+    source_text: narrative || imagingPatient.value.source_text || clinicalText.value,
+  }
+}
+
+async function runMedicationAnalysis() {
+  if (!candidateDrugs.value.length) {
+    medConsultError.value = '请至少添加一种候选用药（VLM 查阅后会自动带入，也可手动编辑）'
+    return
+  }
+  const pc = buildImagingPatientContext()
+  mergeDrugIndicationsIntoDiagnoses(pc, candidateDrugs.value)
+  await runMedConsult({
+    patient_context: pc,
+    candidate_drugs: drugsWithoutIndication(candidateDrugs.value),
+    persist: true,
+  })
+}
+
+watch(vlmAnalysis, analysis => syncImagingFormFromVlm(analysis))
 
 const reportRuleOutput = computed((): ReviewOutput | null => {
   const raw = report.value?.metadata?.rule_output
@@ -463,41 +669,17 @@ const reportRuleOutput = computed((): ReviewOutput | null => {
   return raw as ReviewOutput
 })
 
-function parseCandidateDrugs(raw: string): { name: string; dose?: string; route?: string }[] {
-  const text = raw.trim()
-  if (!text) return []
-  if (text.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(text) as unknown
-      if (Array.isArray(parsed)) {
-        return parsed.map(item =>
-          typeof item === 'string' ? { name: item } : (item as { name: string; dose?: string; route?: string }),
-        )
-      }
-    } catch {
-      /* fall through */
-    }
-  }
-  return text.split(/[,，、;\n]/).map(s => s.trim()).filter(Boolean).map(name => ({ name }))
-}
-
 async function generateReport() {
   if (!selectedStudy.value) return
-  const manualDrugs = parseCandidateDrugs(candidateDrugText.value)
-  const vlmDrugs = vlmAnalysis.value?.recommended_drugs?.length
-    ? parseCandidateDrugs(drugsToCandidateText(vlmAnalysis.value.recommended_drugs))
-    : []
-  const candidateDrugs = manualDrugs.length ? manualDrugs : vlmDrugs
-  if (runMedicationReview.value && !candidateDrugs.length) {
+  const candidateDrugsForReport = candidateDrugs.value.length
+    ? drugsWithoutIndication(candidateDrugs.value)
+    : vlmToDrugItems(vlmAnalysis.value?.recommended_drugs)
+  if (runMedicationReview.value && !candidateDrugsForReport.length) {
     error.value = '已启用用药审查，请填写候选药物，或先运行 VLM 查阅以自动带入推荐用药'
     return
   }
-  const hasVisual =
-    selectedOverlayPaths.value.length > 0
-    || screenshots.value.length > 0
-    || (includeSourceImage.value && Boolean(currentSegmentImagePath.value))
-  if (!hasVisual) {
-    error.value = '请先运行分割并勾选 overlay，或添加截图后再生成完整报告'
+  if (!hasVlmSourceImages.value) {
+    error.value = '该检查暂无可用的影像原片（PNG 预览），请先运行 warm_imaging_analysis_cache 或确认 catalog 数据'
     return
   }
   loading.value = true
@@ -513,16 +695,15 @@ async function generateReport() {
       modalities: [selectedStudy.value.modality],
       imaging_session_label: selectedStudy.value.study_id,
       image_paths: vlmSourceImagePaths.value,
-      overlay_paths: selectedOverlayPaths.value,
+      overlay_paths: [],
       screenshot_paths: screenshots.value.map(s => s.path),
       models_used: selectedModels.value,
-      segmentation_summary: selectedSegmentSummary.value,
-      include_source_image: includeSourceImage.value,
+      segmentation_summary: '',
+      include_source_image: true,
       run_medication_review: runMedicationReview.value,
-      candidate_drugs: candidateDrugs,
-      patient_context: auth.profile?.dept_id
-        ? { department: auth.profile.dept_id, source_text: clinicalText.value }
-        : undefined,
+      use_analysis_cache: true,
+      candidate_drugs: candidateDrugsForReport,
+      patient_context: buildImagingPatientContext(),
     })
     reportDurationMs.value = Date.now() - started
     const reviewErr = report.value.metadata?.medication_review_error
@@ -538,33 +719,40 @@ async function generateReport() {
   }
 }
 
-async function runVlmConsult() {
+async function runVlmConsult(forceRefresh = false) {
   if (!selectedStudy.value) return
-  if (!selectedOverlayPaths.value.length) {
-    error.value = '请至少选中一张分割 overlay 再提交 VLM 查阅'
+  if (!hasVlmSourceImages.value) {
+    error.value = '该检查暂无影像原片预览，无法提交 VLM'
     return
   }
   loading.value = true
   error.value = ''
   vlmAnalysis.value = null
   vlmCaseId.value = null
+  analysisFromCache.value = false
   startReportTask('vlm')
   const started = Date.now()
   try {
+    const s = selectedStudy.value
     const res = await medsafeApi.analyzeWithVlm({
+      patient_id: s.patient_id,
+      study_id: s.study_id,
+      source: s.source,
       clinical_text: clinicalText.value,
-      primary_modality: selectedStudy.value.modality,
+      primary_modality: s.modality,
       image_paths: vlmSourceImagePaths.value,
-      overlay_paths: selectedOverlayPaths.value,
-      include_source_image: includeSourceImage.value,
-      segmentation_summary: selectedSegmentSummary.value,
+      overlay_paths: [],
+      include_source_image: true,
+      use_cache: !forceRefresh,
+      force_refresh: forceRefresh,
     })
     vlmAnalysis.value = res.analysis
     vlmCaseId.value = res.case_id ?? null
     vlmModel.value = res.model
     vlmImagesUsed.value = res.images_used
     vlmDurationMs.value = res.duration_ms || Date.now() - started
-    syncCandidateDrugsFromVlm(res.analysis)
+    analysisFromCache.value = Boolean(res.from_cache)
+    syncImagingFormFromVlm(res.analysis)
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -608,6 +796,7 @@ const sortedParagraphs = computed(() =>
     </header>
 
     <p v-if="error" class="err">{{ error }}</p>
+    <p v-if="segmentComputeMessage" class="info-banner">{{ segmentComputeMessage }}</p>
     <p v-if="!vlmConfigured" class="config-banner">{{ vlmHint }}</p>
 
     <div class="grid-main">
@@ -800,47 +989,123 @@ const sortedParagraphs = computed(() =>
         <p v-else class="muted">该患者暂无已保存报告</p>
       </div>
 
+      <p v-if="hasVlmSourceImages" class="hint-muted">
+        VLM/报告使用影像原片（{{ vlmSourceImagePaths.length }} 张），不依赖分割 overlay。
+        <span v-if="analysisFromCache">· 已加载缓存</span>
+      </p>
+
       <label class="label">病历 / 临床描述</label>
       <textarea v-model="clinicalText" class="textarea" rows="3" />
 
       <label class="model-check include-src">
-        <input v-model="includeSourceImage" type="checkbox" :disabled="viewMode === 'mpr' && Boolean(selectedStudy?.volume_path)" />
-        <span>
-          同时提交原图（overlay 已含底图，默认不勾选）
-          <small v-if="viewMode === 'mpr' && selectedStudy?.volume_path" class="hint-inline">
-            3D MPR 模式下请使用截图或仅提交 overlay
-          </small>
-        </span>
+        <input v-model="runMedicationReview" type="checkbox" />
+        <span>完整报告时启用用药审查流水线（规则审查 → 多智能体）</span>
       </label>
 
-      <label class="model-check include-src">
-        <input v-model="runMedicationReview" type="checkbox" />
-        <span>启用用药审查流水线（VLM 推荐 → 规则审查 Layer 0 → 多智能体审查）</span>
-      </label>
-      <textarea
-        v-if="runMedicationReview"
-        v-model="candidateDrugText"
-        class="textarea"
-        rows="2"
-        placeholder="候选药物（可留空，VLM 查阅后会自动带入推荐用药）"
-      />
+      <div v-if="vlmAnalysis || candidateDrugs.length" class="med-form card-inline">
+        <h4>用药推荐与临床上下文（可编辑）</h4>
+        <p class="hint-muted">VLM 查阅后自动填入，格式与多智能体会诊一致；确认后可一键发起用药安全分析。</p>
+
+        <div class="field">
+          <label class="label">病症 / 诊断</label>
+          <ul v-if="imagingPatient.diagnoses?.length" class="tag-list">
+            <li v-for="(dx, i) in imagingPatient.diagnoses" :key="i">
+              <span>{{ dx.name }}<small v-if="dx.icd9_code"> · {{ dx.icd9_code }}</small></span>
+              <button type="button" class="btn-ghost" @click="removeImagingDiagnosis(i)">×</button>
+            </li>
+          </ul>
+          <p v-else class="empty-hint">尚未添加诊断（VLM 会自动推断）</p>
+          <div class="add-drug">
+            <input v-model="newDiagnosis" class="input" placeholder="如：重症社区获得性肺炎" @keyup.enter="addImagingDiagnosis" />
+            <button type="button" class="btn-secondary" @click="addImagingDiagnosis">添加</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">过敏史</label>
+          <ul v-if="imagingPatient.allergies?.length" class="tag-list">
+            <li v-for="(a, i) in imagingPatient.allergies" :key="i">
+              <span>{{ a }}</span>
+              <button type="button" class="btn-ghost" @click="removeImagingAllergy(i)">×</button>
+            </li>
+          </ul>
+          <p v-else class="empty-hint">无已知过敏 / 待补充</p>
+          <div class="add-drug">
+            <input v-model="newAllergy" class="input" placeholder="如：青霉素" @keyup.enter="addImagingAllergy" />
+            <button type="button" class="btn-secondary" @click="addImagingAllergy">添加</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">当前用药</label>
+          <ul v-if="imagingPatient.current_medications?.length" class="drug-list">
+            <li v-for="(m, i) in imagingPatient.current_medications" :key="i">
+              <strong>{{ m.name }}</strong>
+              <span v-for="(part, j) in drugDetailParts(m)" :key="j" class="drug-meta">{{ part }}</span>
+              <button type="button" class="btn-ghost" @click="removeCurrentMedication(i)">×</button>
+            </li>
+          </ul>
+          <p v-else class="empty-hint">尚未添加当前用药</p>
+          <div class="add-drug">
+            <input v-model="newCurrentMed" class="input" placeholder="药名" @keyup.enter="addCurrentMedication" />
+            <button type="button" class="btn-secondary" @click="addCurrentMedication">添加</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">候选用药</label>
+          <ul v-if="candidateDrugs.length" class="drug-list">
+            <li v-for="(d, i) in candidateDrugs" :key="i">
+              <strong>{{ d.name }}</strong>
+              <span v-for="(part, j) in drugDetailParts(d)" :key="j" class="drug-meta">{{ part }}</span>
+              <span v-if="d.indication" class="drug-meta">{{ d.indication }}</span>
+              <button type="button" class="btn-ghost" @click="removeCandidateDrug(i)">×</button>
+            </li>
+          </ul>
+          <p v-else class="empty-hint">尚未添加候选用药 — 请先运行 VLM 查阅或手动添加</p>
+          <div class="add-drug">
+            <input v-model="newDrugName" class="input" placeholder="药名" @keyup.enter="addCandidateDrug" />
+            <button type="button" class="btn-secondary" @click="addCandidateDrug">添加</button>
+          </div>
+        </div>
+
+        <button
+          class="btn-primary med-analyze-btn"
+          type="button"
+          :disabled="medConsultLoading || !candidateDrugs.length"
+          @click="runMedicationAnalysis"
+        >
+          <span v-if="medConsultLoading" class="spinner" />
+          {{ medConsultLoading ? '用药安全分析中…' : '发起用药安全分析（规则 + 多智能体）' }}
+        </button>
+        <p v-if="medConsultError" class="error">{{ medConsultError }}</p>
+      </div>
 
       <div class="action-row">
         <button
           class="btn-primary"
-          :disabled="loading || !selectedOverlayPaths.length"
-          @click="runVlmConsult"
+          :disabled="loading || !hasVlmSourceImages"
+          @click="runVlmConsult(false)"
         >
           <span v-if="reportTask === 'vlm'" class="spinner" />
           {{
             reportTask === 'vlm'
               ? `VLM 查阅中… ${formatElapsed(taskElapsedMs)}`
-              : `Qwen VLM 查阅（已选 ${selectedOverlayPaths.length} 张 overlay）`
+              : `Qwen VLM 查阅（原片 ${vlmSourceImagePaths.length} 张）`
           }}
         </button>
         <button
+          class="btn-ghost"
+          type="button"
+          :disabled="loading || !hasVlmSourceImages"
+          title="忽略缓存，重新调用 Qwen + DeepSeek"
+          @click="runVlmConsult(true)"
+        >
+          强制刷新
+        </button>
+        <button
           class="btn-secondary"
-          :disabled="loading || !selectedOverlayPaths.length && !screenshots.length"
+          :disabled="loading || !hasVlmSourceImages"
           @click="generateReport"
         >
           <span v-if="reportTask === 'report'" class="spinner" />
@@ -854,7 +1119,7 @@ const sortedParagraphs = computed(() =>
 
       <div v-if="reportTask" class="task-status" role="status" aria-live="polite">
         <template v-if="reportTask === 'vlm'">
-          <strong>正在调用 Qwen VLM 分析 overlay…</strong>
+          <strong>正在调用 Qwen VLM 分析原片…</strong>
           <span>已用时 {{ formatElapsed(taskElapsedMs) }}</span>
           <p class="task-hint">通常需 10–60 秒，请稍候</p>
         </template>
@@ -869,8 +1134,8 @@ const sortedParagraphs = computed(() =>
         <hr class="divider" />
         <p class="meta">
           模型 {{ vlmModel }}
-          · 提交 {{ vlmImagesUsed.length }} 张（overlay {{ selectedOverlayPaths.length
-          }}{{ includeSourceImage ? ' + 原图' : '' }}）
+          <span v-if="analysisFromCache">· 缓存</span>
+          · 原片 {{ vlmImagesUsed.length }} 张
           · 耗时 {{ formatElapsed(vlmDurationMs) }}
           <span v-if="vlmCaseId">
             · Case:
@@ -889,20 +1154,52 @@ const sortedParagraphs = computed(() =>
           <p>{{ vlmAnalysis.clinical_analysis }}</p>
         </div>
         <div v-if="vlmAnalysis.medication_recommendation" class="report-section">
-          <h4>用药建议</h4>
+          <h4>用药建议（文本）</h4>
           <p>{{ vlmAnalysis.medication_recommendation }}</p>
-        </div>
-        <div v-if="vlmAnalysis.recommended_drugs?.length" class="report-section">
-          <h4>VLM 推荐用药（Step 1）</h4>
-          <ul>
-            <li v-for="(d, i) in vlmAnalysis.recommended_drugs" :key="i">
-              {{ typeof d === 'string' ? d : [d.name, d.dose, d.route, d.indication].filter(Boolean).join(' ') }}
-            </li>
-          </ul>
         </div>
         <div v-if="vlmAnalysis.reasoning" class="cot-block">
           <strong>推理</strong>
           {{ vlmAnalysis.reasoning }}
+        </div>
+      </template>
+
+      <template v-if="medConsultResult">
+        <hr class="divider" />
+        <div class="med-result">
+          <h3>用药安全分析结果</h3>
+          <div class="card final-card">
+            <h4>最终建议</h4>
+            <RiskBadge
+              v-if="medConsultArb"
+              :level="medConsultArb.consensus_risk_level"
+              :block="medConsultArb.consensus_block_decision"
+            />
+            <p class="final-text">{{ medConsultResult.final_recommendation }}</p>
+            <p v-if="medConsultResult.case_id" class="case-id">
+              Case:
+              <RouterLink :to="`/cases/${medConsultResult.case_id}`">
+                <code>{{ medConsultResult.case_id }}</code>
+              </RouterLink>
+            </p>
+          </div>
+          <RuleReviewSummary :rule-output="medConsultResult.rule_output" />
+          <DebatePanel
+            :debate="medConsultResult.debate"
+            :safety-panel="medConsultResult.safety_panel"
+          />
+          <div v-if="medConsultArb" class="card">
+            <h4>会诊主席仲裁</h4>
+            <p>{{ medConsultArb.arbitration_notes }}</p>
+            <p v-if="medConsultArb.conflict_detected" class="conflict">检测到专家意见冲突</p>
+          </div>
+          <div class="agents-grid">
+            <h4>专家意见 ({{ medConsultResult.agent_opinions.length }})</h4>
+            <AgentOpinionCard
+              v-for="o in medConsultResult.agent_opinions"
+              :key="o.agent_id"
+              :opinion="o"
+            />
+          </div>
         </div>
       </template>
 
@@ -959,6 +1256,15 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
   background: #fff3e0;
   color: #e65100;
   border: 1px solid #ffcc80;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius);
+  margin-bottom: 0.75rem;
+  font-size: 0.88rem;
+}
+.info-banner {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
   padding: 0.65rem 0.85rem;
   border-radius: var(--radius);
   margin-bottom: 0.75rem;
@@ -1056,5 +1362,40 @@ h1 { font-size: 1.35rem; color: var(--primary-dark); }
 .history-item.active { background: var(--primary-light); border-color: var(--primary); }
 .history-item span { display: block; color: var(--text-muted); font-size: 0.78rem; }
 .history-item small { color: var(--text-muted); font-size: 0.72rem; }
-.muted { color: var(--text-muted); font-size: 0.85rem; }
+.muted, .hint-muted { color: var(--text-muted); font-size: 0.85rem; }
+.hint-muted { margin-bottom: 0.75rem; }
+.card-inline {
+  margin: 0.75rem 0;
+  padding: 0.85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.card-inline h4 { margin: 0 0 0.35rem; font-size: 0.95rem; }
+.field { margin-bottom: 0.75rem; }
+.label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.35rem; }
+.drug-list { list-style: none; margin-bottom: 0.5rem; }
+.drug-list li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;
+  padding: 0.35rem 0.5rem; background: var(--surface); border-radius: var(--radius); margin-bottom: 0.35rem;
+}
+.drug-meta { font-size: 0.78rem; color: var(--text-muted); }
+.tag-list { list-style: none; margin-bottom: 0.5rem; }
+.tag-list li {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.35rem 0.5rem; background: var(--surface); border-radius: var(--radius); margin-bottom: 0.35rem;
+}
+.tag-list small { color: var(--text-muted); font-weight: normal; }
+.empty-hint { font-size: 0.82rem; color: var(--text-muted); margin: 0 0 0.35rem; }
+.add-drug { display: flex; gap: 0.5rem; }
+.add-drug .input { flex: 1; }
+.med-analyze-btn { width: 100%; margin-top: 0.35rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; }
+.med-result { margin-top: 0.5rem; }
+.med-result h3 { font-size: 1rem; margin-bottom: 0.75rem; }
+.final-card { background: var(--surface-2); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 0.75rem; }
+.final-text { margin: 0.5rem 0 0; line-height: 1.55; }
+.case-id { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.5rem; }
+.conflict { color: var(--danger); font-size: 0.88rem; }
+.agents-grid { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+.error { color: var(--danger); font-size: 0.88rem; margin-top: 0.35rem; }
 </style>

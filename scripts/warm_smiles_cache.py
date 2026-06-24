@@ -83,19 +83,25 @@ def main() -> None:
     skipped = 0
     failed = 0
 
-    for name in sorted(names):
-        if not name:
-            continue
+    todo = [name for name in sorted(names) if name]
+    total = len(todo)
+    already = sum(1 for n in todo if lookup.resolve(n, allow_network=False))
+    print(
+        f"Warming SMILES cache: {total} drugs total, "
+        f"{already} already cached, ~{total - already} PubChem lookups (~3–15 min)..."
+    )
+
+    for idx, name in enumerate(todo, start=1):
         if lookup.resolve(name, allow_network=False):
             skipped += 1
             continue
         smiles = lookup.resolve(name, allow_network=True)
         if smiles:
             resolved += 1
-            print(f"  [OK] {name}")
+            print(f"  [{idx}/{total}] [OK] {name}")
         else:
             failed += 1
-            print(f"  [MISS] {name}")
+            print(f"  [{idx}/{total}] [MISS] {name}")
 
     print(f"\nDone. newly_fetched={resolved}, already_cached={skipped}, failed={failed}, cache_size={cache.count()}")
 
