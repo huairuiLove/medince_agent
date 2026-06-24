@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from src.case_store import CaseStore
 from src.schemas import ClinicalReport, DiagnosisItem, GenerateReportRequest, PatientContext
+from src.utils import coerce_llm_str_list
 
 CASE_STORE = CaseStore()
 
@@ -21,13 +22,13 @@ def patient_context_from_vlm(
     analysis: dict,
     department: str,
 ) -> PatientContext:
-    diagnoses = analysis.get("diagnoses") or []
+    diagnoses = coerce_llm_str_list(analysis.get("diagnoses"))
     return PatientContext(
         department=department,
         source_text=clinical_text,
         chief_complaint=str(analysis.get("chief_complaint") or ""),
-        symptoms_or_complaints=list(analysis.get("symptoms") or []),
-        allergies=list(analysis.get("allergies") or []),
+        symptoms_or_complaints=coerce_llm_str_list(analysis.get("symptoms")),
+        allergies=coerce_llm_str_list(analysis.get("allergies")),
         diagnoses=[DiagnosisItem(name=str(d)) for d in diagnoses],
     )
 

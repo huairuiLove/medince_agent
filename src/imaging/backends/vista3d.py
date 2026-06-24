@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 
+from src.config import resolve_path
 from src.imaging.backends.base import BaseSegmentBackend, SegmentResult
 from src.imaging.memory_monitor import memory_delta, release_torch, snapshot
 from src.imaging.registry import model_dir
@@ -51,6 +52,11 @@ class Vista3DBackend(BaseSegmentBackend):
         image_path = Path(image_path)
         organ = kwargs.get("organ", "brain")
         volume_path = kwargs.get("volume_path")
+        if volume_path:
+            vol = Path(volume_path)
+            if not vol.is_absolute():
+                vol = resolve_path(str(volume_path))
+            volume_path = vol
         axis: VolumeAxis = kwargs.get("slice_axis", "axial")
         slice_index = int(kwargs.get("slice_index", 0))
         t0 = time.perf_counter()

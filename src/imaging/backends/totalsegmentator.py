@@ -57,8 +57,6 @@ class TotalSegmentatorBackend(BaseSegmentBackend):
         release_torch()
 
     def segment(self, image_path: str | Path, **kwargs: Any) -> SegmentResult:
-        from totalsegmentator.python_api import totalsegmentator as ts_predict
-
         self._ensure_home()
         image_path = Path(image_path)
         t0 = time.perf_counter()
@@ -78,6 +76,11 @@ class TotalSegmentatorBackend(BaseSegmentBackend):
             roi_subset = ["liver", "lung", "brain"]
 
         try:
+            from totalsegmentator.python_api import totalsegmentator as ts_predict
+            if not callable(ts_predict):
+                raise RuntimeError(
+                    "TotalSegmentator API unavailable. Run: pip install 'totalsegmentator>=2.3.0'"
+                )
             ts_predict(
                 str(nii_input),
                 str(out_dir),

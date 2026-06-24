@@ -76,6 +76,14 @@ def _format_llm_list_item(item: object) -> str:
     return str(item).strip()
 
 
+def _repair_char_split_list(items: list[str]) -> list[str]:
+    """Merge lists produced by iterating a string char-by-char (e.g. list('青霉素'))."""
+    stripped = [part.strip() for part in items if part and part.strip()]
+    if len(stripped) >= 2 and all(len(part) == 1 for part in stripped):
+        return ["".join(stripped)]
+    return stripped
+
+
 def coerce_llm_str_list(value: object) -> list[str]:
     """Normalize LLM JSON list fields that may arrive as strings or dict items."""
     if value is None:
@@ -86,7 +94,7 @@ def coerce_llm_str_list(value: object) -> list[str]:
             return []
         if re.search(r"[,，;；\n]", text):
             parts = re.split(r"[,，;；\n]+", text)
-            return [part.strip() for part in parts if part.strip()]
+            return _repair_char_split_list([part.strip() for part in parts if part.strip()])
         return [text]
     if isinstance(value, list):
         result: list[str] = []
@@ -94,9 +102,9 @@ def coerce_llm_str_list(value: object) -> list[str]:
             formatted = _format_llm_list_item(item)
             if formatted:
                 result.append(formatted)
-        return result
+        return _repair_char_split_list(result)
     formatted = _format_llm_list_item(value)
-    return [formatted] if formatted else []
+    return _repair_char_split_list([formatted]) if formatted else []
 
 
 def extract_json_payload(text: str) -> Optional[Any]:

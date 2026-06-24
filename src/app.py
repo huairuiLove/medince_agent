@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from src.agents.extract_agent import ExtractAgent
 from src.case_store import CaseStore, resolve_case_department
+from src.imaging.case_persist import patient_context_from_vlm as _patient_context_from_vlm
 from src.imaging.case_persist import persist_imaging_report_case as _persist_imaging_report_case_impl
 from src.knowledge_base import load_kb_stats
 from src.case_templates import CaseTemplateListResponse, get_case_template, list_case_templates
@@ -262,22 +263,6 @@ def _vlm_final_recommendation(analysis: dict) -> str:
             return text
     return str(analysis.get("reasoning") or "").strip() or "影像 VLM 查阅完成"
 
-
-def _patient_context_from_vlm(
-    *,
-    clinical_text: str,
-    analysis: dict,
-    department: str,
-) -> PatientContext:
-    diagnoses = analysis.get("diagnoses") or []
-    return PatientContext(
-        department=department,
-        source_text=clinical_text,
-        chief_complaint=str(analysis.get("chief_complaint") or ""),
-        symptoms_or_complaints=list(analysis.get("symptoms") or []),
-        allergies=list(analysis.get("allergies") or []),
-        diagnoses=[DiagnosisItem(name=str(d)) for d in diagnoses],
-    )
 
 
 def _persist_imaging_report_case(
@@ -1220,8 +1205,9 @@ def run_segmentation(
             slice_png = export_volume_slice(vol_target, axis=axis, slice_index=req.slice_index)
             visual = _project_rel_path(slice_png)
     kwargs: dict = {"organ": req.organ}
+    root = resolve_path(".")
     if req.volume_path:
-        kwargs["volume_path"] = req.volume_path
+        kwargs["volume_path"] = str((root / req.volume_path).resolve())
     if req.slice_axis:
         kwargs["slice_axis"] = req.slice_axis
     if req.slice_index is not None:

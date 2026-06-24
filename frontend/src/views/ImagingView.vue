@@ -28,7 +28,7 @@ import type {
   VolumeAxis,
   VlmAnalysis,
 } from '@/types'
-import { drugDetailParts, drugsWithoutIndication, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
+import { coerceStringList, drugDetailParts, drugsWithoutIndication, mergeDrugIndicationsIntoDiagnoses } from '@/utils/patientForm'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -372,6 +372,25 @@ function selectStudy(s: ImagingStudy) {
   void loadAnalysisCache()
 }
 
+function applyReportToForm(r: ClinicalReport) {
+  applyMedConsultFromReport(r)
+  const vlm = r.metadata?.vlm_analysis as VlmAnalysis | undefined
+  if (vlm && typeof vlm === 'object') {
+    vlmAnalysis.value = vlm
+    syncImagingFormFromVlm(vlm)
+  }
+  const drugs = r.metadata?.candidate_drugs as DrugItem[] | undefined
+  if (Array.isArray(drugs) && drugs.length) {
+    candidateDrugs.value = drugs.map(d => ({
+      name: d.name?.trim() ?? '',
+      dose: d.dose,
+      route: d.route,
+      frequency: d.frequency,
+      indication: d.indication,
+    })).filter(d => d.name)
+  }
+}
+
 async function loadAnalysisCache() {
   if (!selectedStudy.value) return
   const s = selectedStudy.value
@@ -386,7 +405,7 @@ async function loadAnalysisCache() {
     }
     if (res.full_report_cached && res.clinical_report) {
       report.value = res.clinical_report
-      applyMedConsultFromReport(res.clinical_report)
+      applyReportToForm(res.clinical_report)
       analysisFromCache.value = true
     }
   } catch {
@@ -441,6 +460,7 @@ async function loadSavedReport(reportId: string) {
   qaAnswer.value = ''
   try {
     report.value = await medsafeApi.getReport(selectedStudy.value.patient_id, reportId)
+    applyReportToForm(report.value)
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -556,14 +576,19 @@ function syncImagingFormFromVlm(analysis: VlmAnalysis | null) {
     .map(d => (typeof d === 'string' ? { name: d } : d))
     .filter(d => d.name?.trim())
 
+  const vlmAllergies = coerceStringList(analysis.allergies)
+  const vlmSymptoms = coerceStringList(analysis.symptoms)
+
   imagingPatient.value = {
     ...imagingPatient.value,
     gender: imagingPatient.value.gender ?? 'unknown',
     chief_complaint: analysis.chief_complaint ?? imagingPatient.value.chief_complaint,
-    symptoms_or_complaints: analysis.symptoms ?? imagingPatient.value.symptoms_or_complaints ?? [],
-    allergies: analysis.allergies?.length
-      ? [...analysis.allergies]
-      : imagingPatient.value.allergies ?? [],
+    symptoms_or_complaints: vlmSymptoms.length
+      ? vlmSymptoms
+      : coerceStringList(imagingPatient.value.symptoms_or_complaints),
+    allergies: vlmAllergies.length
+      ? vlmAllergies
+      : coerceStringList(imagingPatient.value.allergies),
     diagnoses: dxFromVlm.length ? dxFromVlm : imagingPatient.value.diagnoses ?? [],
     department: auth.profile?.dept_id ?? imagingPatient.value.department ?? '',
     source_text: clinicalText.value,

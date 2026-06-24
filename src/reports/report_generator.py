@@ -20,7 +20,7 @@ from src.schemas import (
     ReportParagraph,
     ReportSection,
 )
-from src.utils import make_case_id
+from src.utils import coerce_llm_str_list, make_case_id
 
 
 SECTION_ORDER: list[tuple[ReportSection, str]] = [
@@ -116,7 +116,7 @@ class ReportGenerator:
                     chief_complaint=str(vlm_analysis.get("chief_complaint", "")),
                     symptoms_or_complaints=list(vlm_analysis.get("symptoms", []) or []),
                     diagnoses=[DiagnosisItem(name=str(d)) for d in vlm_analysis.get("diagnoses", [])],
-                    allergies=list(vlm_analysis.get("allergies", []) or []),
+                    allergies=coerce_llm_str_list(vlm_analysis.get("allergies")),
                 )
                 dept_ctx = self.orchestrator._resolve_department_context(patient_context)
                 rule_output = self.orchestrator.review_engine.review(

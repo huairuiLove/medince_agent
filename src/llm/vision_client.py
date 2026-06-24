@@ -13,12 +13,21 @@ from PIL import Image
 
 from src.config import get_config
 from src.llm.errors import LLMNotConfiguredError, VisionLLMError
-from src.utils import extract_json_payload
+from src.utils import coerce_llm_str_list, extract_json_payload
 from src.imaging.volume_io import is_vlm_compatible_image
 
 
 BAILIAN_CONSOLE_URL = "https://bailian.console.aliyun.com/cn-beijing"
 BAILIAN_VL_DOC_URL = "https://help.aliyun.com/zh/model-studio/qwen-vl-compatible-with-openai"
+
+
+def _normalize_vlm_analysis(data: dict[str, Any]) -> dict[str, Any]:
+    out = dict(data)
+    for key in ("allergies", "symptoms", "diagnoses"):
+        if key in out:
+            out[key] = coerce_llm_str_list(out.get(key))
+    return out
+
 
 _REGION_ALIASES: dict[str, str] = {
     "cn-beijing": "cn-beijing",
@@ -254,7 +263,9 @@ class OpenAIVisionClient(VisionLLMClient):
         except (httpx.HTTPStatusError, httpx.RequestError) as exc:
             _raise_vision_upstream_error(exc, model=self.model)
         parsed = extract_json_payload(raw)
-        return parsed if isinstance(parsed, dict) else {"clinical_analysis": raw, "reasoning": raw}
+        if isinstance(parsed, dict):
+            return _normalize_vlm_analysis(parsed)
+        return {"clinical_analysis": raw, "reasoning": raw}
 
 
 class DeepSeekSynthesisClient:

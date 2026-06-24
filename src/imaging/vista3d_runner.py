@@ -6,10 +6,9 @@ import os
 import sys
 from pathlib import Path
 
-import torch
-from monai.bundle import ConfigParser
-
 from src.config import resolve_path
+from src.config import resolve_path
+from src.imaging.monai_bundle_runner import run_monai_bundle_inference
 from src.imaging.registry import model_dir
 from src.logging_config import get_logger
 from src.utils import ensure_dir
@@ -102,33 +101,36 @@ def run_vista3d_volume(
     sys.path.insert(0, str(bundle_root))
     try:
         os.chdir(bundle_root)
-        parser = ConfigParser()
-        parser.read_config(str(bundle_root / "configs" / "inference.json"))
-        parser["device"] = torch.device(device)
-        parser["input_dict"] = {"image": str(volume_path), "label_prompt": labels}
-        parser["output_dir"] = str(out_dir.resolve())
-        parser["sw_batch_size"] = 1
-        parser["use_point_window"] = False
-
+        overrides: dict = {
+            "input_dict": {"image": str(volume_path), "label_prompt": labels},
+            "output_dir": str(out_dir.resolve()),
+            "sw_batch_size": 1,
+            "use_point_window": False,
+        }
         if _needs_scale_intensity(volume_path):
-            for t in parser["preprocessing_transforms"]:
+            parser_pre = __import__("monai.bundle", fromlist=["ConfigParser"]).ConfigParser()
+            parser_pre.read_config(str(bundle_root / "configs" / "inference.json"))
+            transforms = list(parser_pre["preprocessing_transforms"])
+            for t in transforms:
                 if isinstance(t, dict) and t.get("_target_") == "ScaleIntensityRanged":
                     t["_disabled_"] = True
-            parser["preprocessing_transforms"].append({
+            transforms.append({
                 "_target_": "ScaleIntensityd",
                 "keys": "@image_key",
                 "minv": 0.0,
                 "maxv": 1.0,
             })
+            overrides["preprocessing_transforms"] = transforms
 
         logger.info(
             "vista3d_3d_start",
             extra={"volume": volume_path.name, "organ": organ, "labels": labels},
         )
-        parser.parse(True)
-        parser.get_parsed_content("initialize", eval=True)
-        evaluator = parser.get_parsed_content("evaluator")
-        evaluator.run()
+        run_monai_bundle_inference(
+            bundle_root,
+            device=device,
+            overrides=overrides,
+        )
     finally:
         os.chdir(prev_cwd)
 

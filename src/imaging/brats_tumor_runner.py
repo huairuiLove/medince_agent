@@ -123,18 +123,18 @@ def run_brats_tumor_volume(
     sys.path.insert(0, str(bundle_root))
     try:
         os.chdir(bundle_root)
-        parser = ConfigParser()
-        parser.read_config(str(bundle_root / "configs" / "inference.json"))
-        parser["device"] = torch.device(device)
-        parser["input_dict"] = {"image": str(stacked.resolve())}
-        parser["output_dir"] = str(out_dir.resolve())
-        parser["sw_batch_size"] = 1
+        from src.imaging.monai_bundle_runner import run_monai_bundle_inference
 
         logger.info("brats_tumor_start", extra={"case": stem, "region": region})
-        parser.parse(True)
-        parser.get_parsed_content("initialize", eval=True)
-        evaluator = parser.get_parsed_content("evaluator")
-        evaluator.run()
+        run_monai_bundle_inference(
+            bundle_root,
+            device=device,
+            overrides={
+                "input_dict": {"image": str(stacked.resolve())},
+                "output_dir": str(out_dir.resolve()),
+                "sw_batch_size": 1,
+            },
+        )
     finally:
         os.chdir(prev_cwd)
 

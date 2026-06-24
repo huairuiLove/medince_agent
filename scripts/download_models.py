@@ -99,13 +99,23 @@ def _setup_totalseg_env() -> None:
     os.environ["TOTALSEG_HOME_DIR"] = str(MODELS / "totalsegmentator")
 
 
+def _ensure_totalsegmentator() -> None:
+    """Install totalsegmentator if missing; skip unpinned TotalSegmentator (breaks on Py3.12)."""
+    try:
+        import totalsegmentator  # noqa: F401
+        return
+    except ImportError:
+        pass
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "--trusted-host", "pypi.org",
+         "--trusted-host", "files.pythonhosted.org", "totalsegmentator>=2.3.0"],
+    )
+
+
 def download_totalsegmentator(force: bool = False, include_mr: bool = True):
     """Download TotalSegmentator nnU-Net weights into models/totalsegmentator/."""
     print("Ensuring TotalSegmentator package ...")
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "--trusted-host", "pypi.org",
-         "--trusted-host", "files.pythonhosted.org", "TotalSegmentator"],
-    )
+    _ensure_totalsegmentator()
     _setup_totalseg_env()
 
     from totalsegmentator.libs import download_pretrained_weights

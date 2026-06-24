@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from src.config import get_config
+from src.config import get_config, resolve_path
 from src.imaging.backends.base import BaseSegmentBackend, SegmentResult
 from src.imaging.brats_tumor_runner import run_brats_tumor_volume
 from src.imaging.memory_monitor import memory_delta, release_torch, snapshot
@@ -40,6 +40,10 @@ class BraTSTumorBackend(BaseSegmentBackend):
     def segment(self, image_path: str | Path, **kwargs: Any) -> SegmentResult:
         image_path = Path(image_path)
         volume_path = kwargs.get("volume_path") or image_path
+        vol = Path(volume_path)
+        if not vol.is_absolute():
+            vol = resolve_path(str(volume_path))
+        volume_path = vol
         region = kwargs.get("organ") or kwargs.get("lesion") or "whole_tumor"
         axis: VolumeAxis = kwargs.get("slice_axis", "axial")
         slice_index = int(kwargs.get("slice_index", 0))
