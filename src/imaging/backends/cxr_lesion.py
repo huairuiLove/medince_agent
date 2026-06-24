@@ -39,7 +39,7 @@ class CXRLesionBackend(BaseSegmentBackend):
             raise ValueError("cxr_lesion requires a 2D chest X-ray image (PNG/JPG)")
 
         lesion = kwargs.get("lesion") or kwargs.get("organ") or "opacity"
-        device = get_config().get("imaging", {}).get("device", "cpu")
+        device = str(kwargs.get("device") or get_config().get("imaging", {}).get("device", "cpu"))
 
         t0 = time.perf_counter()
         mem_before = snapshot("cxr_lesion_before", lesion=lesion)

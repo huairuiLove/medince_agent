@@ -150,6 +150,7 @@ imaging:
     api_token: ''
     timeout_seconds: 600
     fallback_to_local: true
+    local_fallback_device: cpu
     health_cache_seconds: 30
     worker:
       host: 127.0.0.1

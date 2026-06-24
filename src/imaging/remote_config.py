@@ -23,6 +23,7 @@ def get_remote_segment_config() -> dict[str, Any]:
         "health_cache_seconds": int(remote.get("health_cache_seconds", 30)),
         "worker_host": str(worker.get("host", "127.0.0.1") or "127.0.0.1"),
         "worker_port": int(worker.get("port", 9000)),
+        "local_fallback_device": str(remote.get("local_fallback_device", "cpu") or "cpu"),
     }
 
 

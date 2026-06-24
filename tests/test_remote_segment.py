@@ -45,6 +45,7 @@ def test_fallback_to_local_when_remote_fails(segment_service: MagicMock, tmp_pat
 
     cfg = {
         "fallback_to_local": True,
+        "local_fallback_device": "cpu",
     }
 
     with patch("src.imaging.segment_orchestrator.remote_segment_configured", return_value=True):
@@ -56,7 +57,7 @@ def test_fallback_to_local_when_remote_fails(segment_service: MagicMock, tmp_pat
                     model_ids=["sam2d"],
                     image_abs=image_abs,
                     volume_abs=None,
-                    kwargs={"organ": "brain"},
+                    kwargs={"organ": "brain", "device": "cuda"},
                     organ="brain",
                     slice_axis="axial",
                     slice_index=0,
@@ -64,9 +65,11 @@ def test_fallback_to_local_when_remote_fails(segment_service: MagicMock, tmp_pat
 
     assert mode == "local"
     assert fallback is True
-    assert "降级为本地运算" in message
+    assert "本地 CPU" in message
     assert results[0].model_id == "sam2d"
     segment_service.segment_serial.assert_called_once()
+    call_kwargs = segment_service.segment_serial.call_args.kwargs
+    assert call_kwargs.get("device") == "cpu"
 
 
 def test_remote_success_skips_local(segment_service: MagicMock, tmp_path: Path):

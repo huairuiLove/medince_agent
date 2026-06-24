@@ -47,7 +47,7 @@ class BraTSTumorBackend(BaseSegmentBackend):
         region = kwargs.get("organ") or kwargs.get("lesion") or "whole_tumor"
         axis: VolumeAxis = kwargs.get("slice_axis", "axial")
         slice_index = int(kwargs.get("slice_index", 0))
-        device = get_config().get("imaging", {}).get("device", "cpu")
+        device = str(kwargs.get("device") or get_config().get("imaging", {}).get("device", "cpu"))
 
         t0 = time.perf_counter()
         mem_before = snapshot("brats_tumor_before", region=region)

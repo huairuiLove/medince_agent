@@ -16,6 +16,13 @@ from src.logging_config import get_logger
 logger = get_logger("imaging.segment_orchestrator")
 
 
+def _local_segment_kwargs(kwargs: dict[str, Any], *, force_cpu: bool) -> dict[str, Any]:
+    merged = dict(kwargs)
+    if force_cpu:
+        merged["device"] = get_remote_segment_config().get("local_fallback_device", "cpu")
+    return merged
+
+
 def segment_results_to_payload(results: list[SegmentResult]) -> list[dict[str, Any]]:
     return [{
         "model_id": r.model_id,
@@ -78,13 +85,17 @@ def run_segment_with_fallback(
                 detail=f"云端分割不可用且未启用本地降级：{reason}",
             )
         peak_before = rss_mb()
-        local_results = segment_service.segment_serial(visual, model_ids, **kwargs)
+        local_results = segment_service.segment_serial(
+            visual,
+            model_ids,
+            **_local_segment_kwargs(kwargs, force_cpu=True),
+        )
         peak_after = rss_mb()
         return (
             local_results,
             max(peak_before, peak_after),
             "local",
-            f"云端分割服务不可用，已降级为本地运算：{reason}",
+            f"云端分割服务不可用，已降级为本地 CPU 运算：{reason}",
             True,
         )
 

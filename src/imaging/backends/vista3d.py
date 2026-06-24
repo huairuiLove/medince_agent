@@ -59,17 +59,20 @@ class Vista3DBackend(BaseSegmentBackend):
             volume_path = vol
         axis: VolumeAxis = kwargs.get("slice_axis", "axial")
         slice_index = int(kwargs.get("slice_index", 0))
+        device = str(kwargs.get("device") or "cpu")
         t0 = time.perf_counter()
         mem_before = snapshot("vista3d_before", organ=organ)
 
         if volume_path and Path(volume_path).exists() and is_nifti(volume_path):
             return self._segment_volume_3d(
                 Path(volume_path), image_path, organ, axis, slice_index, t0, mem_before,
+                device=device,
             )
 
         if is_nifti(image_path):
             return self._segment_volume_3d(
                 image_path, image_path, organ, axis, slice_index, t0, mem_before,
+                device=device,
             )
 
         if is_visual_image(image_path):
@@ -83,6 +86,7 @@ class Vista3DBackend(BaseSegmentBackend):
                 t0,
                 mem_before,
                 mode_label="2d_via_3d",
+                device=device,
             )
 
         arr = load_grayscale_array(image_path)
@@ -111,9 +115,10 @@ class Vista3DBackend(BaseSegmentBackend):
         t0: float,
         mem_before: dict,
         mode_label: str = "3d_volume",
+        device: str = "cpu",
     ) -> SegmentResult:
         try:
-            mask_path = run_vista3d_volume(volume_path, organ=organ, device="cpu")
+            mask_path = run_vista3d_volume(volume_path, organ=organ, device=device)
             if is_visual_image(display_path):
                 overlay = save_overlay_from_mask_volume(
                     display_path, mask_path, axis=axis, slice_index=slice_index,
